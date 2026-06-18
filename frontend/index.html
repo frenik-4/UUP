@@ -21,9 +21,9 @@ body{background:var(--bg0);color:var(--t1);font-family:system-ui,sans-serif;font
 .login-card h1{font-size:22px;margin-bottom:4px}
 .login-card h1 span{color:var(--blue)}
 .login-sub{color:var(--t4);font-size:12px;margin-bottom:28px}
-.login-label{display:block;color:var(--t3);font-size:11px;font-weight:600;margin-bottom:4px;text-transform:uppercase;letter-spacing:.05em}
-.login-input{width:100%;background:var(--bg1);border:1px solid var(--bg3);border-radius:6px;padding:10px 12px;color:var(--t1);font-size:14px;margin-bottom:16px;outline:none}
-.login-input:focus{border-color:var(--blue)}
+.lbl{display:block;color:var(--t3);font-size:11px;font-weight:600;margin-bottom:4px;text-transform:uppercase;letter-spacing:.05em}
+.txt{width:100%;background:var(--bg1);border:1px solid var(--bg3);border-radius:6px;padding:10px 12px;color:var(--t1);font-size:14px;margin-bottom:16px;outline:none}
+.txt:focus{border-color:var(--blue)}
 .btn-primary{width:100%;background:var(--blue);border:none;border-radius:6px;padding:11px;color:#fff;font-size:14px;font-weight:600;cursor:pointer}
 .btn-primary:hover{background:#2563eb}
 .btn-primary:disabled{opacity:.5;cursor:not-allowed}
@@ -38,7 +38,7 @@ body{background:var(--bg0);color:var(--t1);font-family:system-ui,sans-serif;font
 .topbar-left{display:flex;align-items:center;gap:10px}
 .app-title{font-weight:800;font-size:14px;letter-spacing:.08em}
 .app-title span{color:var(--blue)}
-.period-select{background:var(--bg2);border:1px solid var(--bg3);border-radius:6px;padding:4px 10px;font-size:12px;color:var(--t3);cursor:pointer;outline:none}
+.period-select{background:var(--bg2);border:1px solid var(--bg3);border-radius:6px;padding:4px 8px;font-size:12px;color:var(--t3);cursor:pointer;outline:none}
 .period-select:focus{border-color:var(--blue)}
 .topbar-right{display:flex;align-items:center;gap:10px}
 .user-pill{background:var(--bg2);border:1px solid var(--bg3);border-radius:20px;padding:4px 10px 4px 4px;display:flex;align-items:center;gap:7px;font-size:12px;color:var(--t3)}
@@ -57,7 +57,7 @@ body{background:var(--bg0);color:var(--t1);font-family:system-ui,sans-serif;font
 
 /* Typography */
 .page-title{font-size:18px;font-weight:700;margin-bottom:4px}
-.page-sub{color:var(--t4);font-size:12px;margin-bottom:20px}
+.page-sub{color:var(--t4);font-size:12px;margin-bottom:16px}
 .section-title{font-size:11px;font-weight:700;color:var(--t4);text-transform:uppercase;letter-spacing:.07em;margin:16px 0 8px}
 
 /* Stats */
@@ -71,42 +71,61 @@ body{background:var(--bg0);color:var(--t1);font-family:system-ui,sans-serif;font
 .stat-card.amber .stat-value{color:var(--amber)}
 
 /* Alerts */
-.alert{border-radius:var(--rad);padding:12px 16px;margin-bottom:10px;display:flex;gap:10px}
+.alert{border-radius:var(--rad);padding:10px 14px;margin-bottom:8px;display:flex;gap:10px}
 .alert.red{background:#2d1515;border:1px solid #7f1d1d}
 .alert.amber{background:#2d1f0a;border:1px solid #78350f}
 .alert.blue{background:#0f1e3a;border:1px solid #1e3a6e}
-.alert-icon{flex-shrink:0;font-size:15px;margin-top:1px}
-.alert-title{font-size:13px;font-weight:700;margin-bottom:2px}
+.alert-icon{flex-shrink:0;font-size:14px;margin-top:1px}
+.alert-title{font-size:13px;font-weight:700;margin-bottom:1px}
 .alert-body{font-size:12px;color:var(--t3)}
 
-/* Tables */
-table{width:100%;border-collapse:collapse;margin-top:4px}
-th{text-align:left;font-size:10px;font-weight:700;color:var(--t4);text-transform:uppercase;letter-spacing:.06em;padding:8px 10px;border-bottom:1px solid var(--bg3)}
-td{padding:9px 10px;border-bottom:1px solid var(--bg2);font-size:13px;color:var(--t2)}
-tr:hover td{background:var(--bg2)}
-.clickable-row{cursor:pointer}
+/* ── Generic sortable table ─────────────────────────────────────────────── */
+.data-table-wrap{background:var(--bg2);border:1px solid var(--bg3);border-radius:var(--rad);overflow:hidden}
+.data-table{width:100%;border-collapse:collapse}
+.data-table th{
+  text-align:left;font-size:10px;font-weight:700;color:var(--t4);text-transform:uppercase;
+  letter-spacing:.06em;padding:9px 10px;border-bottom:1px solid var(--bg3);
+  white-space:nowrap;user-select:none;background:var(--bg1);
+}
+.data-table th.sortable{cursor:pointer}
+.data-table th.sortable:hover{color:var(--t2);background:var(--bg2)}
+.data-table th.sort-active{color:var(--t2);background:var(--bg2)}
+.sort-ic{margin-left:4px;opacity:.35;font-size:11px}
+.sort-active .sort-ic{opacity:1;color:var(--blue)}
+.data-table td{padding:9px 10px;border-bottom:1px solid var(--bg1);font-size:13px;color:var(--t2);vertical-align:middle}
+.data-table tbody tr:last-child td{border-bottom:none}
+.data-table tbody tr:hover td{background:var(--bg3);cursor:pointer}
+.data-table tbody tr.no-click:hover td{background:transparent;cursor:default}
+
+/* ── Table toolbar ─────────────────────────────────────────────────────── */
+.table-toolbar{display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap}
+.toolbar-search{background:var(--bg2);border:1px solid var(--bg3);border-radius:20px;padding:5px 12px 5px 30px;color:var(--t1);font-size:12px;outline:none;width:200px;position:relative}
+.toolbar-search:focus{border-color:var(--blue)}
+.search-wrap{position:relative;flex-shrink:0}
+.search-wrap::before{content:'🔍';position:absolute;left:9px;top:50%;transform:translateY(-50%);font-size:11px;pointer-events:none}
+.filter-chip{background:var(--bg2);border:1px solid var(--bg3);border-radius:20px;padding:5px 12px;color:var(--t3);font-size:12px;cursor:pointer;white-space:nowrap}
+.filter-chip:hover{border-color:var(--blue);color:var(--t1)}
+.filter-chip.active{background:var(--blue);border-color:var(--blue);color:#fff;font-weight:600}
+.table-count{margin-left:auto;font-size:11px;color:var(--t4)}
 
 /* Badges */
-.badge{display:inline-flex;align-items:center;gap:3px;border-radius:20px;padding:3px 8px;font-size:11px;font-weight:700;white-space:nowrap}
+.badge{display:inline-flex;align-items:center;gap:3px;border-radius:20px;padding:2px 8px;font-size:11px;font-weight:700;white-space:nowrap}
 .badge.green{background:#064e3b;color:#6ee7b7;border:1px solid #065f46}
 .badge.amber{background:#451a03;color:#fcd34d;border:1px solid #78350f}
 .badge.red{background:#450a0a;color:#fca5a5;border:1px solid #7f1d1d}
 .badge.blue{background:#0f1e3a;color:#93c5fd;border:1px solid #1d4ed8}
-.badge.gray{background:var(--bg2);color:var(--t4);border:1px solid var(--bg3)}
-.badge.purple{background:#2e1065;color:#c4b5fd;border:1px solid #4c1d95}
+.badge.gray{background:var(--bg1);color:var(--t4);border:1px solid var(--bg3)}
 
 /* Avatar */
 .avatar{border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;color:#fff;flex-shrink:0}
 
-/* Filter bar */
-.filter-bar{display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap}
-.filter-btn{background:var(--bg2);border:1px solid var(--bg3);border-radius:20px;padding:5px 12px;color:var(--t3);font-size:12px;cursor:pointer}
-.filter-btn.active{background:var(--blue);border-color:var(--blue);color:#fff;font-weight:600}
+/* Mini capacity bar (inline in table cell) */
+.cap-cell{display:flex;align-items:center;gap:6px;min-width:120px}
+.mini-bar{width:60px;height:5px;background:var(--bg3);border-radius:3px;position:relative;flex-shrink:0}
+.mini-bar-god{position:absolute;top:0;height:100%;border-radius:3px;background:var(--green)}
+.mini-bar-beg{position:absolute;top:0;height:100%;background:var(--amber)}
 
-/* Kapacitetsstapel */
-.kap-bar-wrap{height:8px;background:var(--bg3);border-radius:4px;overflow:hidden;position:relative}
-.kap-bar-god{position:absolute;top:0;height:100%;border-radius:4px;background:var(--green)}
-.kap-bar-beg{position:absolute;top:0;height:100%;background:var(--amber)}
+/* Kap legend */
 .kap-legend{display:flex;gap:14px;margin-bottom:10px}
 .kap-legend-item{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--t4)}
 .kap-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
@@ -118,17 +137,7 @@ tr:hover td{background:var(--bg2)}
 .tk-label{font-size:12px;color:var(--t3)}
 .tk-val{font-size:13px;font-weight:600}
 
-/* Person cards (Mitt team) */
-.team-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px}
-.person-card{background:var(--bg2);border:1px solid var(--bg3);border-radius:var(--rad);padding:14px;cursor:pointer;transition:border-color .15s}
-.person-card:hover{border-color:var(--blue)}
-.person-card.has-pending{border-left:3px solid var(--amber)}
-.pc-top{display:flex;align-items:center;gap:10px;margin-bottom:12px}
-.pc-name{font-size:14px;font-weight:700}
-.pc-sub{font-size:11px;color:var(--t4);margin-top:2px}
-.pc-badges{display:flex;gap:5px;margin-top:8px;flex-wrap:wrap}
-
-/* Bemanning split */
+/* Bemanning */
 .bem-layout{display:grid;grid-template-columns:1fr 300px;gap:12px;height:calc(100vh - 148px)}
 .bem-list{overflow-y:auto;background:var(--bg2);border:1px solid var(--bg3);border-radius:var(--rad)}
 .bem-detail{overflow-y:auto;background:var(--bg2);border:1px solid var(--bg3);border-radius:var(--rad)}
@@ -149,7 +158,7 @@ tr:hover td{background:var(--bg2)}
 .info-cell-label{font-size:10px;color:var(--t4);font-weight:700;text-transform:uppercase;margin-bottom:4px}
 .info-cell-value{font-size:18px;font-weight:700}
 
-/* Assignment rows */
+/* Assignment rows in detail/overlay */
 .asg-row{display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--bg3)}
 .asg-row:last-child{border-bottom:none}
 .asg-info{flex:1;min-width:0}
@@ -161,18 +170,18 @@ tr:hover td{background:var(--bg2)}
 .btn-sm.del:hover{background:var(--red)}
 .btn-add{width:100%;background:transparent;border:1px dashed var(--bg3);border-radius:6px;padding:10px;color:var(--t4);font-size:13px;cursor:pointer;margin-top:10px;text-align:center}
 .btn-add:hover{border-color:var(--blue);color:var(--blue);background:#0f1e3a}
-.empty-state{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;min-height:120px;padding:30px;text-align:center;color:var(--t4);gap:8px}
+.empty-state{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;min-height:100px;padding:30px;text-align:center;color:var(--t4);gap:8px}
 .empty-icon{font-size:30px;opacity:.4}
 
 /* Person detail overlay */
 .person-overlay{position:fixed;inset:0;background:var(--bg0);z-index:50;overflow-y:auto}
-.person-overlay-inner{max-width:1000px;margin:0 auto;padding:20px 24px}
+.person-overlay-inner{max-width:1020px;margin:0 auto;padding:20px 24px}
 .back-btn{display:inline-flex;align-items:center;gap:6px;background:none;border:1px solid var(--bg3);border-radius:6px;padding:6px 12px;color:var(--t4);font-size:12px;cursor:pointer;margin-bottom:16px}
 .back-btn:hover{color:var(--t1);border-color:var(--t4)}
-.person-overlay-grid{display:grid;grid-template-columns:260px 1fr;gap:20px;align-items:start}
+.person-overlay-grid{display:grid;grid-template-columns:255px 1fr;gap:20px;align-items:start}
 .pov-left{position:sticky;top:20px}
 .pending-item{background:var(--bg2);border:1px solid var(--bg3);border-radius:6px;padding:10px 12px;margin-bottom:8px}
-.pending-kurs{font-size:13px;font-weight:600;cursor:pointer;color:var(--t1)}
+.pending-kurs{font-size:13px;font-weight:600;cursor:pointer}
 .pending-kurs:hover{color:var(--blue);text-decoration:underline}
 .pending-meta{font-size:11px;color:var(--t4);margin-top:2px}
 .pending-actions{display:flex;gap:6px;margin-top:8px}
@@ -197,9 +206,7 @@ tr:hover td{background:var(--bg2)}
 .picker-row.selected{background:#0f1e3a;border-color:var(--blue)}
 .picker-cap{margin-left:auto;text-align:right;flex-shrink:0}
 .picker-cap-val{font-size:14px;font-weight:700}
-.cap-ok{color:var(--green)}
-.cap-warn{color:var(--amber)}
-.cap-over{color:var(--red)}
+.cap-ok{color:var(--green)} .cap-warn{color:var(--amber)} .cap-over{color:var(--red)}
 .picker-cap-label{font-size:10px;color:var(--t4)}
 .hours-row{display:flex;align-items:center;gap:8px;margin-top:14px;padding-top:14px;border-top:1px solid var(--bg3);flex-wrap:wrap}
 .hours-row label{font-size:12px;color:var(--t3);font-weight:600}
@@ -226,32 +233,39 @@ tr:hover td{background:var(--bg2)}
 <script>
 'use strict';
 const API = '/api';
-const VERSION = '0.2.1';
+const VERSION = '0.2.2';
 
 let S = {
   token: localStorage.getItem('uup_token'),
   user:  JSON.parse(localStorage.getItem('uup_user') || 'null'),
   view: 'dashboard',
   year: 2026,
-  activePeriodId: null,   // null = alla perioder
-  // cached data
+  activePeriodId: null,
+  // data
   avdelningar: null, perioder: null, personal: null, kurser: null, kapacitet: null,
   kursCache: {}, kontoCache: {}, belaggningsCache: {},
-  // bemanning view
-  selectedKurs: null, kursDetail: null, bemanFilter: 'all',
-  // kapacitet / team view
-  kapFilter: null, kapSearch: '',
+  // sort state: {k: fieldKey, d: 'asc'|'desc'}
+  sortTeam: {k:'belaggningspct', d:'desc'},
+  sortKap:  {k:'belaggningspct', d:'desc'},
+  sortPers: {k:'namn', d:'asc'},
+  sortRapt: {k:'belaggningspct', d:'desc'},
+  sortBudg: {k:'namn', d:'asc'},
+  sortBem:  {k:'namn', d:'asc'},
+  // filter/search state
+  teamSearch:'', teamAvdFilter:null, teamKatFilter:'all',
+  kapSearch:'', kapAvdFilter:null,
+  persSearch:'', persKatFilter:'all',
+  // bemanning
+  selectedKurs:null, kursDetail:null, bemanFilter:'all', bemanSearch:'',
   // person overlay
-  personOverlay: null,   // { personId, fromView }
-  personBelList: null,   // loaded belaggningar for overlay
+  personOverlay:null, personBelList:null,
   // picker
-  pickerKursId: null, pickerPersonId: null,
-  pickerTimmar: 60, pickerStatus: 'begard', pickerSearch: '',
-  pickerValMsg: null,
-  pendingCount: 0, loginErr: '', loginLoading: false,
+  pickerKursId:null, pickerPersonId:null, pickerTimmar:60,
+  pickerStatus:'begard', pickerSearch:'', pickerValMsg:null,
+  pendingCount:0, loginErr:'', loginLoading:false,
 };
 
-// ── API ────────────────────────────────────────────────────────────────────
+// ── API ─────────────────────────────────────────────────────────────────────
 async function api(path, opts={}) {
   const r = await fetch(API+path, {
     ...opts,
@@ -265,25 +279,20 @@ async function api(path, opts={}) {
   return d;
 }
 
-// ── AUTH ───────────────────────────────────────────────────────────────────
+// ── AUTH ────────────────────────────────────────────────────────────────────
 async function doLogin() {
-  const epost = document.getElementById('l-e')?.value?.trim();
-  const pw    = document.getElementById('l-p')?.value;
+  const epost=document.getElementById('l-e')?.value?.trim(), pw=document.getElementById('l-p')?.value;
   if (!epost||!pw) return;
   S.loginLoading=true; S.loginErr=''; render();
   try {
-    const res = await api('/auth/login',{method:'POST',body:JSON.stringify({epost,losenord:pw})});
+    const res=await api('/auth/login',{method:'POST',body:JSON.stringify({epost,losenord:pw})});
     S.token=res.access_token; S.user=res.anvandare;
-    localStorage.setItem('uup_token',S.token);
-    localStorage.setItem('uup_user',JSON.stringify(S.user));
+    localStorage.setItem('uup_token',S.token); localStorage.setItem('uup_user',JSON.stringify(S.user));
     S.loginLoading=false;
-    // Set default view based on role
-    const r=role();
-    S.view = (r==='avdc'||r==='str_roll') ? 'mittteam' : 'dashboard';
-    await loadBase();
-    render();
+    S.view=['avdc','str_roll'].includes(role())?'mittteam':'dashboard';
+    await loadBase(); render();
   } catch(e) {
-    S.loginErr = typeof e.detail==='string'?e.detail:'Inloggning misslyckades';
+    S.loginErr=typeof e.detail==='string'?e.detail:'Inloggning misslyckades';
     S.loginLoading=false; render();
   }
 }
@@ -295,53 +304,91 @@ function logout() {
   Object.assign(S,{token:null,user:null,view:'dashboard',avdelningar:null,perioder:null,
     personal:null,kurser:null,kapacitet:null,kursCache:{},kontoCache:{},belaggningsCache:{},
     selectedKurs:null,kursDetail:null,personOverlay:null,personBelList:null,
-    pendingCount:0,loginErr:'',loginLoading:false,activePeriodId:null});
+    pendingCount:0,loginErr:'',loginLoading:false,activePeriodId:null,year:2026,
+    teamSearch:'',kapSearch:'',persSearch:'',bemanSearch:''});
   render();
 }
 
 function role()  { return S.user?.roller[0]?.roll||null; }
 function avdId() { return S.user?.roller.find(r=>r.avdelning)?.avdelning?.id||null; }
 
-// ── DATA ───────────────────────────────────────────────────────────────────
+// ── DATA ─────────────────────────────────────────────────────────────────────
 async function loadBase() {
   const [avd,per,pers,kurs] = await Promise.all([
     api('/avdelningar'), api('/perioder'), api('/personal'), api('/kurser')
   ]);
   S.avdelningar=avd; S.perioder=per; S.personal=pers; S.kurser=kurs;
-  // default: activate the most recent year's full-year period
   if (!S.activePeriodId && per.length) {
-    const fullYear = per.filter(p=>p.typ==='kalenderar').sort((a,b)=>b.start_datum.localeCompare(a.start_datum))[0];
-    if (fullYear) { S.activePeriodId=fullYear.id; S.year=parseInt(fullYear.start_datum.substring(0,4)); }
+    const fy=per.filter(p=>p.typ==='kalenderar').sort((a,b)=>b.start_datum.localeCompare(a.start_datum))[0];
+    if (fy) { S.activePeriodId=fy.id; S.year=parseInt(fy.start_datum.substring(0,4)); }
   }
   S.pendingCount=kurs.filter(k=>+(k.bemannat_begard)>0).length;
 }
 
 async function ensureKap() {
-  if (!S.kapacitet) S.kapacitet = await api('/personal/kapacitet?ar='+S.year);
+  if (!S.kapacitet) S.kapacitet=await api('/personal/kapacitet?ar='+S.year);
 }
 
 async function loadKurs(id) {
-  if (!S.kursCache[id]) S.kursCache[id] = await api('/kurser/'+id);
-  S.kursDetail = S.kursCache[id];
+  if (!S.kursCache[id]) S.kursCache[id]=await api('/kurser/'+id);
+  S.kursDetail=S.kursCache[id];
 }
 
 async function loadKonto(id) {
-  const key=id+'_'+S.year;
-  if (!S.kontoCache[key]) S.kontoCache[key] = await api('/personal/'+id+'/tidskonto?ar='+S.year);
-  return S.kontoCache[key];
+  const k=id+'_'+S.year;
+  if (!S.kontoCache[k]) S.kontoCache[k]=await api('/personal/'+id+'/tidskonto?ar='+S.year);
+  return S.kontoCache[k];
 }
 
 async function loadPersonBel(id) {
-  const key=id+'_'+S.year;
-  if (!S.belaggningsCache[key]) S.belaggningsCache[key] = await api('/personal/'+id+'/belaggningar?ar='+S.year);
-  return S.belaggningsCache[key];
+  const k=id+'_'+S.year;
+  if (!S.belaggningsCache[k]) S.belaggningsCache[k]=await api('/personal/'+id+'/belaggningar?ar='+S.year);
+  return S.belaggningsCache[k];
 }
 
-function invalidatePersonCaches() {
+function invalidate() {
   S.kurser=null; S.kursCache={}; S.kontoCache={}; S.belaggningsCache={}; S.kapacitet=null;
 }
 
-// ── PERIOD SELECTOR ────────────────────────────────────────────────────────
+// ── SORT / FILTER HELPERS ────────────────────────────────────────────────────
+
+// Sort an array by key+direction
+function srt(arr, k, d) {
+  return [...arr].sort((a,b)=>{
+    let av=a[k]??'', bv=b[k]??'';
+    if (typeof av==='number'||typeof bv==='number'){av=+av||0;bv=+bv||0;return d==='asc'?av-bv:bv-av;}
+    return d==='asc'?String(av).localeCompare(String(bv),'sv'):String(bv).localeCompare(String(av),'sv');
+  });
+}
+
+// Toggle sort for a named sort state key
+function tsort(stateKey, colKey) {
+  const st=S[stateKey];
+  S[stateKey]=st.k===colKey?{k:colKey,d:st.d==='asc'?'desc':'asc'}:{k:colKey,d:'asc'};
+  rc();
+}
+
+// Render a sortable <th>
+function th(label, colKey, stateKey, extraStyle='') {
+  const {k,d}=S[stateKey], active=k===colKey;
+  const ic=active?(d==='asc'?'↑':'↓'):'↕';
+  return `<th class="sortable${active?' sort-active':''}" style="${extraStyle}" onclick="tsort('${stateKey}','${colKey}')">
+    ${label}<span class="sort-ic">${ic}</span>
+  </th>`;
+}
+
+// Mini capacity bar for table cells
+function miniBar(god, beg, avail) {
+  const g=+god||0, be=+beg||0, a=+avail||0;
+  if (!a) return '<span style="color:var(--t4)">—</span>';
+  const gp=Math.min(100,g/a*100), bp=Math.min(100-gp,be/a*100);
+  return `<div class="mini-bar">
+    <div class="mini-bar-god" style="width:${gp}%"></div>
+    ${bp>0?`<div class="mini-bar-beg" style="left:${gp}%;width:${bp}%"></div>`:''}
+  </div>`;
+}
+
+// Period change
 function onPeriodChange(val) {
   if (val==='all') { S.activePeriodId=null; }
   else {
@@ -349,15 +396,10 @@ function onPeriodChange(val) {
     const p=(S.perioder||[]).find(p=>p.id===pid);
     if (p) {
       const yr=parseInt(p.start_datum.substring(0,4));
-      if (yr!==S.year) { S.year=yr; S.kapacitet=null; S.kontoCache={}; S.belaggningsCache={}; }
+      if (yr!==S.year){S.year=yr;S.kapacitet=null;S.kontoCache={};S.belaggningsCache={};}
     }
   }
   rc();
-}
-
-function activeYear() {
-  if (!S.activePeriodId) return S.year;
-  return (S.perioder||[]).find(p=>p.id===S.activePeriodId)?.planeringsår || S.year;
 }
 
 function filteredKurser() {
@@ -366,61 +408,53 @@ function filteredKurser() {
   return ks.filter(k=>k.period_id===S.activePeriodId);
 }
 
-// ── HELPERS ────────────────────────────────────────────────────────────────
+// ── RENDER HELPERS ────────────────────────────────────────────────────────────
 const fh = h => Math.round(+h||0)+'h';
 const fp = p => Math.round(+p||0)+'%';
 
 function kursStatus(k) {
-  const b=+(k.budget_timmar)||0, g=+(k.bemannat_godkand)||0, beg=+(k.bemannat_begard)||0;
-  if (!b) return 'okand';
-  if (g>=b) return 'full'; if (g>0) return 'partial';
-  if (beg>0) return 'begard'; return 'unstaffed';
+  const b=+(k.budget_timmar)||0,g=+(k.bemannat_godkand)||0,beg=+(k.bemannat_begard)||0;
+  if (!b) return 'okand'; if (g>=b) return 'full';
+  if (g>0) return 'partial'; if (beg>0) return 'begard'; return 'unstaffed';
 }
-
 function statusBadge(st) {
-  return {full:'<span class="badge green">✓ Bemannad</span>',
-    partial:'<span class="badge amber">△ Delvis</span>',
-    begard:'<span class="badge blue">⏳ Begärd</span>',
-    unstaffed:'<span class="badge red">✗ Ej bemannad</span>',
-    okand:'<span class="badge gray">— Okänd budget</span>'}[st]||'<span class="badge gray">—</span>';
+  return {full:'<span class="badge green">✓ Bemannad</span>',partial:'<span class="badge amber">△ Delvis</span>',
+    begard:'<span class="badge blue">⏳ Begärd</span>',unstaffed:'<span class="badge red">✗ Ej bemannad</span>',
+    okand:'<span class="badge gray">— Budget saknas</span>'}[st]||'<span class="badge gray">—</span>';
 }
-
 function asgBadge(st) {
-  return {utkast:'<span class="badge gray">✏ Utkast</span>',
-    begard:'<span class="badge blue">⏳ Begärd</span>',
-    godkand:'<span class="badge green">✓ Godkänd</span>',
-    nekad:'<span class="badge red">✗ Nekad</span>'}[st]||`<span class="badge gray">${st}</span>`;
+  return {utkast:'<span class="badge gray">✏ Utkast</span>',begard:'<span class="badge blue">⏳ Begärd</span>',
+    godkand:'<span class="badge green">✓ Godkänd</span>',nekad:'<span class="badge red">✗ Nekad</span>'}[st]
+    ||`<span class="badge gray">${st}</span>`;
 }
-
 function avCol(id){ return ['#3b82f6','#8b5cf6','#10b981','#f59e0b','#ef4444','#06b6d4','#ec4899'][(id||0)%7]; }
-function av(p,sz=30){ return `<div class="avatar" style="width:${sz}px;height:${sz}px;font-size:${Math.round(sz*0.37)}px;background:${avCol(p.id||p.person_id)}">${p.initialer}</div>`; }
+function av(p,sz=28){ return `<div class="avatar" style="width:${sz}px;height:${sz}px;font-size:${Math.round(sz*.36)}px;background:${avCol(p.id||p.person_id)}">${p.initialer}</div>`; }
 function periodName(id){ return (S.perioder||[]).find(p=>p.id===id)?.namn||'—'; }
 function roleName(r){ return {sysadmin:'Sysadmin',prefekt:'Prefekt',avdc:'Avdelningschef',str_roll:'Studierektor',ekonom:'Ekonom',larare:'Lärare',hr:'HR/Admin'}[r]||r; }
 
 function navItems() {
   const r=role();
-  const all=[
-    {id:'mittteam',  icon:'👥', label:'Mitt team',         roles:['avdc','str_roll','prefekt','sysadmin']},
-    {id:'dashboard', icon:'📊', label:'Dashboard',         roles:['sysadmin','prefekt','avdc','str_roll','ekonom','larare','hr']},
-    {id:'bemanning', icon:'📋', label:'Bemanning',          roles:['sysadmin','prefekt','avdc','str_roll']},
-    {id:'kapacitet', icon:'📈', label:'Kapacitetskarta',    roles:['sysadmin','prefekt','avdc','str_roll']},
-    {id:'rapporter', icon:'🔍', label:'Rapporter',          roles:['sysadmin','prefekt','avdc','hr','ekonom']},
-    {id:'personal',  icon:'🗂', label:'Personal',           roles:['sysadmin','prefekt','hr','avdc']},
-    {id:'budget',    icon:'💰', label:'Budget & uppdrag',   roles:['sysadmin','ekonom','prefekt']},
-  ];
-  return all.filter(i=>!r||i.roles.includes(r));
+  return [
+    {id:'mittteam', icon:'👥', label:'Mitt team',        roles:['avdc','str_roll','prefekt','sysadmin']},
+    {id:'dashboard',icon:'📊', label:'Dashboard',        roles:['sysadmin','prefekt','avdc','str_roll','ekonom','larare','hr']},
+    {id:'bemanning',icon:'📋', label:'Bemanning',         roles:['sysadmin','prefekt','avdc','str_roll']},
+    {id:'kapacitet',icon:'📈', label:'Kapacitetskarta',   roles:['sysadmin','prefekt','avdc','str_roll']},
+    {id:'rapporter',icon:'🔍', label:'Rapporter',         roles:['sysadmin','prefekt','avdc','hr','ekonom']},
+    {id:'personal', icon:'🗂', label:'Personal',          roles:['sysadmin','prefekt','hr','avdc']},
+    {id:'budget',   icon:'💰', label:'Budget & uppdrag',  roles:['sysadmin','ekonom','prefekt']},
+  ].filter(i=>!r||i.roles.includes(r));
 }
 
-// ── RENDER: LOGIN ──────────────────────────────────────────────────────────
+// ── RENDER: LOGIN ─────────────────────────────────────────────────────────────
 function renderLogin() {
   return `<div class="login-wrap"><div class="login-card">
     <h1>UUP <span>BEMANNING</span></h1>
     <div class="login-sub">Universitets Undervisningsplanering · v${VERSION}</div>
     ${S.loginErr?`<div class="login-err">⚠ ${S.loginErr}</div>`:''}
-    <label class="login-label">E-post</label>
-    <input id="l-e" class="login-input" type="email" placeholder="din@email.se" autocomplete="username"/>
-    <label class="login-label">Lösenord</label>
-    <input id="l-p" class="login-input" type="password" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()"/>
+    <label class="lbl">E-post</label>
+    <input id="l-e" class="txt" type="email" placeholder="din@email.se" autocomplete="username"/>
+    <label class="lbl">Lösenord</label>
+    <input id="l-p" class="txt" type="password" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()"/>
     <button class="btn-primary" onclick="doLogin()" ${S.loginLoading?'disabled':''}>
       ${S.loginLoading?'<span class="spinner" style="display:inline-block;width:14px;height:14px;border-width:2px;vertical-align:middle;margin-right:6px"></span>Loggar in…':'Logga in'}
     </button>
@@ -433,23 +467,20 @@ function renderLogin() {
   </div></div>`;
 }
 
-// ── RENDER: SHELL ──────────────────────────────────────────────────────────
+// ── RENDER: SHELL ─────────────────────────────────────────────────────────────
 function renderShell(content) {
   const rollText=(S.user?.roller||[]).map(r=>
     r.avdelning?`${roleName(r.roll)} (${r.avdelning.kortnamn||r.avdelning.namn})`:roleName(r.roll)
   ).join(', ')||'';
-
   const perioder=(S.perioder||[]).map(p=>
     `<option value="${p.id}" ${S.activePeriodId===p.id?'selected':''}>${p.namn}</option>`
   ).join('');
-
   const nav=navItems().map(i=>{
     const badge=i.id==='bemanning'&&S.pendingCount>0?`<span class="nav-badge">${S.pendingCount}</span>`:'';
     return `<div class="nav-item ${S.view===i.id&&!S.personOverlay?'active':''}" onclick="navigate('${i.id}')">
       <span>${i.icon}</span><span>${i.label}</span>${badge}
     </div>`;
   }).join('');
-
   return `<div class="topbar">
     <div class="topbar-left">
       <div class="app-title">UUP <span>BEMANNING</span></div>
@@ -471,75 +502,87 @@ function renderShell(content) {
     <div class="sidebar"><div class="sidebar-section">Navigation</div>${nav}</div>
     <div class="content" id="content">${content}</div>
   </div>
-  ${S.personOverlay ? renderPersonOverlay() : ''}`;
+  ${S.personOverlay?renderPersonOverlay():''}`;
 }
 
-const loadingHtml = () => `<div class="loading"><div class="spinner"></div><span>Laddar…</span></div>`;
+const loadingHtml=()=>`<div class="loading"><div class="spinner"></div><span>Laddar…</span></div>`;
 
-// ── RENDER: PERSON OVERLAY ─────────────────────────────────────────────────
+// ── PERSON CAPACITY TABLE (shared by Mitt team + Kapacitetskarta) ─────────────
+// Returns rows of the data-table for person capacity, after sort+filter
+function personCapRows(data, sortKey, noAvd) {
+  const {k,d}=S[sortKey];
+  const sorted=srt(data,k,d);
+  return sorted.map(p=>{
+    const avail=+(p.tillganglig_undervisning)||0, god=+(p.undervisning_godkand)||0, beg=+(p.undervisning_begard)||0;
+    const belagd=+(p.belaggningspct)||0, ater=+(p.aterstaar_inkl_begard)||0;
+    const over=god>avail;
+    return `<tr onclick="openPersonOverlay(${p.person_id})">
+      <td>
+        <div style="display:flex;align-items:center;gap:8px">
+          ${av(p,26)}
+          <div>
+            <div style="font-weight:600;font-size:13px">${p.namn}</div>
+            ${beg>0?`<div style="font-size:10px;color:var(--amber)">⏳ ${fh(beg)} begärd</div>`:''}
+          </div>
+        </div>
+      </td>
+      <td style="color:var(--t4);font-size:12px">${p.titel_display||'—'}</td>
+      ${noAvd?'':`<td style="font-size:12px">${p.avdelning_namn||'—'}</td>`}
+      <td>${fh(avail)}</td>
+      <td>
+        <div class="cap-cell">
+          ${miniBar(god,beg,avail)}
+          <span style="font-size:12px;color:var(--green)">${fh(god)}</span>
+        </div>
+      </td>
+      <td style="font-size:14px;font-weight:700;color:${over?'var(--red)':belagd>90?'var(--amber)':'var(--t1)'}">${fp(belagd)}</td>
+      <td style="color:${ater<0?'var(--red)':ater<50?'var(--amber)':'var(--t3)'};font-weight:${ater<0?'700':'400'}">${fh(ater)}</td>
+    </tr>`;
+  }).join('');
+}
+
+// ── RENDER: PERSON OVERLAY ────────────────────────────────────────────────────
 function renderPersonOverlay() {
-  const {personId} = S.personOverlay;
-  const kontoKey = personId+'_'+S.year;
-  const konto = S.kontoCache[kontoKey];
-  const bels  = S.personBelList;
-  const personKap = (S.kapacitet||[]).find(p=>p.person_id===personId);
-  const personList = (S.personal||[]).find(p=>p.id===personId);
-  const person = personKap || personList;
-
-  if (!konto || !bels) {
-    return `<div class="person-overlay">
-      <div class="person-overlay-inner">
-        <button class="back-btn" onclick="closePersonOverlay()">← Tillbaka</button>
-        ${loadingHtml()}
-      </div>
-    </div>`;
-  }
+  const {personId}=S.personOverlay;
+  const konto=S.kontoCache[personId+'_'+S.year];
+  const bels=S.personBelList;
+  const pk=(S.kapacitet||[]).find(p=>p.person_id===personId);
+  const pl=(S.personal||[]).find(p=>p.id===personId);
+  const person=pk||pl;
+  if (!konto||!bels) return `<div class="person-overlay"><div class="person-overlay-inner">
+    <button class="back-btn" onclick="closePersonOverlay()">← Tillbaka</button>${loadingHtml()}
+  </div></div>`;
 
   const r=role(), canApprove=['avdc','sysadmin','prefekt'].includes(r);
-  const navn = person?.namn || konto ? `Person ${personId}` : '—';
-  const titel = personKap?.titel_display || personList?.titel_display || '';
-  const avdNamn = personKap?.avdelning_namn || personList?.avdelning?.namn || '';
-
+  const avail=+(konto.tillganglig_undervisning)||0, god=+(konto.undervisning_godkand)||0, beg=+(konto.undervisning_begard)||0;
+  const gPct=avail>0?Math.min(100,god/avail*100):0, bPct=avail>0?Math.min(100-gPct,beg/avail*100):0;
   const udRows=(konto.uppdrag_detaljer||[]).map(u=>
     `<div class="tk-row"><span class="tk-label" style="padding-left:10px">↳ ${u.namn}</span><span class="tk-val" style="color:var(--amber)">-${fh(u.timmar)}</span></div>`
   ).join('');
+  const begarda=bels.filter(b=>b.status==='begard'), godkanda=bels.filter(b=>b.status==='godkand');
+  const utkast=bels.filter(b=>b.status==='utkast'), nekade=bels.filter(b=>b.status==='nekad');
 
-  // Group belaggningar by status (begärd first)
-  const begarda  = bels.filter(b=>b.status==='begard');
-  const godkanda = bels.filter(b=>b.status==='godkand');
-  const utkast   = bels.filter(b=>b.status==='utkast');
-  const nekade   = bels.filter(b=>b.status==='nekad');
-
-  const belRow = (b, showApprove) => {
-    const periodNamn = periodName(b.kurs.period_id);
-    return `<div class="asg-row">
-      <div class="asg-info">
-        <div class="asg-name" onclick="closePersonOverlayGoKurs(${b.kurs.id})">${b.kurs.namn}</div>
-        <div class="asg-meta">${b.kurs.kod} · ${periodNamn} · ${b.kurs.hp} hp${b.timtyp?' · '+b.timtyp:''}</div>
-      </div>
-      <div style="font-size:14px;font-weight:700;color:var(--t1);flex-shrink:0">${fh(b.timmar)}</div>
-      ${asgBadge(b.status)}
-      ${showApprove?`
-        <button class="btn-sm" title="Godkänn" onclick="approveAsg(${b.id},true)">✓</button>
-        <button class="btn-sm del" title="Neka" onclick="approveAsg(${b.id},false)">✗</button>
-      `:`<button class="btn-sm del" title="Ta bort" onclick="deleteAsg(${b.id})">✕</button>`}
-    </div>`;
-  };
-
-  const avail=+(konto.tillganglig_undervisning)||0, god=+(konto.undervisning_godkand)||0, beg=+(konto.undervisning_begard)||0;
-  const gPct=avail>0?Math.min(100,god/avail*100):0, bPct=avail>0?Math.min(100-gPct,beg/avail*100):0;
+  const belRow=(b)=>`<div class="asg-row">
+    <div class="asg-info">
+      <div class="asg-name" onclick="closePersonOverlayGoKurs(${b.kurs.id})">${b.kurs.namn}</div>
+      <div class="asg-meta">${b.kurs.kod} · ${periodName(b.kurs.period_id)} · ${b.kurs.hp} hp${b.timtyp?' · '+b.timtyp:''}</div>
+    </div>
+    <div style="font-size:14px;font-weight:700;flex-shrink:0">${fh(b.timmar)}</div>
+    ${asgBadge(b.status)}
+    <button class="btn-sm del" onclick="deleteAsg(${b.id})">✕</button>
+  </div>`;
 
   return `<div class="person-overlay">
     <div class="person-overlay-inner">
       <button class="back-btn" onclick="closePersonOverlay()">← Tillbaka</button>
       <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px">
-        ${av({person_id:personId,initialer:(person?.initialer||'?')},44)}
+        ${av({person_id:personId,initialer:person?.initialer||'?'},44)}
         <div>
           <div style="font-size:20px;font-weight:800">${person?.namn||'—'}</div>
-          <div style="font-size:12px;color:var(--t4)">${titel}${avdNamn?' · '+avdNamn:''}</div>
+          <div style="font-size:12px;color:var(--t4)">${pk?.titel_display||pl?.titel_display||''} · ${pk?.avdelning_namn||pl?.avdelning?.namn||'Extern'}</div>
         </div>
-        <div style="margin-left:auto">
-          <div style="font-size:28px;font-weight:800;color:${beg>avail-god?'var(--amber)':'var(--t1)'}">${fp(konto.belaggningspct)}</div>
+        <div style="margin-left:auto;text-align:right">
+          <div style="font-size:28px;font-weight:800;color:${god>avail?'var(--red)':+(konto.belaggningspct)>90?'var(--amber)':'var(--t1)'}">${fp(konto.belaggningspct)}</div>
           <div style="font-size:11px;color:var(--t4)">belagd · ${S.year}</div>
         </div>
       </div>
@@ -565,10 +608,10 @@ function renderPersonOverlay() {
             <div class="tk-row"><span class="tk-label">Återstår (ink. begärd)</span>
               <span class="tk-val" style="color:${+(konto.aterstaar_inkl_begard)<0?'var(--red)':'var(--t1)'}">${fh(konto.aterstaar_inkl_begard)}</span></div>
           </div>
-          <div style="margin-top:14px">
-            <div class="kap-bar-wrap" style="height:10px">
-              <div class="kap-bar-god" style="width:${gPct}%"></div>
-              ${bPct>0?`<div class="kap-bar-beg" style="left:${gPct}%;width:${bPct}%"></div>`:''}
+          <div style="margin-top:12px">
+            <div style="height:8px;background:var(--bg3);border-radius:4px;overflow:hidden;position:relative">
+              <div style="position:absolute;height:100%;width:${gPct}%;background:var(--green);border-radius:4px"></div>
+              ${bPct>0?`<div style="position:absolute;height:100%;left:${gPct}%;width:${bPct}%;background:var(--amber)"></div>`:''}
             </div>
             <div class="kap-legend" style="margin-top:6px">
               <div class="kap-legend-item"><div class="kap-dot" style="background:var(--green)"></div>Godkänd</div>
@@ -577,152 +620,134 @@ function renderPersonOverlay() {
           </div>
         </div>
         <div>
-          ${begarda.length>0?`
+          ${begarda.length?`
             <div class="section-title" style="margin-top:0">⏳ Begärda — kräver beslut (${begarda.length})</div>
-            ${begarda.map(b=>`
-              <div class="pending-item">
-                <div class="pending-kurs" onclick="closePersonOverlayGoKurs(${b.kurs.id})">${b.kurs.namn}</div>
-                <div class="pending-meta">${b.kurs.kod} · ${periodName(b.kurs.period_id)} · ${b.kurs.hp} hp${b.timtyp?' · '+b.timtyp:''}</div>
-                <div style="font-size:18px;font-weight:700;color:var(--amber);margin:4px 0">${fh(b.timmar)}</div>
-                ${canApprove?`<div class="pending-actions">
-                  <button class="btn-approve" onclick="approveAsgOverlay(${b.id},true)">✓ Godkänn</button>
-                  <button class="btn-reject" onclick="approveAsgOverlay(${b.id},false)">✗ Neka</button>
-                </div>`:''}
-              </div>`).join('')}
-          `:''}
-          ${godkanda.length>0?`
-            <div class="section-title" ${begarda.length===0?'style="margin-top:0"':''}>✓ Godkända (${godkanda.length})</div>
-            ${godkanda.map(b=>belRow(b,false)).join('')}
-          `:''}
-          ${utkast.length>0?`
-            <div class="section-title">✏ Utkast (${utkast.length})</div>
-            ${utkast.map(b=>belRow(b,false)).join('')}
-          `:''}
-          ${nekade.length>0?`
-            <div class="section-title">✗ Nekade (${nekade.length})</div>
-            ${nekade.map(b=>belRow(b,false)).join('')}
-          `:''}
-          ${bels.length===0?`<div class="empty-state"><div class="empty-icon">📋</div><div>Inga kursbeläggningar för ${S.year}</div></div>`:''}
+            ${begarda.map(b=>`<div class="pending-item">
+              <div class="pending-kurs" onclick="closePersonOverlayGoKurs(${b.kurs.id})">${b.kurs.namn}</div>
+              <div class="pending-meta">${b.kurs.kod} · ${periodName(b.kurs.period_id)} · ${b.kurs.hp} hp${b.timtyp?' · '+b.timtyp:''}</div>
+              <div style="font-size:18px;font-weight:700;color:var(--amber);margin:4px 0">${fh(b.timmar)}</div>
+              ${canApprove?`<div class="pending-actions">
+                <button class="btn-approve" onclick="approveAsgOverlay(${b.id},true)">✓ Godkänn</button>
+                <button class="btn-reject" onclick="approveAsgOverlay(${b.id},false)">✗ Neka</button>
+              </div>`:''}
+            </div>`).join('')}`:
+          ''}
+          ${godkanda.length?`<div class="section-title" ${begarda.length?'':'style="margin-top:0"'}>✓ Godkända (${godkanda.length})</div>${godkanda.map(belRow).join('')}`:''}
+          ${utkast.length?`<div class="section-title">✏ Utkast (${utkast.length})</div>${utkast.map(belRow).join('')}`:''}
+          ${nekade.length?`<div class="section-title">✗ Nekade (${nekade.length})</div>${nekade.map(belRow).join('')}`:''}
+          ${!bels.length?`<div class="empty-state"><div class="empty-icon">📋</div><div>Inga kursbeläggningar för ${S.year}</div></div>`:''}
         </div>
       </div>
     </div>
   </div>`;
 }
 
-// ── RENDER: MITT TEAM ──────────────────────────────────────────────────────
+// ── RENDER: MITT TEAM ─────────────────────────────────────────────────────────
 function renderMittteam() {
   if (!S.kapacitet) return `<div class="page-title">Mitt team</div>${loadingHtml()}`;
-
   const r=role(), myAvdId=avdId();
-  // AVDC sees their avdelning; STR sees all undervisande; prefekt/admin sees all
-  let data = S.kapacitet.filter(p=>p.personalkategori==='undervisande');
-  if (r==='avdc' && myAvdId) data=data.filter(p=>p.avdelning_id===myAvdId);
+  // AVDC → own avdelning only; STR/prefekt/admin → all
+  let base=S.kapacitet.filter(p=>p.personalkategori==='undervisande');
+  if (r==='avdc'&&myAvdId) base=base.filter(p=>p.avdelning_id===myAvdId);
+  const noAvd=(r==='avdc'&&myAvdId); // hide avdelning column if single-avdelning view
 
-  if (S.kapSearch) {
-    const q=S.kapSearch.toLowerCase();
-    data=data.filter(p=>p.namn.toLowerCase().includes(q)||(p.avdelning_namn||'').toLowerCase().includes(q)||(p.titel_display||'').toLowerCase().includes(q));
-  }
+  // Filters
+  let data=base;
+  if (S.teamKatFilter==='pending') data=base.filter(p=>+(p.undervisning_begard)>0);
+  else if (S.teamKatFilter==='over') data=base.filter(p=>+(p.undervisning_godkand)>+(p.tillganglig_undervisning));
+  if (S.teamSearch) { const q=S.teamSearch.toLowerCase(); data=data.filter(p=>p.namn.toLowerCase().includes(q)||(p.titel_display||'').toLowerCase().includes(q)||(p.avdelning_namn||'').toLowerCase().includes(q)); }
+  if (!noAvd&&S.teamAvdFilter) data=data.filter(p=>p.avdelning_id===S.teamAvdFilter);
 
-  const filterBtns = [
-    {v:'all',l:`Alla (${data.length})`},
-    {v:'pending',l:`Begärda (${data.filter(p=>+(p.undervisning_begard)>0).length})`},
-    {v:'over',l:`Övertid (${data.filter(p=>+(p.undervisning_godkand)>+(p.tillganglig_undervisning)).length})`},
-  ];
-  let filtered=data;
-  if (S.kapFilter==='pending') filtered=data.filter(p=>+(p.undervisning_begard)>0);
-  else if (S.kapFilter==='over') filtered=data.filter(p=>+(p.undervisning_godkand)>+(p.tillganglig_undervisning));
+  const avdNamn=noAvd?(S.avdelningar||[]).find(a=>a.id===myAvdId)?.namn||'Mitt team':'Alla avdelningar';
+  const pendingCount=base.filter(p=>+(p.undervisning_begard)>0).length;
+  const overCount=base.filter(p=>+(p.undervisning_godkand)>+(p.tillganglig_undervisning)).length;
 
-  const avdNamn = myAvdId ? (S.avdelningar||[]).find(a=>a.id===myAvdId)?.namn||'' : 'Alla avdelningar';
+  const avdBtns=noAvd?'':((S.avdelningar||[]).filter(a=>!['ADM','FU'].includes(a.kortnamn))
+    .map(a=>`<span class="filter-chip ${S.teamAvdFilter===a.id?'active':''}" onclick="S.teamAvdFilter=S.teamAvdFilter===a.id?null:${a.id};rc()">${a.kortnamn}</span>`).join(''));
 
-  const cards = filtered.map(p=>{
-    const avail=+(p.tillganglig_undervisning)||0, god=+(p.undervisning_godkand)||0, beg=+(p.undervisning_begard)||0;
-    const gPct=avail>0?Math.min(100,god/avail*100):0, bPct=avail>0?Math.min(100-gPct,beg/avail*100):0;
-    const over=god>avail, hasPending=beg>0;
-    const belagd=+(p.belaggningspct)||0;
-    return `<div class="person-card ${hasPending?'has-pending':''}" onclick="openPersonOverlay(${p.person_id})">
-      <div class="pc-top">
-        ${av(p,36)}
-        <div>
-          <div class="pc-name">${p.namn}</div>
-          <div class="pc-sub">${p.titel_display||''} · ${p.avdelning_namn||'Extern'}</div>
-        </div>
-        <div style="margin-left:auto;text-align:right">
-          <div style="font-size:18px;font-weight:700;color:${over?'var(--red)':belagd>90?'var(--amber)':'var(--t1)'}">${fp(belagd)}</div>
-          <div style="font-size:10px;color:var(--t4)">belagd</div>
-        </div>
-      </div>
-      <div class="kap-bar-wrap" style="margin-bottom:6px">
-        <div class="kap-bar-god" style="width:${gPct}%"></div>
-        ${bPct>0?`<div class="kap-bar-beg" style="left:${gPct}%;width:${bPct}%"></div>`:''}
-      </div>
-      <div style="font-size:11px;color:var(--t4)">${fh(god)} godkänd${beg>0?' + <span style="color:var(--amber)">'+fh(beg)+' begärd</span>':''} / ${fh(avail)} tillg.</div>
-      <div class="pc-badges">
-        ${over?'<span class="badge red">⚠ Övertid</span>':''}
-        ${hasPending?`<span class="badge amber">⏳ ${fh(beg)} väntar</span>`:''}
-        ${!hasPending&&!over&&+(konto_aterstaar(p))>0?`<span class="badge green">+${fh(konto_aterstaar(p))} fri</span>`:''}
-      </div>
-    </div>`;
-  }).join('');
+  const rows=personCapRows(data,'sortTeam',noAvd);
 
   return `<div class="page-title">Mitt team</div>
-    <div class="page-sub">${avdNamn} · ${S.year} · Klicka på en person för fullständig bemanning</div>
-    <div class="filter-bar">
-      ${filterBtns.map(f=>`<button class="filter-btn ${(S.kapFilter||'all')===f.v?'active':''}" onclick="setKapFilter('${f.v}')">${f.l}</button>`).join('')}
-      <input style="margin-left:auto;padding:5px 10px;background:var(--bg2);border:1px solid var(--bg3);border-radius:20px;color:var(--t1);font-size:12px;outline:none;width:180px"
-        placeholder="Sök…" value="${S.kapSearch}" oninput="S.kapSearch=this.value;rc()"/>
+    <div class="page-sub">${avdNamn} · ${S.year} · Klicka på en rad för fullständig bemanning</div>
+    <div class="table-toolbar">
+      <div class="search-wrap">
+        <input class="toolbar-search" placeholder="Sök namn, titel…" value="${S.teamSearch}"
+          oninput="S.teamSearch=this.value;rc()"/>
+      </div>
+      <span class="filter-chip ${S.teamKatFilter==='all'?'active':''}" onclick="S.teamKatFilter='all';rc()">Alla (${base.length})</span>
+      <span class="filter-chip ${S.teamKatFilter==='pending'?'active':''}" onclick="S.teamKatFilter='pending';rc()" ${pendingCount>0?'style="border-color:var(--amber)"':''}>
+        ⏳ Begärda (${pendingCount})
+      </span>
+      <span class="filter-chip ${S.teamKatFilter==='over'?'active':''}" onclick="S.teamKatFilter='over';rc()" ${overCount>0?'style="border-color:var(--red)"':''}>
+        ⚠ Övertid (${overCount})
+      </span>
+      ${avdBtns}
+      <span class="table-count">${data.length} person${data.length!==1?'er':''}</span>
     </div>
-    <div class="team-grid">${cards||'<div style="color:var(--t4);padding:20px">Ingen personal matchar</div>'}</div>`;
+    <div class="kap-legend">
+      <div class="kap-legend-item"><div class="kap-dot" style="background:var(--green)"></div>Godkänd</div>
+      <div class="kap-legend-item"><div class="kap-dot" style="background:var(--amber)"></div>Begärd</div>
+      <div class="kap-legend-item"><div class="kap-dot" style="background:var(--bg3)"></div>Tillgänglig</div>
+    </div>
+    <div class="data-table-wrap">
+      <table class="data-table">
+        <thead><tr>
+          ${th('Namn','namn','sortTeam')}
+          ${th('Titel','titel_display','sortTeam')}
+          ${noAvd?'':th('Avdelning','avdelning_namn','sortTeam')}
+          ${th('Tillgänglig','tillganglig_undervisning','sortTeam','text-align:right')}
+          ${th('Godkänd','undervisning_godkand','sortTeam')}
+          ${th('Belagd%','belaggningspct','sortTeam','text-align:right')}
+          ${th('Återstår','aterstaar_inkl_begard','sortTeam','text-align:right')}
+        </tr></thead>
+        <tbody>${rows||`<tr class="no-click"><td colspan="7" style="text-align:center;color:var(--t4);padding:24px">Ingen personal matchar</td></tr>`}</tbody>
+      </table>
+    </div>`;
 }
 
-function konto_aterstaar(p){ return Math.max(0,+(p.tillganglig_undervisning)-(+(p.undervisning_godkand))-(+(p.undervisning_begard))); }
-
-// ── RENDER: DASHBOARD ──────────────────────────────────────────────────────
+// ── RENDER: DASHBOARD ─────────────────────────────────────────────────────────
 function renderDashboard() {
   const ks=filteredKurser(), ps=S.personal||[];
-  const full=ks.filter(k=>kursStatus(k)==='full').length;
-  const ej  =ks.filter(k=>kursStatus(k)==='unstaffed').length;
-  const del =ks.filter(k=>kursStatus(k)==='partial').length;
-  const pend=ks.filter(k=>+(k.bemannat_begard)>0).length;
-  const und =ps.filter(p=>p.personalkategori==='undervisande'&&p.kategori_typ==='anstalld').length;
-
+  const full=ks.filter(k=>kursStatus(k)==='full').length, ej=ks.filter(k=>kursStatus(k)==='unstaffed').length;
+  const del=ks.filter(k=>kursStatus(k)==='partial').length, pend=ks.filter(k=>+(k.bemannat_begard)>0).length;
+  const und=ps.filter(p=>p.personalkategori==='undervisande'&&p.kategori_typ==='anstalld').length;
   const alerts=[];
-  if (ej>0)   alerts.push({c:'red',  i:'✗',t:`${ej} kurs${ej>1?'er':''} saknar lärare`,
-    b:ks.filter(k=>kursStatus(k)==='unstaffed').map(k=>k.namn).slice(0,6).join(' · ')});
-  if (del>0)  alerts.push({c:'amber',i:'△',t:`${del} kurs${del>1?'er':''} delvis bemannad${del>1?'e':''}`,
-    b:ks.filter(k=>kursStatus(k)==='partial').map(k=>k.namn).slice(0,6).join(' · ')});
-  if (pend>0) alerts.push({c:'blue', i:'⏳',t:`${pend} begäran väntar på godkännande`,
-    b:'Gå till Mitt team eller Bemanning för att granska.'});
-
+  if (ej>0)   alerts.push({c:'red',  i:'✗',t:`${ej} kurs${ej>1?'er':''} saknar lärare`,b:ks.filter(k=>kursStatus(k)==='unstaffed').map(k=>k.namn).slice(0,6).join(' · ')});
+  if (del>0)  alerts.push({c:'amber',i:'△',t:`${del} kurs${del>1?'er':''} delvis bemannad${del>1?'e':''}`,b:ks.filter(k=>kursStatus(k)==='partial').map(k=>k.namn).slice(0,6).join(' · ')});
+  if (pend>0) alerts.push({c:'blue', i:'⏳',t:`${pend} begäran väntar på godkännande`,b:'Gå till Mitt team eller Bemanning för att granska.'});
   const rows=ks.slice(0,8).map(k=>`<tr class="clickable-row" onclick="navigate('bemanning');setTimeout(()=>selectKurs(${k.id}),80)">
     <td><span class="badge gray" style="font-size:10px">${periodName(k.period_id)}</span></td>
-    <td style="font-weight:600">${k.namn}</td>
-    <td>${statusBadge(kursStatus(k))}</td>
+    <td style="font-weight:600">${k.namn}</td><td>${statusBadge(kursStatus(k))}</td>
     <td style="color:var(--t3)">${fh(k.bemannat_godkand)} / ${+(k.budget_timmar)?fh(k.budget_timmar):'?h'}</td>
   </tr>`).join('');
-
   return `<div class="page-title">Dashboard</div>
     <div class="page-sub">Institutionen för pedagogik och specialpedagogik · ${S.year}</div>
     <div class="stat-grid">
       <div class="stat-card"><div class="stat-label">Personal</div><div class="stat-value">${ps.length}</div><div class="stat-sub">${und} undervisande anst.</div></div>
-      <div class="stat-card"><div class="stat-label">Kurser${S.activePeriodId?' (period)':''}</div><div class="stat-value">${ks.length}</div><div class="stat-sub">${full} fullt bemannade</div></div>
+      <div class="stat-card"><div class="stat-label">Kurser</div><div class="stat-value">${ks.length}</div><div class="stat-sub">${full} fullt bemannade</div></div>
       <div class="stat-card red"><div class="stat-label">Ej bemannade</div><div class="stat-value">${ej}</div><div class="stat-sub">${del} delvis bemannade</div></div>
       <div class="stat-card ${pend>0?'amber':''}"><div class="stat-label">Väntar godkännande</div><div class="stat-value">${pend}</div><div class="stat-sub">begärda timmar</div></div>
     </div>
     ${alerts.map(a=>`<div class="alert ${a.c}"><div class="alert-icon">${a.i}</div><div><div class="alert-title">${a.t}</div><div class="alert-body">${a.b}</div></div></div>`).join('')}
-    <div class="section-title" style="margin-top:20px">Kursöversikt</div>
-    <table><thead><tr><th>Period</th><th>Kurs</th><th>Status</th><th>Timmar</th></tr></thead>
-    <tbody>${rows}</tbody></table>
-    ${ks.length>8?`<div style="text-align:center;margin-top:12px"><span style="color:var(--blue);font-size:12px;cursor:pointer" onclick="navigate('bemanning')">Visa alla ${ks.length} kurser →</span></div>`:''}`;
+    <div class="section-title" style="margin-top:16px">Kursöversikt</div>
+    <div class="data-table-wrap">
+      <table class="data-table">
+        <thead><tr><th>Period</th><th>Kurs</th><th>Status</th><th>Timmar</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>
+    ${ks.length>8?`<div style="text-align:center;margin-top:10px"><span style="color:var(--blue);font-size:12px;cursor:pointer" onclick="navigate('bemanning')">Visa alla ${ks.length} kurser →</span></div>`:''}`;
 }
 
-// ── RENDER: BEMANNING ──────────────────────────────────────────────────────
+// ── RENDER: BEMANNING ─────────────────────────────────────────────────────────
 function renderBemanning() {
   const ks=filteredKurser();
   const cnt={all:ks.length,unstaffed:ks.filter(k=>kursStatus(k)==='unstaffed').length,
     partial:ks.filter(k=>kursStatus(k)==='partial').length,begard:ks.filter(k=>kursStatus(k)==='begard').length};
-  const filt=S.bemanFilter==='all'?ks:ks.filter(k=>kursStatus(k)===S.bemanFilter);
+  let filt=S.bemanFilter==='all'?ks:ks.filter(k=>kursStatus(k)===S.bemanFilter);
+  if (S.bemanSearch){const q=S.bemanSearch.toLowerCase();filt=filt.filter(k=>k.namn.toLowerCase().includes(q)||k.kod.toLowerCase().includes(q));}
 
-  const list=filt.length>0?filt.map(k=>`
+  const list=filt.length?filt.map(k=>`
     <div class="course-row ${S.selectedKurs===k.id?'selected':''}" onclick="selectKurs(${k.id})">
       <div class="cr-body">
         <div class="cr-name">${k.namn}</div>
@@ -732,18 +757,19 @@ function renderBemanning() {
     </div>`).join('')
   :`<div class="empty-state"><div class="empty-icon">📋</div><div>Inga kurser matchar</div></div>`;
 
-  const detail=S.kursDetail
-    ?renderKursDetail(S.kursDetail)
+  const detail=S.kursDetail?renderKursDetail(S.kursDetail)
     :`<div class="empty-state"><div class="empty-icon">📋</div>
        <div style="color:var(--t3);font-weight:600">Välj en kurs</div>
-       <div style="font-size:12px">Klicka i listan för att se detaljer och tilldela lärare</div></div>`;
+       <div style="font-size:12px">Klicka i listan för att se detaljer</div></div>`;
 
   return `<div class="page-title">Bemanning</div>
-    <div class="page-sub">Tilldela lärare · Godkännandeflöde BEGÄRD → GODKÄND</div>
-    <div class="filter-bar">
-      ${[['all',`Alla (${cnt.all})`],['unstaffed',`Ej bemannade (${cnt.unstaffed})`],
-         ['partial',`Delvis (${cnt.partial})`],['begard',`Begärda (${cnt.begard})`]]
-        .map(([v,l])=>`<button class="filter-btn ${S.bemanFilter===v?'active':''}" onclick="setBemanFilter('${v}')">${l}</button>`).join('')}
+    <div class="page-sub">Tilldela lärare · BEGÄRD → GODKÄND</div>
+    <div class="table-toolbar" style="margin-bottom:8px">
+      <div class="search-wrap">
+        <input class="toolbar-search" placeholder="Sök kurs, kod…" value="${S.bemanSearch}" oninput="S.bemanSearch=this.value;rc()"/>
+      </div>
+      ${[['all',`Alla (${cnt.all})`],['unstaffed',`Ej bemannade (${cnt.unstaffed})`],['partial',`Delvis (${cnt.partial})`],['begard',`Begärda (${cnt.begard})`]]
+        .map(([v,l])=>`<span class="filter-chip ${S.bemanFilter===v?'active':''}" onclick="S.bemanFilter='${v}';rc()">${l}</span>`).join('')}
     </div>
     <div class="bem-layout">
       <div class="bem-list">${list}</div>
@@ -756,26 +782,21 @@ function renderKursDetail(k) {
   const pct=budget>0?Math.min(100,Math.round(god/budget*100)):0;
   const begPct=budget>0?Math.min(100-pct,Math.round(beg/budget*100)):0;
   const r=role(), canApprove=['avdc','sysadmin','prefekt'].includes(r), canAssign=['str_roll','sysadmin','prefekt','avdc'].includes(r);
-
-  const bRow=(b,showApprove)=>{
-    const p=b.person;
-    return `<div class="asg-row">
-      ${av(p,28)}
-      <div class="asg-info">
-        <div class="asg-name" onclick="openPersonOverlay(${p.id})">${p.namn}</div>
-        <div class="asg-meta">${p.titel_display||''} · ${fh(b.timmar)}${b.timtyp?' ('+b.timtyp+')':''}</div>
-      </div>
-      ${asgBadge(b.status)}
-      ${showApprove&&b.status==='begard'
-        ?`<button class="btn-sm" title="Godkänn" onclick="approveAsg(${b.id},true)">✓</button>
-           <button class="btn-sm del" title="Neka" onclick="approveAsg(${b.id},false)">✗</button>`
-        :`<button class="btn-sm del" title="Ta bort" onclick="deleteAsg(${b.id})">✕</button>`}
-    </div>`;
-  };
+  const bRow=(b,showApprove)=>{const p=b.person;return`<div class="asg-row">
+    ${av(p,26)}
+    <div class="asg-info">
+      <div class="asg-name" onclick="openPersonOverlay(${p.id})">${p.namn}</div>
+      <div class="asg-meta">${p.titel_display||''} · ${fh(b.timmar)}${b.timtyp?' ('+b.timtyp+')':''}</div>
+    </div>
+    ${asgBadge(b.status)}
+    ${showApprove&&b.status==='begard'
+      ?`<button class="btn-sm" title="Godkänn" onclick="approveAsg(${b.id},true)">✓</button>
+         <button class="btn-sm del" title="Neka" onclick="approveAsg(${b.id},false)">✗</button>`
+      :`<button class="btn-sm del" title="Ta bort" onclick="deleteAsg(${b.id})">✕</button>`}
+  </div>`;};
   const godkanda=(k.belaggningar||[]).filter(b=>b.status==='godkand');
-  const begarda =(k.belaggningar||[]).filter(b=>b.status==='begard');
-  const utkast  =(k.belaggningar||[]).filter(b=>b.status==='utkast');
-
+  const begarda=(k.belaggningar||[]).filter(b=>b.status==='begard');
+  const utkast=(k.belaggningar||[]).filter(b=>b.status==='utkast');
   return `<div class="detail-pad">
     <div class="detail-title">${k.namn}</div>
     <div class="detail-meta">${k.kod} · ${periodName(k.period_id)} · ${k.hp} hp${k.studenter?' · '+k.studenter+' stud.':''}</div>
@@ -796,76 +817,101 @@ function renderKursDetail(k) {
   </div>`;
 }
 
-// ── RENDER: KAPACITETSKARTA ────────────────────────────────────────────────
+// ── RENDER: KAPACITETSKARTA ───────────────────────────────────────────────────
 function renderKapacitet() {
   if (!S.kapacitet) return `<div class="page-title">Kapacitetskarta</div>${loadingHtml()}`;
-
   let data=S.kapacitet.filter(p=>p.personalkategori==='undervisande');
-  if (S.kapSearch) {
-    const q=S.kapSearch.toLowerCase();
-    data=data.filter(p=>p.namn.toLowerCase().includes(q)||(p.avdelning_namn||'').toLowerCase().includes(q));
-  }
-  const avdBtns=(S.avdelningar||[]).filter(a=>!['ADM','FU'].includes(a.kortnamn))
-    .map(a=>`<button class="filter-btn ${S.kapFilter===a.id?'active':''}" onclick="setKapFilter(${a.id})">${a.kortnamn}</button>`).join('');
-  if (typeof S.kapFilter==='number') data=data.filter(p=>p.avdelning_id===S.kapFilter);
+  if (S.kapAvdFilter) data=data.filter(p=>p.avdelning_id===S.kapAvdFilter);
+  if (S.kapSearch){const q=S.kapSearch.toLowerCase();data=data.filter(p=>p.namn.toLowerCase().includes(q)||(p.titel_display||'').toLowerCase().includes(q)||(p.avdelning_namn||'').toLowerCase().includes(q));}
 
-  const rows=data.map(p=>{
-    const avail=+(p.tillganglig_undervisning)||0, god=+(p.undervisning_godkand)||0, beg=+(p.undervisning_begard)||0;
-    const gPct=avail>0?Math.min(100,god/avail*100):0, bPct=avail>0?Math.min(100-gPct,beg/avail*100):0;
-    const belagd=+(p.belaggningspct)||0;
-    return `<div style="display:grid;grid-template-columns:175px 1fr 75px;gap:12px;align-items:center;padding:9px 8px;border-bottom:1px solid var(--bg2);border-radius:6px;cursor:pointer" onclick="openPersonOverlay(${p.person_id})">
-      <div>
-        <div style="font-size:13px;font-weight:600">${p.namn}</div>
-        <div style="font-size:10px;color:var(--t4)">${p.titel_display||''} · ${p.avdelning_namn||'Extern'}</div>
-      </div>
-      <div>
-        <div class="kap-bar-wrap">
-          <div class="kap-bar-god" style="width:${gPct}%"></div>
-          ${bPct>0?`<div class="kap-bar-beg" style="left:${gPct}%;width:${bPct}%"></div>`:''}
-        </div>
-        <div style="font-size:10px;color:var(--t4);margin-top:3px">${fh(god)} godkänd${beg>0?' + '+fh(beg)+' begärd':''} / ${fh(avail)} tillg.</div>
-      </div>
-      <div style="text-align:right">
-        <div style="font-size:14px;font-weight:700;color:${god>avail?'var(--red)':belagd>90?'var(--amber)':'var(--t1)'}">${fp(belagd)}</div>
-        <div style="font-size:10px;color:var(--t4)">belagd</div>
-      </div>
-    </div>`;
-  }).join('');
+  const avdBtns=(S.avdelningar||[]).filter(a=>!['ADM','FU'].includes(a.kortnamn))
+    .map(a=>`<span class="filter-chip ${S.kapAvdFilter===a.id?'active':''}" onclick="S.kapAvdFilter=S.kapAvdFilter===a.id?null:${a.id};rc()">${a.kortnamn}</span>`).join('');
+  const rows=personCapRows(data,'sortKap',false);
 
   return `<div class="page-title">Kapacitetskarta</div>
-    <div class="page-sub">Klicka på en person för fullständig bemanning</div>
-    <div class="filter-bar">
-      <button class="filter-btn ${typeof S.kapFilter!=='number'&&!S.kapSearch?'active':''}" onclick="S.kapFilter=null;rc()">Alla</button>
+    <div class="page-sub">Tillgänglig undervisningstid · ${S.year} · Klicka för fullständig bemanning</div>
+    <div class="table-toolbar">
+      <div class="search-wrap">
+        <input class="toolbar-search" placeholder="Sök namn, titel, avdelning…" value="${S.kapSearch}" oninput="S.kapSearch=this.value;rc()"/>
+      </div>
       ${avdBtns}
-      <input style="margin-left:auto;padding:5px 10px;background:var(--bg2);border:1px solid var(--bg3);border-radius:20px;color:var(--t1);font-size:12px;outline:none;width:180px"
-        placeholder="Sök…" value="${S.kapSearch}" oninput="S.kapSearch=this.value;rc()"/>
+      <span class="table-count">${data.length} person${data.length!==1?'er':''}</span>
     </div>
     <div class="kap-legend">
       <div class="kap-legend-item"><div class="kap-dot" style="background:var(--green)"></div>Godkänd</div>
       <div class="kap-legend-item"><div class="kap-dot" style="background:var(--amber)"></div>Begärd</div>
+      <div class="kap-legend-item"><div class="kap-dot" style="background:var(--bg3)"></div>Tillgänglig</div>
     </div>
-    ${rows||'<div class="empty-state"><div class="empty-icon">👥</div><div>Ingen personal matchar</div></div>'}`;
+    <div class="data-table-wrap">
+      <table class="data-table">
+        <thead><tr>
+          ${th('Namn','namn','sortKap')}
+          ${th('Titel','titel_display','sortKap')}
+          ${th('Avdelning','avdelning_namn','sortKap')}
+          ${th('Tillgänglig','tillganglig_undervisning','sortKap','text-align:right')}
+          ${th('Godkänd','undervisning_godkand','sortKap')}
+          ${th('Belagd%','belaggningspct','sortKap','text-align:right')}
+          ${th('Återstår','aterstaar_inkl_begard','sortKap','text-align:right')}
+        </tr></thead>
+        <tbody>${rows||`<tr class="no-click"><td colspan="7" style="text-align:center;color:var(--t4);padding:24px">Ingen personal matchar</td></tr>`}</tbody>
+      </table>
+    </div>`;
 }
 
-// ── RENDER: PERSONAL ──────────────────────────────────────────────────────
+// ── RENDER: PERSONAL ─────────────────────────────────────────────────────────
 function renderPersonal() {
-  const ps=S.personal||[];
+  let data=S.personal||[];
+  if (S.persSearch){const q=S.persSearch.toLowerCase();data=data.filter(p=>p.namn.toLowerCase().includes(q)||(p.titel_display||'').toLowerCase().includes(q)||(p.avdelning?.namn||'').toLowerCase().includes(q));}
+  if (S.persKatFilter!=='all') data=data.filter(p=>p.personalkategori===S.persKatFilter||p.kategori_typ===S.persKatFilter);
+  const {k,d}=S.sortPers;
+  const sorted=srt(data.map(p=>({...p,avdelning_namn:p.avdelning?.namn||p.fran_organisation||''})),k,d);
+  const kats=[...new Set((S.personal||[]).map(p=>p.personalkategori))];
+  const rows=sorted.map(p=>`<tr onclick="openPersonOverlay(${p.id})">
+    <td><div style="display:flex;align-items:center;gap:8px">${av(p,24)}<div style="font-weight:600">${p.namn}</div></div></td>
+    <td style="font-size:12px;color:var(--t4)">${p.titel_display||'—'}</td>
+    <td style="font-size:12px">${p.avdelning?.namn||(p.fran_organisation?'↪ '+p.fran_organisation:'—')}</td>
+    <td>${p.kategori_typ==='anstalld'?'<span class="badge green">Anst.</span>':p.kategori_typ==='inlanad'?'<span class="badge blue">Inlånad</span>':'<span class="badge gray">Extern</span>'}</td>
+    <td style="font-size:11px;color:var(--t4)">${p.personalkategori}</td>
+  </tr>`).join('');
+
   return `<div class="page-title">Personal</div>
-    <div class="page-sub">${ps.length} personer registrerade</div>
-    <table><thead><tr><th>Namn</th><th>Titel</th><th>Avdelning</th><th>Typ</th><th>Kategori</th></tr></thead>
-    <tbody>${ps.map(p=>`<tr class="clickable-row" onclick="openPersonOverlay(${p.id})">
-      <td style="font-weight:600">${p.namn}</td>
-      <td style="font-size:11px;color:var(--t4)">${p.titel_display||'—'}</td>
-      <td>${p.avdelning?.namn||(p.fran_organisation?'↪ '+p.fran_organisation:'—')}</td>
-      <td>${p.kategori_typ==='anstalld'?'<span class="badge green">Anst.</span>':p.kategori_typ==='inlanad'?'<span class="badge blue">Inlånad</span>':'<span class="badge gray">Extern</span>'}</td>
-      <td style="font-size:11px;color:var(--t4)">${p.personalkategori}</td>
-    </tr>`).join('')}</tbody></table>`;
+    <div class="page-sub">${(S.personal||[]).length} personer registrerade</div>
+    <div class="table-toolbar">
+      <div class="search-wrap">
+        <input class="toolbar-search" placeholder="Sök namn, titel, avdelning…" value="${S.persSearch}" oninput="S.persSearch=this.value;rc()"/>
+      </div>
+      <span class="filter-chip ${S.persKatFilter==='all'?'active':''}" onclick="S.persKatFilter='all';rc()">Alla</span>
+      ${kats.map(k=>`<span class="filter-chip ${S.persKatFilter===k?'active':''}" onclick="S.persKatFilter='${k}';rc()">${k}</span>`).join('')}
+      <span class="table-count">${sorted.length} person${sorted.length!==1?'er':''}</span>
+    </div>
+    <div class="data-table-wrap">
+      <table class="data-table">
+        <thead><tr>
+          ${th('Namn','namn','sortPers')}
+          ${th('Titel','titel_display','sortPers')}
+          ${th('Avdelning','avdelning_namn','sortPers')}
+          <th>Typ</th>
+          ${th('Kategori','personalkategori','sortPers')}
+        </tr></thead>
+        <tbody>${rows||`<tr class="no-click"><td colspan="5" style="text-align:center;color:var(--t4);padding:24px">Ingen personal matchar</td></tr>`}</tbody>
+      </table>
+    </div>`;
 }
 
-// ── RENDER: BUDGET ─────────────────────────────────────────────────────────
+// ── RENDER: BUDGET ────────────────────────────────────────────────────────────
 function renderBudget() {
   const ks=filteredKurser(), SNL=450;
   const tB=ks.reduce((s,k)=>s+(+(k.budget_timmar)||0),0), tG=ks.reduce((s,k)=>s+(+(k.bemannat_godkand)||0),0);
+  const {k,d}=S.sortBudg;
+  const withExtra=ks.map(k=>({...k, est_kostnad: Math.round((+(k.budget_timmar)||0)*SNL/1000)}));
+  const sorted=srt(withExtra,k,d);
+  const rows=sorted.map(k=>{const b=+(k.budget_timmar)||0, g=+(k.bemannat_godkand)||0; return`<tr onclick="navigate('bemanning');setTimeout(()=>selectKurs(${k.id}),80)">
+    <td style="font-weight:600">${k.namn}</td>
+    <td><span class="badge gray" style="font-size:10px">${periodName(k.period_id)}</span></td>
+    <td style="text-align:right">${fh(b)}</td>
+    <td style="color:${g>=b&&b>0?'var(--green)':'var(--t3)'};text-align:right">${fh(g)}</td>
+    <td style="color:var(--t4);text-align:right">${b?Math.round(b*SNL/1000)+' tkr':'—'}</td>
+  </tr>`;}).join('');
   return `<div class="page-title">Budget & uppdrag</div>
     <div class="page-sub">Undervisningskostnader · Snittpris ${SNL} kr/h</div>
     <div class="stat-grid">
@@ -874,37 +920,62 @@ function renderBudget() {
       <div class="stat-card"><div class="stat-label">Utnyttjande</div><div class="stat-value">${tB>0?fp(Math.round(tG/tB*100)):'—'}</div></div>
       <div class="stat-card amber"><div class="stat-label">Ej planerat</div><div class="stat-value">${fh(tB-tG)}</div><div class="stat-sub">${Math.round((tB-tG)*SNL/1000)} tkr risk</div></div>
     </div>
-    <table><thead><tr><th>Kurs</th><th>Period</th><th>Budget</th><th>Godkänd</th><th>Est. kostnad</th></tr></thead>
-    <tbody>${ks.map(k=>{const b=+(k.budget_timmar)||0,g=+(k.bemannat_godkand)||0;return`<tr>
-      <td style="font-weight:600">${k.namn}</td>
-      <td><span class="badge gray" style="font-size:10px">${periodName(k.period_id)}</span></td>
-      <td>${fh(b)}</td><td style="color:${g>=b&&b>0?'var(--green)':'var(--t3)'}">${fh(g)}</td>
-      <td style="color:var(--t4)">${b?Math.round(b*SNL/1000)+' tkr':'—'}</td>
-    </tr>`;}).join('')}</tbody></table>`;
+    <div class="data-table-wrap">
+      <table class="data-table">
+        <thead><tr>
+          ${th('Kurs','namn','sortBudg')}
+          ${th('Period','period_id','sortBudg')}
+          ${th('Budget','budget_timmar','sortBudg','text-align:right')}
+          ${th('Godkänd','bemannat_godkand','sortBudg','text-align:right')}
+          ${th('Est. kostnad','est_kostnad','sortBudg','text-align:right')}
+        </tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>`;
 }
 
-// ── RENDER: RAPPORTER ─────────────────────────────────────────────────────
+// ── RENDER: RAPPORTER ─────────────────────────────────────────────────────────
 function renderRapporter() {
   if (!S.kapacitet) return `<div class="page-title">Rapporter</div>${loadingHtml()}`;
-  const data=S.kapacitet.filter(p=>p.personalkategori==='undervisande'&&p.kategori_typ==='anstalld');
+  let data=S.kapacitet.filter(p=>p.personalkategori==='undervisande'&&p.kategori_typ==='anstalld');
+  if (S.kapSearch){const q=S.kapSearch.toLowerCase();data=data.filter(p=>p.namn.toLowerCase().includes(q)||(p.avdelning_namn||'').toLowerCase().includes(q));}
+  const {k,d}=S.sortRapt; const sorted=srt(data,k,d);
+  const rows=sorted.map(p=>{const bl=+(p.belaggningspct)||0, at=+(p.aterstaar)||0; return`<tr onclick="openPersonOverlay(${p.person_id})">
+    <td><div style="display:flex;align-items:center;gap:8px">${av(p,24)}<div style="font-weight:600">${p.namn}</div></div></td>
+    <td style="font-size:12px;color:var(--t4)">${p.titel_display||'—'}</td>
+    <td style="font-size:12px">${p.avdelning_namn||'—'}</td>
+    <td style="text-align:right">${fh(p.netto_bemanningsbar)}</td>
+    <td style="color:var(--green);text-align:right">${fh(p.undervisning_godkand)}</td>
+    <td style="color:${bl>100?'var(--red)':bl>90?'var(--amber)':'var(--t1)'};font-weight:700;text-align:right">${fp(bl)}</td>
+    <td style="color:${at<0?'var(--red)':'var(--t3)'};text-align:right">${fh(at)}</td>
+  </tr>`;}).join('');
   return `<div class="page-title">Rapporter</div>
     <div class="page-sub">Kapacitetsrapport · Undervisande personal · ${S.year}</div>
-    <table><thead><tr><th>Namn</th><th>Titel</th><th>Avdelning</th><th>Netto</th><th>Godkänd</th><th>Belagd%</th><th>Återstår</th></tr></thead>
-    <tbody>${data.map(p=>{const bl=+(p.belaggningspct)||0,at=+(p.aterstaar)||0;return`<tr class="clickable-row" onclick="openPersonOverlay(${p.person_id})">
-      <td style="font-weight:600">${p.namn}</td>
-      <td style="font-size:11px;color:var(--t4)">${p.titel_display||'—'}</td>
-      <td>${p.avdelning_namn||'—'}</td>
-      <td>${fh(p.netto_bemanningsbar)}</td>
-      <td style="color:var(--green)">${fh(p.undervisning_godkand)}</td>
-      <td style="color:${bl>100?'var(--red)':bl>90?'var(--amber)':'var(--t1)'}">${fp(bl)}</td>
-      <td style="color:${at<0?'var(--red)':'var(--t3)'}">${fh(at)}</td>
-    </tr>`;}).join('')}</tbody></table>`;
+    <div class="table-toolbar">
+      <div class="search-wrap">
+        <input class="toolbar-search" placeholder="Sök namn, avdelning…" value="${S.kapSearch}" oninput="S.kapSearch=this.value;rc()"/>
+      </div>
+      <span class="table-count">${sorted.length} person${sorted.length!==1?'er':''}</span>
+    </div>
+    <div class="data-table-wrap">
+      <table class="data-table">
+        <thead><tr>
+          ${th('Namn','namn','sortRapt')}
+          ${th('Titel','titel_display','sortRapt')}
+          ${th('Avdelning','avdelning_namn','sortRapt')}
+          ${th('Netto','netto_bemanningsbar','sortRapt','text-align:right')}
+          ${th('Godkänd','undervisning_godkand','sortRapt','text-align:right')}
+          ${th('Belagd%','belaggningspct','sortRapt','text-align:right')}
+          ${th('Återstår','aterstaar','sortRapt','text-align:right')}
+        </tr></thead>
+        <tbody>${rows||`<tr class="no-click"><td colspan="7" style="text-align:center;color:var(--t4);padding:24px">Ingen data</td></tr>`}</tbody>
+      </table>
+    </div>`;
 }
 
-// ── PICKER MODAL ──────────────────────────────────────────────────────────
+// ── PICKER ────────────────────────────────────────────────────────────────────
 function renderPicker() {
-  const kurs=(S.kurser||[]).find(k=>k.id===S.pickerKursId);
-  if (!kurs) return '';
+  const kurs=(S.kurser||[]).find(k=>k.id===S.pickerKursId); if (!kurs) return '';
   const q=S.pickerSearch.toLowerCase();
   let cands=(S.kapacitet||[]).filter(p=>p.personalkategori==='undervisande');
   if (q) cands=cands.filter(p=>p.namn.toLowerCase().includes(q)||(p.avdelning_namn||'').toLowerCase().includes(q));
@@ -917,21 +988,17 @@ function renderPicker() {
         <button class="modal-close" onclick="closePicker()">×</button>
       </div>
       <div class="modal-body">
-        <input class="picker-search" placeholder="Sök lärare eller avdelning…" value="${S.pickerSearch}"
-          oninput="S.pickerSearch=this.value;refreshPicker()"/>
-        ${cands.map(p=>{
-          const rem=+(p.aterstaar_inkl_begard)||0;
-          const cls=rem>=t*1.5?'cap-ok':rem>=t?'cap-warn':'cap-over';
+        <input class="picker-search" placeholder="Sök lärare eller avdelning…" value="${S.pickerSearch}" oninput="S.pickerSearch=this.value;refreshPicker()"/>
+        ${cands.map(p=>{const rem=+(p.aterstaar_inkl_begard)||0; const cls=rem>=t*1.5?'cap-ok':rem>=t?'cap-warn':'cap-over';
           return `<div class="picker-row ${S.pickerPersonId===p.person_id?'selected':''}" onclick="pickerSel(${p.person_id})">
-            ${av(p,28)}
-            <div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:600">${p.namn}</div>
+            ${av(p,28)}<div style="flex:1;min-width:0">
+              <div style="font-size:13px;font-weight:600">${p.namn}</div>
               <div style="font-size:11px;color:var(--t4)">${p.titel_display||''} · ${p.avdelning_namn||'Extern'}</div></div>
             <div class="picker-cap"><div class="picker-cap-val ${cls}">${fh(rem)}</div><div class="picker-cap-label">återstår</div></div>
           </div>`;}).join('')||'<div style="text-align:center;color:var(--t4);padding:20px">Ingen match</div>'}
         <div class="hours-row">
           <label>Timmar:</label>
-          <input class="hours-input" id="pk-t" type="number" min="1" max="500" value="${t}"
-            oninput="S.pickerTimmar=parseInt(this.value)||60;refreshPicker()"/>
+          <input class="hours-input" id="pk-t" type="number" min="1" max="500" value="${t}" oninput="S.pickerTimmar=parseInt(this.value)||60;refreshPicker()"/>
           <select id="pk-typ" class="sel"><option value="">Allmän</option>
             <option value="forelasning">Föreläsning</option><option value="seminarium">Seminarium</option>
             <option value="examination">Examination</option><option value="handledning">Handledning</option></select>
@@ -952,7 +1019,7 @@ function refreshPicker(){ const e=document.querySelector('.modal-bg'); if(!e)ret
 
 async function openPicker(kursId) {
   S.pickerKursId=kursId; S.pickerPersonId=null; S.pickerTimmar=60; S.pickerStatus='begard'; S.pickerSearch=''; S.pickerValMsg=null;
-  if (!S.kapacitet) {
+  if (!S.kapacitet){
     document.getElementById('app').insertAdjacentHTML('beforeend',`<div class="modal-bg"><div class="loading"><div class="spinner"></div><span>Laddar kapacitet…</span></div></div>`);
     await ensureKap(); document.querySelector('.modal-bg')?.remove();
   }
@@ -975,9 +1042,7 @@ async function confirmAssign() {
     await api('/kurser/belaggningar',{method:'POST',body:JSON.stringify({
       kurs_id:S.pickerKursId, person_id:S.pickerPersonId, timmar:S.pickerTimmar, timtyp:timtyp||null, status
     })});
-    invalidatePersonCaches();
-    closePicker();
-    await loadBase();
+    invalidate(); closePicker(); await loadBase();
     if (S.selectedKurs===S.pickerKursId) await loadKurs(S.pickerKursId);
     render();
   } catch(e) {
@@ -986,72 +1051,54 @@ async function confirmAssign() {
   }
 }
 
-// ── PERSON OVERLAY ─────────────────────────────────────────────────────────
+// ── PERSON OVERLAY ────────────────────────────────────────────────────────────
 async function openPersonOverlay(personId) {
-  S.personOverlay={personId, fromView:S.view};
-  S.personBelList=null;
-  render();
-  // Load in parallel
-  const [,bels] = await Promise.all([loadKonto(personId), loadPersonBel(personId)]);
-  S.personBelList = bels;
+  S.personOverlay={personId,fromView:S.view}; S.personBelList=null; render();
+  const [,bels]=await Promise.all([loadKonto(personId),loadPersonBel(personId)]);
+  S.personBelList=bels;
   if (!S.kapacitet) await ensureKap();
   render();
 }
 
-function closePersonOverlay() {
-  S.personOverlay=null; S.personBelList=null;
-  render();
-}
+function closePersonOverlay(){ S.personOverlay=null; S.personBelList=null; render(); }
 
-function closePersonOverlayGoKurs(kursId) {
-  S.personOverlay=null; S.personBelList=null;
-  S.view='bemanning';
-  render();
+function closePersonOverlayGoKurs(kursId){
+  S.personOverlay=null; S.personBelList=null; S.view='bemanning'; render();
   setTimeout(()=>selectKurs(kursId),80);
 }
 
 async function approveAsgOverlay(id, godkand) {
   await api('/kurser/belaggningar/'+id+'/status',{method:'PATCH',body:JSON.stringify({status:godkand?'godkand':'nekad'})});
-  invalidatePersonCaches();
-  await loadBase();
-  // Reload person data
+  invalidate(); await loadBase();
   const {personId}=S.personOverlay;
   S.personBelList=null;
-  const bels=await loadPersonBel(personId);
-  S.personBelList=bels;
+  S.personBelList=await loadPersonBel(personId);
   render();
 }
 
-// ── EVENTS ─────────────────────────────────────────────────────────────────
-function navigate(view) { S.view=view; S.selectedKurs=null; S.kursDetail=null; S.personOverlay=null; render(); }
-function setBemanFilter(f){ S.bemanFilter=f; rc(); }
-function setKapFilter(v){ S.kapFilter=v; rc(); }
+// ── EVENTS ─────────────────────────────────────────────────────────────────────
+function navigate(view){ S.view=view; S.selectedKurs=null; S.kursDetail=null; S.personOverlay=null; render(); }
 
-async function selectKurs(id) {
-  S.selectedKurs=id; S.kursDetail=null; rc();
-  await loadKurs(id); rc();
-}
+async function selectKurs(id){ S.selectedKurs=id; S.kursDetail=null; rc(); await loadKurs(id); rc(); }
 
-async function approveAsg(id, godkand) {
+async function approveAsg(id, godkand){
   await api('/kurser/belaggningar/'+id+'/status',{method:'PATCH',body:JSON.stringify({status:godkand?'godkand':'nekad'})});
-  invalidatePersonCaches();
-  await loadBase();
+  invalidate(); await loadBase();
   if (S.selectedKurs) await loadKurs(S.selectedKurs);
   rc();
 }
 
-async function deleteAsg(id) {
+async function deleteAsg(id){
   await api('/kurser/belaggningar/'+id,{method:'DELETE'});
-  invalidatePersonCaches();
-  await loadBase();
+  invalidate(); await loadBase();
   if (S.selectedKurs) await loadKurs(S.selectedKurs);
   rc();
 }
 
-function rc() { const el=document.getElementById('content'); if(el) el.innerHTML=currentView(); }
+function rc(){ const el=document.getElementById('content'); if(el) el.innerHTML=currentView(); }
 
-function currentView() {
-  switch(S.view) {
+function currentView(){
+  switch(S.view){
     case 'mittteam':  return renderMittteam();
     case 'dashboard': return renderDashboard();
     case 'bemanning': return renderBemanning();
@@ -1063,14 +1110,14 @@ function currentView() {
   }
 }
 
-async function render() {
+async function render(){
   const app=document.getElementById('app');
-  if (!S.token||!S.user) { app.innerHTML=renderLogin(); return; }
-  if (!S.kurser) {
+  if (!S.token||!S.user){ app.innerHTML=renderLogin(); return; }
+  if (!S.kurser){
     app.innerHTML=renderShell(loadingHtml());
-    try { await loadBase(); } catch(e) { console.error(e); }
+    try{ await loadBase(); }catch(e){ console.error(e); }
   }
-  if ((S.view==='mittteam'||S.view==='kapacitet'||S.view==='rapporter')&&!S.kapacitet) {
+  if ((S.view==='mittteam'||S.view==='kapacitet'||S.view==='rapporter')&&!S.kapacitet){
     app.innerHTML=renderShell(loadingHtml());
     await ensureKap();
   }
