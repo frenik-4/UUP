@@ -3,1337 +3,865 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>IPS Bemanningsplanering</title>
+<title>UUP Bemanning</title>
 <style>
-:root {
-  --bg0:#070d1a;--bg1:#0f172a;--bg2:#1e293b;--bg3:#334155;--bg4:#475569;
-  --t1:#f1f5f9;--t2:#cbd5e1;--t3:#94a3b8;--t4:#64748b;
-  --blue:#60a5fa;--blue2:#3b82f6;--purple:#a78bfa;--teal:#2dd4bf;
-  --amber:#fbbf24;--red:#f87171;--green:#34d399;--orange:#fb923c;
-  --rad:8px;--rad2:6px;
+:root{
+  --bg0:#0a0f1a;--bg1:#0f172a;--bg2:#1e293b;--bg3:#334155;
+  --t1:#f1f5f9;--t2:#e2e8f0;--t3:#cbd5e1;--t4:#94a3b8;
+  --blue:#3b82f6;--green:#10b981;--red:#ef4444;--amber:#f59e0b;--purple:#8b5cf6;
+  --rad:8px;
 }
 *{box-sizing:border-box;margin:0;padding:0}
-body{background:var(--bg1);color:var(--t1);font-family:system-ui,-apple-system,sans-serif;font-size:14px;line-height:1.5;min-height:100vh}
-button{cursor:pointer;border:none;background:none;font:inherit;color:inherit}
-input,select{font:inherit;color:var(--t1);background:var(--bg3);border:1px solid var(--bg4);border-radius:var(--rad2);padding:6px 10px;outline:none}
-input:focus,select:focus{border-color:var(--blue)}
-select option{background:var(--bg2)}
-a{color:var(--blue);text-decoration:none}
+body{background:var(--bg0);color:var(--t1);font-family:system-ui,sans-serif;font-size:14px;height:100vh;overflow:hidden}
+#app{height:100vh;display:flex;flex-direction:column}
 
-/* LANDING */
-.landing{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:40px 20px;gap:48px}
-.landing-header{text-align:center}
-.landing-header h1{font-size:32px;font-weight:800;color:var(--t1);letter-spacing:-0.5px}
-.landing-header h1 span{color:var(--blue)}
-.landing-header p{color:var(--t3);margin-top:8px;font-size:15px}
-.role-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:16px;max-width:720px;width:100%}
-.role-card{background:var(--bg2);border:1px solid var(--bg3);border-radius:12px;padding:28px 24px;cursor:pointer;transition:border-color 0.15s,transform 0.1s;text-align:left}
-.role-card:hover{border-color:var(--blue);transform:translateY(-2px)}
-.role-card .icon{font-size:28px;margin-bottom:12px}
-.role-card h2{font-size:17px;font-weight:700;color:var(--t1);margin-bottom:6px}
-.role-card p{color:var(--t3);font-size:13px;line-height:1.5}
-.role-card .btn-enter{display:inline-block;margin-top:16px;background:var(--bg3);color:var(--t2);padding:7px 16px;border-radius:var(--rad2);font-size:13px;font-weight:600;transition:background 0.15s}
-.role-card:hover .btn-enter{background:var(--blue2);color:#fff}
+.login-wrap{display:flex;align-items:center;justify-content:center;height:100vh}
+.login-card{background:var(--bg2);border:1px solid var(--bg3);border-radius:12px;padding:40px;width:400px}
+.login-card h1{font-size:22px;color:var(--t1);margin-bottom:4px}
+.login-card .sub{color:var(--t4);font-size:12px;margin-bottom:28px}
+.login-card label{display:block;color:var(--t3);font-size:11px;font-weight:600;margin-bottom:4px;text-transform:uppercase;letter-spacing:.05em}
+.login-card input{width:100%;background:var(--bg1);border:1px solid var(--bg3);border-radius:6px;padding:10px 12px;color:var(--t1);font-size:14px;margin-bottom:16px;outline:none}
+.login-card input:focus{border-color:var(--blue)}
+.btn-primary{width:100%;background:var(--blue);border:none;border-radius:6px;padding:11px;color:#fff;font-size:14px;font-weight:600;cursor:pointer}
+.btn-primary:hover{background:#2563eb}
+.btn-primary:disabled{opacity:.5;cursor:not-allowed}
+.login-err{color:var(--red);font-size:12px;margin-bottom:12px;padding:8px 10px;background:#2d1515;border-radius:5px;border:1px solid #7f1d1d}
+.demo-accounts{margin-top:24px;padding-top:20px;border-top:1px solid var(--bg3)}
+.demo-accounts p{color:var(--t4);font-size:11px;margin-bottom:10px}
+.demo-btn{background:var(--bg1);border:1px solid var(--bg3);border-radius:5px;padding:6px 10px;color:var(--t3);font-size:11px;cursor:pointer;margin:3px 3px 0 0;display:inline-block}
+.demo-btn:hover{border-color:var(--blue);color:var(--t1)}
 
-/* APP SHELL */
-.app{display:flex;height:100vh;overflow:hidden}
-.sidebar{width:195px;background:var(--bg0);border-right:1px solid var(--bg2);display:flex;flex-direction:column;flex-shrink:0}
-.sidebar-top{padding:16px;border-bottom:1px solid var(--bg2)}
-.sidebar-top .app-name{font-size:13px;font-weight:800;color:var(--t1);letter-spacing:0.5px}
-.sidebar-top .role-badge{margin-top:4px;font-size:11px;color:var(--t3)}
-.sidebar-top .back-btn{margin-top:10px;font-size:12px;color:var(--t4);cursor:pointer;display:flex;align-items:center;gap:4px}
-.sidebar-top .back-btn:hover{color:var(--t3)}
-.sidebar-nav{padding:8px 0;flex:1;overflow-y:auto}
-.nav-section{padding:4px 16px 2px;font-size:10px;font-weight:700;color:var(--t4);text-transform:uppercase;letter-spacing:0.8px;margin-top:8px}
-.nav-item{display:flex;align-items:center;gap:10px;padding:9px 16px;color:var(--t3);cursor:pointer;border-left:2px solid transparent;transition:all 0.1s;font-size:13px}
-.nav-item:hover{color:var(--t2);background:var(--bg2)}
-.nav-item.active{color:var(--t1);border-left-color:var(--blue);background:var(--bg2)}
-.nav-item .badge{margin-left:auto;background:var(--red);color:#fff;border-radius:10px;padding:1px 7px;font-size:11px;font-weight:700}
-.main{flex:1;overflow-y:auto;display:flex;flex-direction:column}
-.topbar{padding:12px 24px;border-bottom:1px solid var(--bg2);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;background:var(--bg1);position:sticky;top:0;z-index:10}
-.topbar h1{font-size:18px;font-weight:700}
-.topbar .sub{font-size:12px;color:var(--t3);margin-top:1px}
-.content{padding:16px 20px;flex:1}
+.topbar{background:var(--bg1);border-bottom:1px solid var(--bg2);padding:0 20px;height:50px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.topbar-left{display:flex;align-items:center;gap:12px}
+.app-title{font-weight:800;font-size:14px;letter-spacing:.08em}
+.app-title span{color:var(--blue)}
+.period-badge{background:var(--bg2);border:1px solid var(--bg3);border-radius:4px;padding:3px 8px;font-size:11px;color:var(--t4)}
+.topbar-right{display:flex;align-items:center;gap:10px}
+.user-pill{background:var(--bg2);border:1px solid var(--bg3);border-radius:20px;padding:4px 10px 4px 4px;display:flex;align-items:center;gap:7px;font-size:12px;color:var(--t3)}
+.user-avatar{width:26px;height:26px;border-radius:50%;background:var(--blue);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#fff}
+.logout-btn{background:none;border:1px solid var(--bg3);border-radius:5px;padding:4px 10px;color:var(--t4);font-size:11px;cursor:pointer}
+.logout-btn:hover{color:var(--t1);border-color:var(--t4)}
 
-/* CARDS */
+.main-layout{display:flex;flex:1;overflow:hidden}
+.sidebar{width:195px;background:var(--bg0);border-right:1px solid var(--bg2);display:flex;flex-direction:column;flex-shrink:0;overflow-y:auto}
+.sidebar-section{padding:16px 12px 8px;color:var(--t4);font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase}
+.nav-item{display:flex;align-items:center;gap:9px;padding:9px 14px;color:var(--t3);cursor:pointer;border-left:3px solid transparent;font-size:13px}
+.nav-item:hover{background:var(--bg2);color:var(--t1)}
+.nav-item.active{background:var(--bg2);color:var(--t1);border-left-color:var(--blue)}
+.nav-badge{margin-left:auto;background:var(--red);color:#fff;border-radius:10px;padding:1px 6px;font-size:10px;font-weight:700}
+.content{flex:1;overflow-y:auto;padding:20px 24px}
+
+.page-title{font-size:18px;font-weight:700;color:var(--t1);margin-bottom:4px}
+.page-sub{color:var(--t4);font-size:12px;margin-bottom:20px}
 .stat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px}
 .stat-card{background:var(--bg2);border:1px solid var(--bg3);border-radius:var(--rad);padding:16px}
-.stat-card .label{font-size:11px;color:var(--t3);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px}
-.stat-card .value{font-size:28px;font-weight:800;line-height:1}
-.stat-card .sub{font-size:12px;color:var(--t3);margin-top:4px}
+.stat-label{font-size:10px;font-weight:700;color:var(--t4);text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px}
+.stat-value{font-size:28px;font-weight:800;color:var(--t1);line-height:1}
+.stat-sub{font-size:11px;color:var(--t4);margin-top:4px}
+.stat-card.red .stat-value{color:var(--red)}
+.stat-card.green .stat-value{color:var(--green)}
+.stat-card.amber .stat-value{color:var(--amber)}
 
-/* ALERTS */
-.alert{border-radius:var(--rad);padding:12px 16px;margin-bottom:10px;display:flex;gap:12px;align-items:flex-start}
-.alert.error{background:#3b0f0f;border:1px solid #7f1d1d}
-.alert.warning{background:#3b2600;border:1px solid #78350f}
-.alert.ok{background:#0d2e1e;border:1px solid #14532d}
-.alert.info{background:#0c1f3d;border:1px solid #1e3a5f}
-.alert .icon{font-size:16px;flex-shrink:0;margin-top:1px}
-.alert .title{font-weight:600;font-size:13px;color:var(--t1)}
-.alert .text{font-size:12px;color:var(--t3);margin-top:2px}
+.alert{border-radius:var(--rad);padding:12px 16px;margin-bottom:10px;display:flex;gap:10px;align-items:flex-start}
+.alert.red{background:#2d1515;border:1px solid #7f1d1d}
+.alert.amber{background:#2d1f0a;border:1px solid #78350f}
+.alert.blue{background:#0f1e3a;border:1px solid #1e3a6e}
+.alert-icon{flex-shrink:0;font-size:15px;margin-top:1px}
+.alert-title{font-size:13px;font-weight:700;color:var(--t1);margin-bottom:2px}
+.alert-body{font-size:12px;color:var(--t3)}
 
-/* TABLES */
-.table-wrap{background:var(--bg2);border:1px solid var(--bg3);border-radius:var(--rad);overflow:hidden;margin-bottom:16px}
-table{width:100%;border-collapse:collapse}
-th{background:var(--bg3);padding:10px 14px;text-align:left;font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:0.5px;white-space:nowrap}
-td{padding:10px 14px;border-top:1px solid var(--bg3);font-size:13px;color:var(--t2);vertical-align:middle}
-tr:hover td{background:var(--bg3)}
+table{width:100%;border-collapse:collapse;margin-top:4px}
+th{text-align:left;font-size:10px;font-weight:700;color:var(--t4);text-transform:uppercase;letter-spacing:.06em;padding:8px 10px;border-bottom:1px solid var(--bg3)}
+td{padding:10px 10px;border-bottom:1px solid var(--bg2);font-size:13px;color:var(--t2)}
+tr:hover td{background:var(--bg2)}
 .clickable-row{cursor:pointer}
-.clickable-row:hover td{background:#1e3050}
 
-/* BADGES */
-.badge{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:20px;font-size:11px;font-weight:700;white-space:nowrap}
-.badge.green{background:#0d2e1e;color:var(--green);border:1px solid #14532d}
-.badge.red{background:#3b0f0f;color:var(--red);border:1px solid #7f1d1d}
-.badge.amber{background:#3b2600;color:var(--amber);border:1px solid #78350f}
-.badge.blue{background:#0c1f3d;color:var(--blue);border:1px solid #1e3a5f}
-.badge.purple{background:#1e1040;color:var(--purple);border:1px solid #4c1d95}
-.badge.gray{background:var(--bg3);color:var(--t3);border:1px solid var(--bg4)}
+.badge{display:inline-flex;align-items:center;gap:4px;border-radius:20px;padding:3px 9px;font-size:11px;font-weight:700;white-space:nowrap}
+.badge.green{background:#064e3b;color:#6ee7b7;border:1px solid #065f46}
+.badge.amber{background:#451a03;color:#fcd34d;border:1px solid #78350f}
+.badge.red{background:#450a0a;color:#fca5a5;border:1px solid #7f1d1d}
+.badge.blue{background:#0f1e3a;color:#93c5fd;border:1px solid #1d4ed8}
+.badge.gray{background:var(--bg2);color:var(--t4);border:1px solid var(--bg3)}
 
-/* BEMANNING LAYOUT */
-.bem-layout{display:grid;grid-template-columns:1fr 260px;gap:12px;height:calc(100vh - 130px)}
+.bem-layout{display:grid;grid-template-columns:1fr 290px;gap:12px;height:calc(100vh - 145px)}
 .bem-list{overflow-y:auto;background:var(--bg2);border:1px solid var(--bg3);border-radius:var(--rad)}
 .bem-detail{overflow-y:auto;background:var(--bg2);border:1px solid var(--bg3);border-radius:var(--rad)}
-.bem-filters{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap}
-.filter-btn{padding:6px 14px;border-radius:20px;font-size:12px;font-weight:600;background:var(--bg3);color:var(--t3);cursor:pointer;border:1px solid var(--bg4);transition:all 0.1s}
-.filter-btn.active{background:var(--blue2);color:#fff;border-color:var(--blue2)}
-.course-row{display:flex;align-items:flex-start;gap:8px;padding:8px 12px;border-bottom:1px solid var(--bg3);cursor:pointer;transition:background 0.1s}
+.course-row{display:flex;align-items:flex-start;gap:8px;padding:8px 12px;border-bottom:1px solid var(--bg3);cursor:pointer}
 .course-row:hover{background:var(--bg3)}
 .course-row.selected{background:#1e3050;border-left:3px solid var(--blue);padding-left:9px}
-.course-row .cr-body{flex:1;min-width:0}
-.course-row .cr-name{font-size:12px;font-weight:600;color:var(--t1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.3}
-.course-row .cr-meta{font-size:10px;color:var(--t3);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.course-row .cr-right{display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0}
-.detail-header{padding:16px;border-bottom:1px solid var(--bg3)}
-.detail-header h2{font-size:16px;font-weight:700}
-.detail-header .meta{font-size:12px;color:var(--t3);margin-top:3px}
-.detail-section{padding:14px 16px;border-bottom:1px solid var(--bg3)}
-.detail-section h3{font-size:11px;font-weight:700;color:var(--t4);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:10px}
-.hours-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-.hours-item{background:var(--bg3);border-radius:var(--rad2);padding:10px}
-.hours-item .label{font-size:11px;color:var(--t4)}
-.hours-item .value{font-size:18px;font-weight:700;color:var(--t1)}
-.hours-item .sub{font-size:10px;color:var(--t4);margin-top:1px}
+.cr-body{flex:1;min-width:0}
+.cr-name{font-size:12px;font-weight:600;color:var(--t1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.3}
+.cr-meta{font-size:10px;color:var(--t3);margin-top:2px}
+.cr-right{flex-shrink:0}
+.detail-pad{padding:16px}
+.detail-kurs-title{font-size:16px;font-weight:700;color:var(--t1);margin-bottom:3px}
+.detail-kurs-meta{font-size:12px;color:var(--t4);margin-bottom:12px}
+.info-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:12px 0}
+.info-cell{background:var(--bg1);border-radius:6px;padding:10px 12px}
+.info-cell-label{font-size:10px;color:var(--t4);font-weight:700;text-transform:uppercase;margin-bottom:4px}
+.info-cell-value{font-size:18px;font-weight:700;color:var(--t1)}
+.section-title{font-size:11px;font-weight:700;color:var(--t4);text-transform:uppercase;letter-spacing:.07em;margin:16px 0 8px}
+.teacher-row{display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--bg3)}
+.teacher-row:last-child{border-bottom:none}
+.avatar{border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff;flex-shrink:0}
+.teacher-info{flex:1;min-width:0}
+.teacher-name{font-size:13px;font-weight:600;color:var(--t1)}
+.teacher-meta{font-size:11px;color:var(--t4)}
+.btn-sm{background:var(--bg3);border:none;border-radius:5px;padding:5px 8px;color:var(--t2);font-size:11px;cursor:pointer}
+.btn-sm:hover{background:var(--blue);color:#fff}
+.btn-add{width:100%;background:transparent;border:1px dashed var(--bg3);border-radius:6px;padding:10px;color:var(--t4);font-size:13px;cursor:pointer;margin-top:10px;text-align:center}
+.btn-add:hover{border-color:var(--blue);color:var(--blue);background:#0f1e3a}
+.filter-bar{display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap}
+.filter-btn{background:var(--bg2);border:1px solid var(--bg3);border-radius:20px;padding:5px 12px;color:var(--t3);font-size:12px;cursor:pointer}
+.filter-btn.active{background:var(--blue);border-color:var(--blue);color:#fff;font-weight:600}
+.empty-state{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;min-height:120px;padding:30px;text-align:center;color:var(--t4);gap:8px}
+.empty-icon{font-size:32px;opacity:.4}
 
-/* TEACHER ASSIGNMENT */
-.assigned-teacher{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--bg3)}
-.assigned-teacher:last-child{border-bottom:none}
-.avatar{width:32px;height:32px;border-radius:50%;background:var(--bg3);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--t2);flex-shrink:0}
-.teacher-info .name{font-size:13px;font-weight:600;color:var(--t1)}
-.teacher-info .meta{font-size:11px;color:var(--t4)}
-.remove-btn{margin-left:auto;padding:4px 10px;border-radius:var(--rad2);background:var(--bg4);color:var(--t3);font-size:11px;cursor:pointer}
-.remove-btn:hover{background:#7f1d1d;color:var(--red)}
+.kap-row{display:grid;grid-template-columns:175px 1fr 75px;gap:12px;align-items:center;padding:9px 8px;border-bottom:1px solid var(--bg2);cursor:pointer;border-radius:6px}
+.kap-row:hover{background:var(--bg2)}
+.kap-bar-wrap{height:8px;background:var(--bg3);border-radius:4px;overflow:hidden;position:relative}
+.kap-bar-fill{height:100%;border-radius:4px}
+.kap-bar-godkand{background:var(--green)}
+.kap-bar-begard{position:absolute;top:0;background:var(--amber)}
+.kap-legend{display:flex;gap:14px;margin-bottom:12px}
+.kap-legend-item{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--t4)}
+.kap-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
 
-/* LOAD BAR */
-.load-bar-wrap{margin-top:6px}
-.load-bar-track{height:6px;background:var(--bg3);border-radius:3px;overflow:hidden;margin-bottom:3px}
-.load-bar-fill{height:100%;border-radius:3px;transition:width 0.3s}
-.load-bar-labels{display:flex;justify-content:space-between;font-size:10px;color:var(--t4)}
+.tidskonto-wrap{background:var(--bg2);border:1px solid var(--bg3);border-radius:var(--rad);padding:14px;margin-bottom:14px}
+.tk-row{display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid var(--bg3)}
+.tk-row:last-child{border-bottom:none}
+.tk-label{font-size:12px;color:var(--t3)}
+.tk-value{font-size:13px;font-weight:600;color:var(--t1)}
+.pending-item{background:var(--bg1);border:1px solid var(--bg3);border-radius:6px;padding:10px 12px;margin-bottom:8px}
+.pending-kurs{font-size:13px;font-weight:600;color:var(--t1)}
+.pending-meta{font-size:11px;color:var(--t4);margin-top:2px}
+.pending-actions{display:flex;gap:6px;margin-top:8px}
+.btn-approve{background:#065f46;border:none;border-radius:5px;padding:6px 14px;color:#6ee7b7;font-size:12px;font-weight:600;cursor:pointer}
+.btn-approve:hover{background:#047857}
+.btn-reject{background:#450a0a;border:none;border-radius:5px;padding:6px 14px;color:#fca5a5;font-size:12px;font-weight:600;cursor:pointer}
+.btn-reject:hover{background:#7f1d1d}
 
-/* PICKER MODAL */
-.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:100;display:flex;align-items:flex-start;justify-content:center;padding:60px 20px;overflow-y:auto}
-.modal{background:var(--bg2);border:1px solid var(--bg3);border-radius:12px;width:600px;max-width:100%;flex-shrink:0}
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.7);display:flex;align-items:center;justify-content:center;z-index:100}
+.modal{background:var(--bg1);border:1px solid var(--bg3);border-radius:12px;width:560px;max-height:82vh;display:flex;flex-direction:column;overflow:hidden}
 .modal-header{padding:16px 20px;border-bottom:1px solid var(--bg3);display:flex;align-items:center;justify-content:space-between}
-.modal-header h2{font-size:16px;font-weight:700}
-.modal-close{font-size:20px;color:var(--t4);cursor:pointer;padding:4px 8px;border-radius:var(--rad2)}
-.modal-close:hover{background:var(--bg3);color:var(--t1)}
-.modal-body{padding:16px 20px;max-height:60vh;overflow-y:auto}
-.modal-footer{padding:14px 20px;border-top:1px solid var(--bg3);display:flex;gap:10px;justify-content:flex-end}
-.teacher-pick-item{display:flex;align-items:center;gap:12px;padding:12px;border-radius:var(--rad);border:1px solid var(--bg3);margin-bottom:8px;cursor:pointer;transition:border-color 0.1s}
-.teacher-pick-item:hover{border-color:var(--blue)}
-.teacher-pick-item.selected{border-color:var(--blue);background:#0c1f3d}
-.teacher-pick-item.blocked{opacity:0.5;cursor:not-allowed}
-.teacher-pick-item .pick-info{flex:1;min-width:0}
-.teacher-pick-item .pick-info .name{font-size:13px;font-weight:600;color:var(--t1)}
-.teacher-pick-item .pick-info .title{font-size:11px;color:var(--t4)}
-.pick-load{text-align:right;min-width:80px}
-.pick-load .pct{font-size:18px;font-weight:800}
-.pick-load .lbl{font-size:10px;color:var(--t4)}
+.modal-title{font-size:15px;font-weight:700;color:var(--t1)}
+.modal-close{background:none;border:none;color:var(--t4);font-size:20px;cursor:pointer;line-height:1}
+.modal-close:hover{color:var(--t1)}
+.modal-body{padding:16px 20px;overflow-y:auto;flex:1}
+.modal-footer{padding:12px 20px;border-top:1px solid var(--bg3);display:flex;justify-content:flex-end;gap:8px}
+.picker-search{width:100%;background:var(--bg2);border:1px solid var(--bg3);border-radius:6px;padding:8px 12px;color:var(--t1);font-size:13px;outline:none;margin-bottom:12px}
+.picker-search:focus{border-color:var(--blue)}
+.picker-person-row{display:flex;align-items:center;gap:10px;padding:9px 8px;border-radius:6px;cursor:pointer;border:2px solid transparent}
+.picker-person-row:hover{background:var(--bg2)}
+.picker-person-row.selected{background:#0f1e3a;border-color:var(--blue)}
+.picker-cap{margin-left:auto;text-align:right;flex-shrink:0}
+.picker-cap-val{font-size:14px;font-weight:700}
+.cap-ok{color:var(--green)}
+.cap-warn{color:var(--amber)}
+.cap-over{color:var(--red)}
+.picker-cap-label{font-size:10px;color:var(--t4)}
+.hours-row{display:flex;align-items:center;gap:8px;margin-top:14px;padding-top:14px;border-top:1px solid var(--bg3);flex-wrap:wrap}
+.hours-row label{font-size:12px;color:var(--t3);font-weight:600}
+.hours-input{width:75px;background:var(--bg2);border:1px solid var(--bg3);border-radius:6px;padding:7px 10px;color:var(--t1);font-size:14px;text-align:center;outline:none}
+.hours-input:focus{border-color:var(--blue)}
+.sel{background:var(--bg2);border:1px solid var(--bg3);border-radius:6px;padding:7px 10px;color:var(--t1);font-size:13px;outline:none}
+.val-msg{font-size:11px;padding:6px 10px;border-radius:5px;margin-top:8px}
+.val-msg.err{background:#2d1515;color:#fca5a5;border:1px solid #7f1d1d}
+.val-msg.warn{background:#2d1f0a;color:#fcd34d;border:1px solid #78350f}
+.btn-cancel{background:var(--bg2);border:1px solid var(--bg3);border-radius:6px;padding:8px 18px;color:var(--t3);font-size:13px;cursor:pointer}
+.btn-confirm{background:var(--blue);border:none;border-radius:6px;padding:8px 18px;color:#fff;font-size:13px;font-weight:600;cursor:pointer}
+.btn-confirm:hover{background:#2563eb}
+.btn-confirm:disabled{opacity:.4;cursor:not-allowed}
 
-/* UIÅ VIEW */
-.uia-layout{display:grid;grid-template-columns:220px 1fr;gap:20px;align-items:start}
-.uia-donut-wrap{background:var(--bg2);border:1px solid var(--bg3);border-radius:var(--rad);padding:20px;text-align:center}
-.uia-legend{margin-top:16px;display:flex;flex-direction:column;gap:8px;text-align:left}
-.uia-legend-item{display:flex;align-items:center;gap:8px;font-size:12px}
-.uia-legend-dot{width:12px;height:12px;border-radius:50%;flex-shrink:0}
-.uia-legend-label{color:var(--t3);flex:1}
-.uia-legend-value{color:var(--t1);font-weight:700;font-size:13px}
-.uia-cards{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.uia-cat-card{background:var(--bg2);border:1px solid var(--bg3);border-radius:var(--rad);padding:16px}
-.uia-cat-card .cat-label{font-size:11px;color:var(--t3);text-transform:uppercase;letter-spacing:0.5px;display:flex;align-items:center;gap:6px;margin-bottom:8px}
-.uia-cat-card .cat-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
-.uia-cat-card .cat-hours{font-size:24px;font-weight:800;color:var(--t1)}
-.uia-cat-card .cat-pct{font-size:13px;color:var(--t3);margin-top:2px}
-.uia-cat-card .cat-min{font-size:11px;color:var(--t4);margin-top:4px}
-.uia-cat-card .cat-status{margin-top:8px}
-.progress-bar{height:8px;background:var(--bg3);border-radius:4px;overflow:hidden;margin-top:6px}
-.progress-fill{height:100%;border-radius:4px}
-
-/* HEATMAP */
-.heatmap-wrap{overflow-x:auto}
-.heatmap{border-collapse:collapse;font-size:11px}
-.heatmap th{padding:4px 6px;color:var(--t4);font-weight:600;white-space:nowrap;background:var(--bg2);position:sticky;top:0}
-.heatmap td.name-cell{padding:6px 10px;color:var(--t2);white-space:nowrap;background:var(--bg2);position:sticky;left:0;border-right:1px solid var(--bg3);font-weight:600}
-.heatmap td.cell{width:36px;height:28px;text-align:center;font-size:10px;font-weight:700;border:1px solid var(--bg1)}
-.cell-0{background:#0d2e1e;color:var(--green)}
-.cell-1{background:#1a3a1a;color:#86efac}
-.cell-2{background:#3b2600;color:var(--amber)}
-.cell-3{background:#3b0f0f;color:var(--red)}
-
-/* REPORT BUILDER */
-.report-filters{background:var(--bg2);border:1px solid var(--bg3);border-radius:var(--rad);padding:16px;margin-bottom:16px;display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end}
-.report-filters .filter-group{display:flex;flex-direction:column;gap:4px}
-.report-filters label{font-size:11px;color:var(--t3);font-weight:600}
-.chart-bar-wrap{background:var(--bg2);border:1px solid var(--bg3);border-radius:var(--rad);padding:16px}
-.chart-bars{display:flex;align-items:flex-end;gap:6px;height:160px;margin-bottom:8px}
-.chart-bar{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;height:100%;justify-content:flex-end}
-.chart-bar .bar{width:100%;border-radius:4px 4px 0 0;transition:height 0.3s;min-height:4px}
-.chart-bar .bar-label{font-size:9px;color:var(--t4);margin-top:4px;text-align:center;white-space:nowrap;overflow:hidden;width:100%;text-overflow:ellipsis}
-.chart-bar .bar-val{font-size:10px;font-weight:700;color:var(--t2)}
-
-/* BUTTONS */
-.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:var(--rad2);font-size:13px;font-weight:600;cursor:pointer;transition:all 0.15s}
-.btn-primary{background:var(--blue2);color:#fff}
-.btn-primary:hover{background:#2563eb}
-.btn-secondary{background:var(--bg3);color:var(--t2);border:1px solid var(--bg4)}
-.btn-secondary:hover{background:var(--bg4)}
-.btn-danger{background:#7f1d1d;color:var(--red)}
-.btn-danger:hover{background:#991b1b}
-.btn-sm{padding:5px 11px;font-size:12px}
-
-/* HR COMPETENCE */
-.comp-grid{display:grid;grid-template-columns:180px repeat(6,1fr);border-collapse:collapse}
-.comp-header{background:var(--bg3);padding:8px 6px;font-size:10px;font-weight:700;color:var(--t4);text-transform:uppercase;text-align:center;border:1px solid var(--bg1)}
-.comp-name{background:var(--bg2);padding:8px 10px;font-size:12px;color:var(--t2);border:1px solid var(--bg3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:600}
-.comp-cell{background:var(--bg2);padding:8px;text-align:center;border:1px solid var(--bg3);font-size:14px}
-.comp-cell.yes{background:#0d1f14}
-.comp-cell.partial{background:#1e1a00}
-
-/* MISC */
-.section-title{font-size:16px;font-weight:700;color:var(--t1);margin-bottom:12px}
-.section-sub{font-size:12px;color:var(--t3);margin-bottom:16px;margin-top:-8px}
-.two-col{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px}
-.card{background:var(--bg2);border:1px solid var(--bg3);border-radius:var(--rad);padding:16px;margin-bottom:12px}
-.divider{height:1px;background:var(--bg3);margin:12px 0}
-.empty{text-align:center;padding:40px;color:var(--t4);font-size:13px}
-.search-box{display:flex;align-items:center;gap:8px;background:var(--bg3);border:1px solid var(--bg4);border-radius:var(--rad2);padding:7px 12px;margin-bottom:12px}
-.search-box input{background:none;border:none;flex:1;color:var(--t1);outline:none}
-.tag{display:inline-block;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600;background:var(--bg3);color:var(--t3);margin:2px}
+.loading{display:flex;align-items:center;justify-content:center;height:200px;gap:10px;color:var(--t4)}
+.spinner{width:20px;height:20px;border:2px solid var(--bg3);border-top-color:var(--blue);border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+::-webkit-scrollbar{width:6px}::-webkit-scrollbar-track{background:var(--bg0)}::-webkit-scrollbar-thumb{background:var(--bg3);border-radius:3px}
 </style>
 </head>
 <body>
 <div id="app"></div>
 <script>
-// ============================================================
-// MOCK DATA
-// ============================================================
-const STAFF = [
-  {id:1,name:"Anna Lindqvist",initials:"AL",title:"Professor",subject:"Pedagogik",pct:1.0,semDays:35,annual:1700,fok:27,koll:10,extFok:10},
-  {id:2,name:"Erik Svensson",initials:"ES",title:"Professor",subject:"Specialpedagogik",pct:1.0,semDays:35,annual:1700,fok:27,koll:10,extFok:0},
-  {id:3,name:"Maria Holmberg",initials:"MH",title:"Professor",subject:"Didaktik",pct:0.8,semDays:35,annual:1360,fok:27,koll:10,extFok:25},
-  {id:4,name:"Lars Petersson",initials:"LP",title:"Professor",subject:"Utbildningsvetenskap",pct:1.0,semDays:35,annual:1700,fok:27,koll:10,extFok:15},
-  {id:5,name:"Karin Björk",initials:"KB",title:"Professor",subject:"Pedagogisk psykologi",pct:1.0,semDays:35,annual:1700,fok:27,koll:10,extFok:30},
-  {id:6,name:"Johan Nilsson",initials:"JN",title:"Professor",subject:"Kunskapsteori",pct:1.0,semDays:35,annual:1700,fok:27,koll:10,extFok:0},
-  {id:7,name:"Eva Magnusson",initials:"EM",title:"Professor",subject:"Vuxenpedagogik",pct:0.8,semDays:35,annual:1360,fok:27,koll:10,extFok:20},
-  {id:8,name:"Per Andersen",initials:"PA",title:"Professor",subject:"Pedagogik",pct:0.2,semDays:35,annual:340,fok:27,koll:10,extFok:0},
-  {id:9,name:"Sofia Lundgren",initials:"SL",title:"Docent",subject:"Specialpedagogik",pct:1.0,semDays:35,annual:1700,fok:27,koll:5,extFok:20},
-  {id:10,name:"Anders Karlsson",initials:"AK",title:"Docent",subject:"Pedagogik",pct:1.0,semDays:35,annual:1700,fok:27,koll:5,extFok:0},
-  {id:11,name:"Lena Öberg",initials:"LÖ",title:"Docent",subject:"Didaktik",pct:0.8,semDays:35,annual:1360,fok:27,koll:5,extFok:15},
-  {id:12,name:"Mikael Strand",initials:"MS",title:"Docent",subject:"Utbildningsvetenskap",pct:1.0,semDays:35,annual:1700,fok:27,koll:5,extFok:10},
-  {id:13,name:"Cecilia Asp",initials:"CA",title:"Docent",subject:"Pedagogisk psykologi",pct:1.0,semDays:35,annual:1700,fok:27,koll:5,extFok:0},
-  {id:14,name:"Petra Wallin",initials:"PW",title:"Lektor",subject:"Pedagogik",pct:1.0,semDays:31,annual:1732,fok:18,koll:5,extFok:0},
-  {id:15,name:"Thomas Berg",initials:"TB",title:"Lektor",subject:"Specialpedagogik",pct:1.0,semDays:35,annual:1700,fok:18,koll:5,extFok:10},
-  {id:16,name:"Ingrid Axelsson",initials:"IA",title:"Lektor",subject:"Didaktik",pct:0.75,semDays:35,annual:1275,fok:18,koll:5,extFok:0},
-  {id:17,name:"Björn Lindahl",initials:"BL",title:"Lektor",subject:"Pedagogik",pct:1.0,semDays:35,annual:1700,fok:18,koll:5,extFok:5},
-  {id:18,name:"Helena Sjöberg",initials:"HS",title:"Lektor",subject:"Utbildningsvetenskap",pct:1.0,semDays:35,annual:1700,fok:18,koll:5,extFok:0},
-  {id:19,name:"Marcus Ek",initials:"ME",title:"Lektor",subject:"Pedagogisk psykologi",pct:1.0,semDays:28,annual:1756,fok:18,koll:5,extFok:15},
-  {id:20,name:"Annika Lund",initials:"AL",title:"Lektor",subject:"Specialpedagogik",pct:0.5,semDays:35,annual:850,fok:18,koll:5,extFok:0},
-  {id:21,name:"Daniel Persson",initials:"DP",title:"Lektor",subject:"Pedagogik",pct:1.0,semDays:35,annual:1700,fok:18,koll:5,extFok:20},
-  {id:22,name:"Susanne Nyman",initials:"SN",title:"Lektor",subject:"Didaktik",pct:1.0,semDays:35,annual:1700,fok:18,koll:5,extFok:0},
-  {id:23,name:"Fredrik Olsson",initials:"FO",title:"Lektor",subject:"Kunskapsteori",pct:1.0,semDays:35,annual:1700,fok:18,koll:5,extFok:5},
-  {id:24,name:"Camilla Holm",initials:"CH",title:"Lektor",subject:"Pedagogik",pct:1.0,semDays:35,annual:1700,fok:18,koll:5,extFok:10},
-  {id:25,name:"Patrik Jonsson",initials:"PJ",title:"Lektor",subject:"Specialpedagogik",pct:1.0,semDays:31,annual:1732,fok:18,koll:5,extFok:0},
-  {id:26,name:"Ylva Dahlgren",initials:"YD",title:"Lektor",subject:"Vuxenpedagogik",pct:1.0,semDays:35,annual:1700,fok:18,koll:5,extFok:8},
-  {id:27,name:"Stefan Borg",initials:"SB",title:"Lektor",subject:"Utbildningsvetenskap",pct:0.8,semDays:35,annual:1360,fok:18,koll:5,extFok:0},
-  {id:28,name:"Christina Sköld",initials:"CS",title:"Lektor",subject:"Pedagogisk psykologi",pct:1.0,semDays:35,annual:1700,fok:18,koll:5,extFok:12},
-  {id:29,name:"Mattias Rydén",initials:"MR",title:"Lektor",subject:"Pedagogik",pct:1.0,semDays:35,annual:1700,fok:18,koll:5,extFok:0},
-  {id:30,name:"Jenny Falk",initials:"JF",title:"Lektor",subject:"Specialpedagogik",pct:1.0,semDays:35,annual:1700,fok:18,koll:5,extFok:5},
-  {id:31,name:"Tobias Linde",initials:"TL",title:"Lektor",subject:"Didaktik",pct:1.0,semDays:35,annual:1700,fok:18,koll:5,extFok:20},
-  {id:32,name:"Rebecka Elg",initials:"RE",title:"Lektor",subject:"Pedagogik",pct:0.6,semDays:35,annual:1020,fok:18,koll:5,extFok:0},
-  {id:33,name:"Håkan Öst",initials:"HÖ",title:"Lektor",subject:"Utbildningsvetenskap",pct:1.0,semDays:28,annual:1756,fok:18,koll:5,extFok:15},
-  {id:34,name:"Lisa Strom",initials:"LS",title:"Adjunkt",subject:"Pedagogik",pct:1.0,semDays:35,annual:1700,fok:10,koll:5,extFok:0},
-  {id:35,name:"Robert Dahl",initials:"RD",title:"Adjunkt",subject:"Specialpedagogik",pct:1.0,semDays:35,annual:1700,fok:10,koll:5,extFok:0},
-  {id:36,name:"Anne Bäck",initials:"AB",title:"Adjunkt",subject:"Didaktik",pct:0.75,semDays:35,annual:1275,fok:10,koll:5,extFok:0},
-  {id:37,name:"Gunnar Frost",initials:"GF",title:"Adjunkt",subject:"Pedagogik",pct:1.0,semDays:35,annual:1700,fok:10,koll:5,extFok:0},
-  {id:38,name:"Sara Gren",initials:"SG",title:"Adjunkt",subject:"Utbildningsvetenskap",pct:1.0,semDays:35,annual:1700,fok:10,koll:5,extFok:0},
-  {id:39,name:"Peter Hult",initials:"PH",title:"Adjunkt",subject:"Pedagogisk psykologi",pct:0.5,semDays:35,annual:850,fok:10,koll:5,extFok:0},
-  {id:40,name:"Marie Lén",initials:"ML",title:"Adjunkt",subject:"Specialpedagogik",pct:1.0,semDays:35,annual:1700,fok:10,koll:5,extFok:0},
-  {id:41,name:"Carl Ros",initials:"CR",title:"Adjunkt",subject:"Pedagogik",pct:1.0,semDays:35,annual:1700,fok:10,koll:5,extFok:0},
-  {id:42,name:"Nina Åke",initials:"NÅ",title:"Adjunkt",subject:"Didaktik",pct:0.8,semDays:35,annual:1360,fok:10,koll:5,extFok:0},
-  {id:43,name:"Oscar Sell",initials:"OS",title:"Adjunkt",subject:"Vuxenpedagogik",pct:1.0,semDays:35,annual:1700,fok:10,koll:5,extFok:0},
-  {id:44,name:"Emma Nord",initials:"EN",title:"Doktorand",subject:"Pedagogik",pct:1.0,semDays:35,annual:1700,fok:80,koll:0,extFok:0,maxTeachPct:20},
-  {id:45,name:"Lukas Gran",initials:"LG",title:"Doktorand",subject:"Specialpedagogik",pct:1.0,semDays:35,annual:1700,fok:80,koll:0,extFok:0,maxTeachPct:20},
-  {id:46,name:"Maja Vik",initials:"MV",title:"Doktorand",subject:"Pedagogisk psykologi",pct:1.0,semDays:35,annual:1700,fok:80,koll:0,extFok:0,maxTeachPct:20},
-  {id:47,name:"Felix Arn",initials:"FA",title:"Doktorand",subject:"Pedagogik",pct:1.0,semDays:35,annual:1700,fok:80,koll:0,extFok:0,maxTeachPct:20},
-  {id:48,name:"Ida Söd",initials:"IS",title:"Doktorand",subject:"Didaktik",pct:1.0,semDays:35,annual:1700,fok:80,koll:0,extFok:0,maxTeachPct:20},
-  {id:49,name:"Victor Eng",initials:"VE",title:"Doktorand",subject:"Specialpedagogik",pct:1.0,semDays:35,annual:1700,fok:80,koll:0,extFok:0,maxTeachPct:20},
-  {id:50,name:"Clara Blom",initials:"CB",title:"Doktorand",subject:"Utbildningsvetenskap",pct:1.0,semDays:35,annual:1700,fok:80,koll:0,extFok:0,maxTeachPct:20},
-];
+'use strict';
+const API = '/api';
+const VERSION = '0.2.0';
 
-const COURSES = [
-  {id:"LAU100",name:"Lärande och undervisning I",credits:7.5,period:"HT1",students:80,subjects:["Pedagogik","Didaktik"],neededHours:120},
-  {id:"LAU200",name:"Lärande och undervisning II",credits:7.5,period:"HT2",students:65,subjects:["Pedagogik","Didaktik"],neededHours:110},
-  {id:"SPP100",name:"Introduktion till specialpedagogik",credits:7.5,period:"HT1",students:90,subjects:["Specialpedagogik"],neededHours:130},
-  {id:"SPP210",name:"Specialpedagogik i praktiken",credits:15,period:"HT1+HT2",students:45,subjects:["Specialpedagogik"],neededHours:200},
-  {id:"UPF100",name:"Utbildningsfilosofi",credits:7.5,period:"HT1",students:55,subjects:["Kunskapsteori","Pedagogik"],neededHours:150},
-  {id:"PDG100",name:"Pedagogik för professionella",credits:15,period:"HT1+HT2",students:120,subjects:["Pedagogik"],neededHours:280},
-  {id:"UVN100",name:"Utbildningssociologi",credits:7.5,period:"HT2",students:70,subjects:["Utbildningsvetenskap"],neededHours:110},
-  {id:"VUX100",name:"Vuxnas lärande",credits:7.5,period:"HT1",students:40,subjects:["Vuxenpedagogik"],neededHours:95},
-  {id:"PPK100",name:"Pedagogisk psykologi",credits:7.5,period:"HT2",students:75,subjects:["Pedagogisk psykologi"],neededHours:115},
-  {id:"MET100",name:"Forskningsmetodik I",credits:7.5,period:"HT1",students:35,subjects:["Pedagogik","Utbildningsvetenskap"],neededHours:100},
-  {id:"MET200",name:"Forskningsmetodik II",credits:7.5,period:"HT2",students:25,subjects:["Pedagogik","Utbildningsvetenskap"],neededHours:80},
-  {id:"DID100",name:"Ämnesdidaktik",credits:7.5,period:"HT1",students:60,subjects:["Didaktik"],neededHours:110},
-  {id:"SPP300",name:"Inkludering och mångfald",credits:7.5,period:"HT2",students:50,subjects:["Specialpedagogik"],neededHours:100},
-  {id:"LAU300",name:"Bedömning och utvärdering",credits:7.5,period:"HT2",students:55,subjects:["Pedagogik","Didaktik"],neededHours:110},
-  {id:"FUP100",name:"Forskarutbildningskurs I",credits:7.5,period:"HT1+HT2",students:12,subjects:["Pedagogik"],neededHours:80},
-];
-
-let ASSIGNMENTS = [
-  {id:1,courseId:"LAU100",staffId:17,hours:75},
-  {id:2,courseId:"LAU100",staffId:34,hours:45},
-  {id:3,courseId:"LAU200",staffId:22,hours:70},
-  {id:4,courseId:"LAU200",staffId:17,hours:40},
-  {id:5,courseId:"SPP100",staffId:15,hours:85},
-  {id:6,courseId:"SPP100",staffId:35,hours:45},
-  {id:7,courseId:"SPP210",staffId:9,hours:110},
-  {id:8,courseId:"SPP210",staffId:30,hours:90},
-  {id:9,courseId:"UPF100",staffId:6,hours:150},
-  {id:10,courseId:"PDG100",staffId:14,hours:95},
-  {id:11,courseId:"PDG100",staffId:29,hours:95},
-  {id:12,courseId:"PDG100",staffId:41,hours:90},
-  {id:13,courseId:"UVN100",staffId:18,hours:65},
-  {id:14,courseId:"UVN100",staffId:33,hours:45},
-  {id:15,courseId:"VUX100",staffId:7,hours:95},
-  {id:16,courseId:"PPK100",staffId:5,hours:70},
-  {id:17,courseId:"PPK100",staffId:28,hours:45},
-  {id:18,courseId:"MET100",staffId:21,hours:100},
-  // MET200 - UNSTAFFED
-  {id:19,courseId:"DID100",staffId:11,hours:65},
-  {id:20,courseId:"DID100",staffId:36,hours:45},
-  {id:21,courseId:"SPP300",staffId:2,hours:60}, // partially staffed
-  // LAU300 - UNSTAFFED
-  {id:22,courseId:"FUP100",staffId:1,hours:45},
-  {id:23,courseId:"FUP100",staffId:4,hours:35},
-];
-let nextAssignId = 24;
-
-// ============================================================
-// STATE
-// ============================================================
-let state = {
-  role: null,        // 'prefekt'|'larare'|'hr'|'ekonom'
+let S = {
+  token: localStorage.getItem('uup_token'),
+  user:  JSON.parse(localStorage.getItem('uup_user') || 'null'),
   view: 'dashboard',
-  selectedCourse: null,
-  pickerOpen: false,
-  pickerCourseId: null,
-  pickerSelectedStaffId: null,
-  pickerHours: 60,
-  bemanFilter: 'all',
-  staffFilter: '',
-  reportGroup: 'title',
-  reportPeriod: 'all',
-  currentStaffId: 14, // default larare = Petra Wallin
-  staffSearch: '',
+  year: 2026,
+  // cached lists
+  avdelningar: null, perioder: null, personal: null, kurser: null, kapacitet: null,
+  kursCache: {}, kontoCache: {},
+  // ui
+  selectedKurs: null, kursDetail: null,
+  selectedPerson: null,
+  bemanFilter: 'all', kapFilter: null, kapSearch: '',
+  // picker
+  pickerKursId: null, pickerPersonId: null,
+  pickerTimmar: 60, pickerStatus: 'begard', pickerSearch: '',
+  pickerValMsg: null,
+  // misc
+  pendingCount: 0, loginErr: '', loginLoading: false,
 };
 
-// ============================================================
-// UTILITIES
-// ============================================================
-function getStaff(id){return STAFF.find(s=>s.id===id)}
-function getCourse(id){return COURSES.find(c=>c.id===id)}
-function getStaffAssignments(staffId){return ASSIGNMENTS.filter(a=>a.staffId===staffId)}
-function getCourseAssignments(courseId){return ASSIGNMENTS.filter(a=>a.courseId===courseId)}
-function totalTeachingHours(staffId){return getStaffAssignments(staffId).reduce((s,a)=>s+a.hours,0)}
-
-function courseStatus(courseId){
-  const course=getCourse(courseId);
-  const asgns=getCourseAssignments(courseId);
-  if(!asgns.length) return 'unstaffed';
-  const assigned=asgns.reduce((s,a)=>s+a.hours,0);
-  if(assigned>=course.neededHours*0.9) return 'full';
-  return 'partial';
+// ─── API ─────────────────────────────────────────────────────────────────────
+async function api(path, opts={}) {
+  const r = await fetch(API + path, {
+    ...opts,
+    headers: {'Content-Type':'application/json',
+      ...(S.token ? {'Authorization':'Bearer '+S.token} : {}),
+      ...(opts.headers||{})}
+  });
+  if (r.status === 204) return null;
+  const d = await r.json();
+  if (!r.ok) throw d;
+  return d;
 }
 
-function statusBadge(status){
-  if(status==='full') return '<span class="badge green">✓ Bemannad</span>';
-  if(status==='partial') return '<span class="badge amber">⚠ Delvis</span>';
-  return '<span class="badge red">✗ Ej bemannad</span>';
-}
-
-function titleColor(title){
-  if(title==='Professor'||title==='Docent') return 'var(--purple)';
-  if(title==='Lektor') return 'var(--blue)';
-  if(title==='Adjunkt') return 'var(--teal)';
-  return 'var(--t4)';
-}
-
-function loadPct(staffId){
-  const p=getStaff(staffId);
-  const th=totalTeachingHours(staffId);
-  const reserved=Math.round(p.annual*(p.fok+p.koll+(p.extFok||0))/100);
-  const avail=p.annual-reserved;
-  return Math.round(th/avail*100);
-}
-
-function loadColor(pct){
-  if(pct<=60) return 'var(--green)';
-  if(pct<=85) return 'var(--amber)';
-  return 'var(--red)';
-}
-function loadLabel(pct){
-  if(pct<=60) return 'Låg';
-  if(pct<=85) return 'Måttlig';
-  if(pct<=100) return 'Hög';
-  return 'ÖVERTID';
-}
-
-function validate(staffId, hoursToAdd){
-  const p=getStaff(staffId);
-  if(!p) return {ok:false,errors:['Person ej hittad'],warnings:[]};
-  const annual=p.annual;
-  const fokH=Math.round(annual*p.fok/100);
-  const kollH=Math.round(annual*p.koll/100);
-  const extH=Math.round(annual*(p.extFok||0)/100);
-  const reserved=fokH+kollH+extH;
-  const avail=annual-reserved;
-  const curTeach=totalTeachingHours(staffId);
-  const newTeach=curTeach+hoursToAdd;
-  const pct=Math.round(newTeach/annual*100);
-  const errors=[];const warnings=[];
-
-  if(p.title==='Doktorand'){
-    const maxH=Math.round(annual*(p.maxTeachPct||20)/100);
-    if(newTeach>maxH) errors.push(`Doktorand: max ${p.maxTeachPct||20}% institutionstjänstgöring (${maxH}h). Ny total: ${newTeach}h.`);
-    else if(newTeach>maxH*0.85) warnings.push(`Doktoranden närmar sig gränsen (${newTeach}h av max ${maxH}h).`);
+// ─── AUTH ────────────────────────────────────────────────────────────────────
+async function doLogin() {
+  const epost = document.getElementById('l-e')?.value?.trim();
+  const pw    = document.getElementById('l-p')?.value;
+  if (!epost || !pw) return;
+  S.loginLoading = true; S.loginErr = ''; render();
+  try {
+    const res = await api('/auth/login', {method:'POST', body:JSON.stringify({epost, losenord:pw})});
+    S.token = res.access_token; S.user = res.anvandare;
+    localStorage.setItem('uup_token', S.token);
+    localStorage.setItem('uup_user',  JSON.stringify(S.user));
+    S.loginLoading = false;
+    await loadBase();
+    render();
+  } catch(e) {
+    S.loginErr = typeof e.detail==='string' ? e.detail : 'Inloggning misslyckades';
+    S.loginLoading = false; render();
   }
-  if(newTeach>avail) errors.push(`Övertid: ${newTeach}h undervisning överstiger tillgänglig tid ${avail}h (${annual}h − ${reserved}h reserverat).`);
-  else if(newTeach>avail*0.92) warnings.push(`Hög belastning: ${pct}% av årsarbetstiden går till undervisning, lite marginal kvar.`);
-  if(newTeach+reserved>annual) errors.push(`Total arbetstid ${newTeach+reserved}h överstiger årsarbetstid ${annual}h.`);
-
-  return {ok:errors.length===0,errors,warnings,curTeach,newTeach,pct,annual,reserved,avail};
 }
 
-
-function uiaData(staffId){
-  const p=getStaff(staffId);
-  const teach=totalTeachingHours(staffId);
-  const fokH=Math.round(p.annual*p.fok/100);
-  const kollH=Math.round(p.annual*p.koll/100);
-  const extH=Math.round(p.annual*(p.extFok||0)/100);
-  const adminH=Math.max(0,p.annual-teach-fokH-kollH-extH);
-  return {teach,fok:fokH,koll:kollH,ext:extH,admin:adminH,annual:p.annual};
+function fillDemo(e) {
+  document.getElementById('l-e').value = e;
+  document.getElementById('l-p').value = 'demo1234';
 }
 
-// ============================================================
-// RENDER ENGINE
-// ============================================================
-function render(){
-  const app=document.getElementById('app');
-  if(!state.role){app.innerHTML=renderLanding();return;}
-  if(state.role==='prefekt') app.innerHTML=renderShell(prefektSidebar(),renderPrefekt());
-  else if(state.role==='larare') app.innerHTML=renderShell(larareSidebar(),renderLarare());
-  else if(state.role==='hr') app.innerHTML=renderShell(hrSidebar(),renderHR());
-  else if(state.role==='ekonom') app.innerHTML=renderShell(ekonomSidebar(),renderEkonom());
-  attachEvents();
-  if(state.pickerOpen) showModal();
+function logout() {
+  localStorage.removeItem('uup_token'); localStorage.removeItem('uup_user');
+  Object.assign(S, {token:null,user:null,view:'dashboard',avdelningar:null,perioder:null,
+    personal:null,kurser:null,kapacitet:null,kursCache:{},kontoCache:{},
+    selectedKurs:null,kursDetail:null,selectedPerson:null,pendingCount:0,loginErr:'',loginLoading:false});
+  render();
 }
 
-function renderLanding(){
-  return `<div class="landing">
-    <div class="landing-header">
-      <h1>IPS <span>Bemanningsplanering</span></h1>
-      <p>Institutionen för pedagogik och specialpedagogik · Göteborgs universitet · HT 2025</p>
+function role()   { return S.user?.roller[0]?.roll || null; }
+function avdId()  { return S.user?.roller.find(r=>r.avdelning)?.avdelning?.id || null; }
+
+// ─── DATA ────────────────────────────────────────────────────────────────────
+async function loadBase() {
+  const [avd,per,pers,kurs] = await Promise.all([
+    api('/avdelningar'), api('/perioder'), api('/personal'), api('/kurser')
+  ]);
+  S.avdelningar=avd; S.perioder=per; S.personal=pers; S.kurser=kurs;
+  S.pendingCount = kurs.filter(k=>+(k.bemannat_begard)>0).length;
+}
+
+async function ensureKap() {
+  if (!S.kapacitet) S.kapacitet = await api('/personal/kapacitet?ar='+S.year);
+}
+
+async function loadKurs(id) {
+  if (!S.kursCache[id]) S.kursCache[id] = await api('/kurser/'+id);
+  S.kursDetail = S.kursCache[id];
+}
+
+async function loadKonto(id) {
+  if (!S.kontoCache[id]) S.kontoCache[id] = await api('/personal/'+id+'/tidskonto?ar='+S.year);
+}
+
+// ─── HELPERS ─────────────────────────────────────────────────────────────────
+const fh = h => Math.round(+h||0)+'h';
+const fp = p => Math.round(+p||0)+'%';
+
+function kursStatus(k) {
+  const b=+(k.budget_timmar)||0, g=+(k.bemannat_godkand)||0, beg=+(k.bemannat_begard)||0;
+  if (!b) return 'okand';
+  if (g>=b) return 'full';
+  if (g>0)  return 'partial';
+  if (beg>0) return 'begard';
+  return 'unstaffed';
+}
+
+function statusBadge(st) {
+  return {full:'<span class="badge green">✓ Bemannad</span>',
+    partial:'<span class="badge amber">△ Delvis</span>',
+    begard:'<span class="badge blue">⏳ Begärd</span>',
+    unstaffed:'<span class="badge red">✗ Ej bemannad</span>',
+    okand:'<span class="badge gray">— Okänd budget</span>'}[st] || '<span class="badge gray">—</span>';
+}
+
+function asgBadge(st) {
+  return {utkast:'<span class="badge gray">✏ Utkast</span>',
+    begard:'<span class="badge blue">⏳ Begärd</span>',
+    godkand:'<span class="badge green">✓ Godkänd</span>',
+    nekad:'<span class="badge red">✗ Nekad</span>'}[st] || `<span class="badge gray">${st}</span>`;
+}
+
+function avCol(id) {
+  return ['#3b82f6','#8b5cf6','#10b981','#f59e0b','#ef4444','#06b6d4','#ec4899'][(id||0)%7];
+}
+
+function av(p,sz=32) {
+  return `<div class="avatar" style="width:${sz}px;height:${sz}px;background:${avCol(p.id||p.person_id)}">${p.initialer}</div>`;
+}
+
+function periodName(id) {
+  return (S.perioder||[]).find(p=>p.id===id)?.namn || '—';
+}
+
+function roleName(r) {
+  return {sysadmin:'Sysadmin',prefekt:'Prefekt',avdc:'Avdelningschef',
+    str_roll:'Studierektor',ekonom:'Ekonom',larare:'Lärare',hr:'HR/Admin'}[r]||r;
+}
+
+function navItems() {
+  const r = role();
+  return [
+    {id:'dashboard', icon:'📊', label:'Dashboard',       roles:['sysadmin','prefekt','avdc','str_roll','ekonom','larare','hr']},
+    {id:'bemanning', icon:'📋', label:'Bemanning',        roles:['sysadmin','prefekt','avdc','str_roll']},
+    {id:'kapacitet', icon:'👥', label:'Kapacitetskarta',  roles:['sysadmin','prefekt','avdc','str_roll']},
+    {id:'rapporter', icon:'🔍', label:'Rapporter',        roles:['sysadmin','prefekt','avdc','hr','ekonom']},
+    {id:'personal',  icon:'🗂', label:'Personal',         roles:['sysadmin','prefekt','hr','avdc']},
+    {id:'budget',    icon:'💰', label:'Budget & uppdrag', roles:['sysadmin','ekonom','prefekt']},
+  ].filter(i => !r || i.roles.includes(r));
+}
+
+// ─── RENDER: LOGIN ───────────────────────────────────────────────────────────
+function renderLogin() {
+  return `<div class="login-wrap"><div class="login-card">
+    <h1>UUP <span>BEMANNING</span></h1>
+    <div class="sub">Universitets Undervisningsplanering · v${VERSION}</div>
+    ${S.loginErr?`<div class="login-err">⚠ ${S.loginErr}</div>`:''}
+    <label>E-post</label>
+    <input id="l-e" type="email" placeholder="din@email.se" autocomplete="username"/>
+    <label>Lösenord</label>
+    <input id="l-p" type="password" placeholder="••••••••" autocomplete="current-password"
+      onkeydown="if(event.key==='Enter')doLogin()"/>
+    <button class="btn-primary" onclick="doLogin()" ${S.loginLoading?'disabled':''}>
+      ${S.loginLoading?'<span class="spinner" style="display:inline-block;width:14px;height:14px;border-width:2px;vertical-align:middle;margin-right:6px"></span>Loggar in…':'Logga in'}
+    </button>
+    <div class="demo-accounts">
+      <p>Demokonton (lösenord: <code style="color:var(--t3)">demo1234</code>)</p>
+      ${[['Prefekt','prefekt@uup.local'],['AVDC Ped','avdc.ped@uup.local'],['AVDC Spe','avdc.spe@uup.local'],
+         ['STR Ped','str.ped@uup.local'],['STR Spe','str.spe@uup.local'],['Ekonom','ekonom@uup.local'],['Sysadmin','admin@uup.local']]
+        .map(([l,e])=>`<span class="demo-btn" onclick="fillDemo('${e}')">${l}</span>`).join('')}
     </div>
-    <div class="role-grid">
-      <div class="role-card" onclick="selectRole('prefekt')">
-        <div class="icon">🎯</div>
-        <h2>Prefekt / Studierektor</h2>
-        <p>Planera terminen, bemanna kurser, följ upp att avtalsregler efterlevs och budgeten håller.</p>
-        <span class="btn-enter">Öppna prefektvy →</span>
-      </div>
-      <div class="role-card" onclick="selectRole('larare')">
-        <div class="icon">👩‍🏫</div>
-        <h2>Lärare</h2>
-        <p>Se din UIÅ-fördelning, dina uppdrag och hur de förhåller sig till avtal och årsarbetstid.</p>
-        <span class="btn-enter">Öppna lärarvy →</span>
-      </div>
-      <div class="role-card" onclick="selectRole('hr')">
-        <div class="icon">👥</div>
-        <h2>HR / Administration</h2>
-        <p>Hantera personalregister, kompetenser, tjänstgöringsgrader och behörigheter.</p>
-        <span class="btn-enter">Öppna HR-vy →</span>
-      </div>
-      <div class="role-card" onclick="selectRole('ekonom')">
-        <div class="icon">📊</div>
-        <h2>Ekonom</h2>
-        <p>Budgetuppföljning, kostnadsanalys per kurs och institution, dynamiska rapporter.</p>
-        <span class="btn-enter">Öppna ekonomvy →</span>
-      </div>
-    </div>
-    <p style="color:var(--t4);font-size:12px">Demo · Mock-data · 50 anställda · 15 kurser HT 2025 · Baserat på IPS arbetstidspolicy och Villkorsavtal-T</p>
-  </div>`;
+  </div></div>`;
 }
 
-function renderShell(sidebar, content){
-  return `<div class="app">
+// ─── RENDER: SHELL ───────────────────────────────────────────────────────────
+function renderShell(content) {
+  const rollText = (S.user?.roller||[]).map(r =>
+    r.avdelning ? `${roleName(r.roll)} (${r.avdelning.kortnamn||r.avdelning.namn})` : roleName(r.roll)
+  ).join(', ')||'';
+
+  const nav = navItems().map(i => {
+    const badge = i.id==='bemanning'&&S.pendingCount>0
+      ? `<span class="nav-badge">${S.pendingCount}</span>` : '';
+    return `<div class="nav-item ${S.view===i.id?'active':''}" onclick="navigate('${i.id}')">
+      <span>${i.icon}</span><span>${i.label}</span>${badge}
+    </div>`;
+  }).join('');
+
+  return `<div class="topbar">
+    <div class="topbar-left">
+      <div class="app-title">UUP <span>BEMANNING</span></div>
+      <span class="period-badge">📅 ${S.year}</span>
+    </div>
+    <div class="topbar-right">
+      <div class="user-pill">
+        <div class="user-avatar">${(S.user?.namn||'?')[0]}</div>
+        <span>${S.user?.namn||''}</span>
+        <span style="color:var(--t4);font-size:10px">· ${rollText}</span>
+      </div>
+      <button class="logout-btn" onclick="logout()">Logga ut</button>
+    </div>
+  </div>
+  <div class="main-layout">
     <div class="sidebar">
-      <div class="sidebar-top">
-        <div class="app-name">IPS BEMANNING</div>
-        <div class="role-badge">${roleLabel()}</div>
-        <div class="back-btn" onclick="selectRole(null)">← Byt roll</div>
-      </div>
-      ${sidebar}
+      <div class="sidebar-section">Navigation</div>${nav}
     </div>
-    <div class="main">${content}</div>
+    <div class="content" id="content">${content}</div>
   </div>`;
 }
 
-function roleLabel(){
-  if(state.role==='prefekt') return 'Prefekt / Studierektor';
-  if(state.role==='larare') return 'Lektor Petra Wallin';
-  if(state.role==='hr') return 'HR / Administration';
-  return 'Ekonom';
-}
+const loading = () => `<div class="loading"><div class="spinner"></div><span>Laddar…</span></div>`;
 
-// ===== PREFEKT =====
-function prefektSidebar(){
-  const unstaffed=COURSES.filter(c=>courseStatus(c.id)!=='full').length;
-  const nav=[
-    {id:'dashboard',icon:'🏠',label:'Dashboard'},
-    {id:'bemanning',icon:'📋',label:'Bemanning',badge:unstaffed>0?unstaffed:null},
-    {id:'kapacitet',icon:'📈',label:'Kapacitetskarta'},
-    {id:'rapporter',icon:'🔍',label:'Dynamiska rapporter'},
-    {id:'frånvaro',icon:'🗓',label:'Frånvaro & vikariat'},
-  ];
-  return `<nav class="sidebar-nav">
-    <div class="nav-section">Arbetsflöde</div>
-    ${nav.map(n=>`<div class="nav-item${state.view===n.id?' active':''}" onclick="navigate('${n.id}')">
-      <span>${n.icon}</span><span>${n.label}</span>${n.badge?`<span class="badge">${n.badge}</span>`:''}
-    </div>`).join('')}
-  </nav>`;
-}
+// ─── RENDER: DASHBOARD ───────────────────────────────────────────────────────
+function renderDashboard() {
+  const ks=S.kurser||[], ps=S.personal||[];
+  const full=ks.filter(k=>kursStatus(k)==='full').length;
+  const ej  =ks.filter(k=>kursStatus(k)==='unstaffed').length;
+  const del =ks.filter(k=>kursStatus(k)==='partial').length;
+  const pend=ks.filter(k=>+(k.bemannat_begard)>0).length;
+  const und =ps.filter(p=>p.personalkategori==='undervisande'&&p.kategori_typ==='anstalld').length;
 
-function renderPrefekt(){
-  if(state.view==='dashboard') return renderPrefektDashboard();
-  if(state.view==='bemanning') return renderPrefektBemanning();
-  if(state.view==='kapacitet') return renderKapacitet();
-  if(state.view==='rapporter') return renderRapporter();
-  if(state.view==='frånvaro') return renderFranvaro();
-  return renderPrefektDashboard();
-}
+  const alerts=[];
+  if (ej>0)   alerts.push({c:'red',  i:'✗', t:`${ej} kurs${ej>1?'er':''} saknar lärare`,
+    b:ks.filter(k=>kursStatus(k)==='unstaffed').map(k=>k.namn).join(' · ')});
+  if (del>0)  alerts.push({c:'amber',i:'△', t:`${del} kurs${del>1?'er':''} delvis bemannad${del>1?'e':''}`,
+    b:ks.filter(k=>kursStatus(k)==='partial').map(k=>k.namn).join(' · ')});
+  if (pend>0) alerts.push({c:'blue', i:'⏳',t:`${pend} begäran väntar på godkännande`,
+    b:'Gå till Bemanning eller Kapacitetskarta för att granska.'});
 
-function renderPrefektDashboard(){
-  const total=STAFF.length;
-  const unstaffed=COURSES.filter(c=>courseStatus(c.id)==='unstaffed').length;
-  const partial=COURSES.filter(c=>courseStatus(c.id)==='partial').length;
-  const overloaded=STAFF.filter(s=>loadPct(s.id)>100).length;
-  const doktorander=STAFF.filter(s=>s.title==='Doktorand').length;
-  return `<div class="topbar"><div><h1>Dashboard</h1><div class="sub">HT 2025 · Institutionen för pedagogik och specialpedagogik</div></div></div>
-  <div class="content">
+  const rows = ks.slice(0,8).map(k=>`<tr class="clickable-row" onclick="navigate('bemanning');setTimeout(()=>selectKurs(${k.id}),80)">
+    <td><span class="badge gray" style="font-size:10px">${periodName(k.period_id)}</span></td>
+    <td style="font-weight:600">${k.namn}</td>
+    <td>${statusBadge(kursStatus(k))}</td>
+    <td style="color:var(--t3)">${fh(k.bemannat_godkand)} / ${+(k.budget_timmar)?fh(k.budget_timmar):'?h'}</td>
+  </tr>`).join('');
+
+  return `<div class="page-title">Dashboard</div>
+    <div class="page-sub">Institutionen för pedagogik och specialpedagogik · ${S.year}</div>
     <div class="stat-grid">
-      <div class="stat-card"><div class="label">Personal</div><div class="value" style="color:var(--blue)">${total}</div><div class="sub">8 prof · 5 doc · 20 lek · 10 adj · 7 dok</div></div>
-      <div class="stat-card"><div class="label">Kurser HT 2025</div><div class="value" style="color:var(--teal)">${COURSES.length}</div><div class="sub">${COURSES.filter(c=>courseStatus(c.id)==='full').length} bemannade</div></div>
-      <div class="stat-card"><div class="label">Ej bemannade</div><div class="value" style="color:${unstaffed>0?'var(--red)':'var(--green)'}">${unstaffed}</div><div class="sub">${partial} delvis bemannade</div></div>
-      <div class="stat-card"><div class="label">Avtalsavvikelser</div><div class="value" style="color:${overloaded>0?'var(--amber)':'var(--green)'}">${overloaded}</div><div class="sub">lärare med potentiell övertid</div></div>
+      <div class="stat-card"><div class="stat-label">Personal</div><div class="stat-value">${ps.length}</div><div class="stat-sub">${und} undervisande anst.</div></div>
+      <div class="stat-card"><div class="stat-label">Kurser</div><div class="stat-value">${ks.length}</div><div class="stat-sub">${full} fullt bemannade</div></div>
+      <div class="stat-card red"><div class="stat-label">Ej bemannade</div><div class="stat-value">${ej}</div><div class="stat-sub">${del} delvis bemannade</div></div>
+      <div class="stat-card ${pend>0?'amber':''}"><div class="stat-label">Begärda → väntar</div><div class="stat-value">${pend}</div><div class="stat-sub">begäran hos AVDC</div></div>
     </div>
-    ${unstaffed>0?`<div class="alert error"><span class="icon">✗</span><div><div class="title">Kurser saknar lärare</div><div class="text">${COURSES.filter(c=>courseStatus(c.id)==='unstaffed').map(c=>c.name).join(' · ')} — öppna Bemanning för att tilldela.</div></div></div>`:''}
-    ${partial>0?`<div class="alert warning"><span class="icon">⚠</span><div><div class="title">Delvis bemannade kurser</div><div class="text">${COURSES.filter(c=>courseStatus(c.id)==='partial').map(c=>c.name).join(' · ')} — fler lärare behövs.</div></div></div>`:''}
-    <div class="alert info"><span class="icon">ℹ</span><div><div class="title">Sista anmälningsdag: 31 mars</div><div class="text">Lärare som vill spara/ta ut semester måste meddela det senast 31 mars (IPS arbetstidspolicy §4).</div></div></div>
-    <div class="two-col">
+    ${alerts.map(a=>`<div class="alert ${a.c}"><div class="alert-icon">${a.i}</div><div><div class="alert-title">${a.t}</div><div class="alert-body">${a.b}</div></div></div>`).join('')}
+    <div class="section-title" style="margin-top:20px">Kursöversikt</div>
+    <table><thead><tr><th>Period</th><th>Kurs</th><th>Status</th><th>Timmar</th></tr></thead>
+    <tbody>${rows}</tbody></table>
+    ${ks.length>8?`<div style="text-align:center;margin-top:12px"><span style="color:var(--blue);font-size:12px;cursor:pointer" onclick="navigate('bemanning')">Visa alla ${ks.length} kurser →</span></div>`:''}`;
+}
+
+// ─── RENDER: BEMANNING ───────────────────────────────────────────────────────
+function renderBemanning() {
+  const ks=S.kurser||[];
+  const cnt={all:ks.length,unstaffed:ks.filter(k=>kursStatus(k)==='unstaffed').length,
+    partial:ks.filter(k=>kursStatus(k)==='partial').length,begard:ks.filter(k=>kursStatus(k)==='begard').length};
+  const filt = S.bemanFilter==='all' ? ks : ks.filter(k=>kursStatus(k)===S.bemanFilter);
+
+  const list = filt.length>0 ? filt.map(k=>`
+    <div class="course-row ${S.selectedKurs===k.id?'selected':''}" onclick="selectKurs(${k.id})">
+      <div class="cr-body">
+        <div class="cr-name">${k.namn}</div>
+        <div class="cr-meta">${k.kod} · ${periodName(k.period_id)} · ${k.hp}hp · ${fh(k.bemannat_godkand)}/${+(k.budget_timmar)?fh(k.budget_timmar):'?h'}</div>
+      </div>
+      <div class="cr-right">${statusBadge(kursStatus(k))}</div>
+    </div>`).join('')
+  : `<div class="empty-state"><div class="empty-icon">📋</div><div>Inga kurser matchar</div></div>`;
+
+  const detail = S.kursDetail
+    ? renderKursDetail(S.kursDetail)
+    : `<div class="empty-state"><div class="empty-icon">📋</div>
+       <div style="color:var(--t3);font-weight:600">Välj en kurs</div>
+       <div style="font-size:12px">Klicka i listan för att se detaljer</div></div>`;
+
+  return `<div class="page-title">Bemanning</div>
+    <div class="page-sub">Tilldela lärare · Godkännandeflöde BEGÄRD → GODKÄND</div>
+    <div class="filter-bar">
+      ${[['all',`Alla (${cnt.all})`],['unstaffed',`Ej bemannade (${cnt.unstaffed})`],['partial',`Delvis (${cnt.partial})`],['begard',`Begärda (${cnt.begard})`]]
+        .map(([v,l])=>`<button class="filter-btn ${S.bemanFilter===v?'active':''}" onclick="setBemanFilter('${v}')">${l}</button>`).join('')}
+    </div>
+    <div class="bem-layout">
+      <div class="bem-list">${list}</div>
+      <div class="bem-detail">${detail}</div>
+    </div>`;
+}
+
+function renderKursDetail(k) {
+  const budget=+(k.budget_timmar)||0, god=+(k.bemannat_godkand)||0, beg=+(k.bemannat_begard)||0;
+  const pct = budget>0 ? Math.min(100,Math.round(god/budget*100)) : 0;
+  const begPct = budget>0 ? Math.min(100-pct,Math.round(beg/budget*100)) : 0;
+  const r = role();
+  const canApprove = ['avdc','sysadmin','prefekt'].includes(r);
+  const canAssign  = ['str_roll','sysadmin','prefekt','avdc'].includes(r);
+
+  const bRow = (b,canApp) => {
+    const p=b.person;
+    return `<div class="teacher-row">
+      ${av(p,28)}
+      <div class="teacher-info"><div class="teacher-name">${p.namn}</div>
+        <div class="teacher-meta">${p.titel_display||''} · ${fh(b.timmar)}${b.timtyp?' ('+b.timtyp+')':''}</div></div>
+      ${asgBadge(b.status)}
+      ${canApp&&b.status==='begard'
+        ? `<button class="btn-sm" title="Godkänn" onclick="approveAsg(${b.id},true)">✓</button>
+           <button class="btn-sm" title="Neka" style="color:var(--red)" onclick="approveAsg(${b.id},false)">✗</button>`
+        : `<button class="btn-sm" title="Ta bort" onclick="deleteAsg(${b.id})">✕</button>`}
+    </div>`;
+  };
+  const godkanda=(k.belaggningar||[]).filter(b=>b.status==='godkand');
+  const begarda =(k.belaggningar||[]).filter(b=>b.status==='begard');
+  const utkast  =(k.belaggningar||[]).filter(b=>b.status==='utkast');
+
+  return `<div class="detail-pad">
+    <div class="detail-kurs-title">${k.namn}</div>
+    <div class="detail-kurs-meta">${k.kod} · ${periodName(k.period_id)} · ${k.hp} hp${k.studenter?' · '+k.studenter+' stud.':''}</div>
+    ${statusBadge(kursStatus(k))}
+    <div style="height:8px;background:var(--bg3);border-radius:4px;overflow:hidden;margin:12px 0 4px;position:relative">
+      <div style="height:100%;width:${pct}%;background:var(--green);position:absolute;border-radius:4px"></div>
+      ${begPct>0?`<div style="height:100%;left:${pct}%;width:${begPct}%;background:var(--amber);position:absolute"></div>`:''}
+    </div>
+    <div style="font-size:11px;color:var(--t4)">${pct}% · ${fh(god)} godkänd${beg>0?' + '+fh(beg)+' begärd':''} / ${budget?fh(budget):'?h'}</div>
+    <div class="info-grid">
+      <div class="info-cell"><div class="info-cell-label">Budget</div><div class="info-cell-value">${budget?fh(budget):'—'}</div></div>
+      <div class="info-cell"><div class="info-cell-label">Godkänd</div><div class="info-cell-value" style="color:var(--green)">${fh(god)}</div></div>
+    </div>
+    ${godkanda.length?`<div class="section-title">✓ Godkända (${godkanda.length})</div>${godkanda.map(b=>bRow(b,canApprove)).join('')}`:''}
+    ${begarda.length?`<div class="section-title">⏳ Begärda (${begarda.length})</div>${begarda.map(b=>bRow(b,canApprove)).join('')}`:''}
+    ${utkast.length?`<div class="section-title">✏ Utkast (${utkast.length})</div>${utkast.map(b=>bRow(b,false)).join('')}`:''}
+    ${canAssign?`<button class="btn-add" onclick="openPicker(${k.id})">+ Tilldela lärare</button>`:''}
+  </div>`;
+}
+
+// ─── RENDER: KAPACITET ───────────────────────────────────────────────────────
+function renderKapacitet() {
+  if (!S.kapacitet) return `<div class="page-title">Kapacitetskarta</div><div class="page-sub">Tillgänglig undervisningstid</div>${loading()}`;
+
+  let data = S.kapacitet.filter(p=>p.personalkategori==='undervisande');
+  if (S.kapFilter) data=data.filter(p=>p.avdelning_id===S.kapFilter);
+  if (S.kapSearch) {
+    const q=S.kapSearch.toLowerCase();
+    data=data.filter(p=>p.namn.toLowerCase().includes(q)||(p.avdelning_namn||'').toLowerCase().includes(q));
+  }
+
+  const avdBtns = (S.avdelningar||[]).filter(a=>!['ADM','FU'].includes(a.kortnamn))
+    .map(a=>`<button class="filter-btn ${S.kapFilter===a.id?'active':''}" onclick="setKapFilter(${a.id})">${a.kortnamn}</button>`).join('');
+
+  const rows = data.map(p=>{
+    const avail=+(p.tillganglig_undervisning)||0, god=+(p.undervisning_godkand)||0, beg=+(p.undervisning_begard)||0;
+    const gPct=avail>0?Math.min(100,god/avail*100):0, bPct=avail>0?Math.min(100-gPct,beg/avail*100):0;
+    const belagd=+(p.belaggningspct)||0, over=god>avail;
+    const sel=S.selectedPerson===p.person_id;
+    return `<div class="kap-row" style="${sel?'background:var(--bg2);outline:1px solid var(--blue)':''}" onclick="selectPerson(${p.person_id})">
       <div>
-        <div class="section-title">Kursbeläggning HT 2025</div>
-        <div class="table-wrap">
-          <table>
-            <thead><tr><th>Period</th><th>Kurs</th><th>Status</th><th>Timmar</th></tr></thead>
-            <tbody>
-              ${COURSES.map(c=>{
-                const asgnd=getCourseAssignments(c.id).reduce((s,a)=>s+a.hours,0);
-                return `<tr class="clickable-row" onclick="navigate('bemanning');setTimeout(()=>{selectCourse('${c.id}')},50)">
-                  <td><span class="badge gray">${c.period}</span></td>
-                  <td>${c.name}</td>
-                  <td>${statusBadge(courseStatus(c.id))}</td>
-                  <td>${asgnd}/${c.neededHours}h</td>
-                </tr>`;
-              }).join('')}
-            </tbody>
-          </table>
+        <div style="font-size:13px;font-weight:600;color:var(--t1)">${p.namn}</div>
+        <div style="font-size:10px;color:var(--t4)">${p.titel_display||''} · ${p.avdelning_namn||'Extern'}</div>
+      </div>
+      <div>
+        <div class="kap-bar-wrap">
+          <div class="kap-bar-fill kap-bar-godkand" style="width:${gPct}%"></div>
+          ${bPct>0?`<div class="kap-bar-fill kap-bar-begard" style="left:${gPct}%;width:${bPct}%"></div>`:''}
+        </div>
+        <div style="font-size:10px;color:var(--t4);margin-top:3px">${fh(god)} godkänd${beg>0?' + '+fh(beg)+' begärd':''} / ${fh(avail)} tillg.
+          ${over?'<span style="color:var(--red);font-weight:700"> ⚠ Övertid</span>':''}
         </div>
       </div>
-      <div>
-        <div class="section-title">Avtal-KPI per kategori</div>
-        ${renderContractKPIs()}
-      </div>
-    </div>
-  </div>`;
-}
-
-function renderContractKPIs(){
-  const groups={Professor:[],Docent:[],Lektor:[],Adjunkt:[],Doktorand:[]};
-  for(const s of STAFF) if(groups[s.title]) groups[s.title].push(s);
-  return Object.entries(groups).map(([title,members])=>{
-    const minFok=title==='Lektor'||title==='Professor'||title==='Docent'?15:0;
-    const below=members.filter(s=>s.fok<minFok).length;
-    const over=members.filter(s=>loadPct(s.id)>100).length;
-    return `<div class="card" style="margin-bottom:8px">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
-        <span style="font-weight:700;color:var(--t1);font-size:13px">${title}er (${members.length})</span>
-        ${over>0?`<span class="badge red">⚠ ${over} övertid</span>`:below>0?`<span class="badge amber">ℹ ${below} FOK-risk</span>`:'<span class="badge green">✓ OK</span>'}
-      </div>
-      <div style="font-size:12px;color:var(--t3)">
-        FOK-andel: ${Math.round(members.reduce((s,m)=>s+m.fok,0)/members.length)}% (min ${minFok}%) ·
-        Sn. belastning: ${Math.round(members.reduce((s,m)=>s+loadPct(m.id),0)/members.length)}%
+      <div style="text-align:right">
+        <div style="font-size:14px;font-weight:700;color:${over?'var(--red)':belagd>90?'var(--amber)':'var(--t1)'}">${fp(belagd)}</div>
+        <div style="font-size:10px;color:var(--t4)">belagd</div>
       </div>
     </div>`;
   }).join('');
-}
 
-function renderPrefektBemanning(){
-  const filtered=COURSES.filter(c=>{
-    if(state.bemanFilter==='unstaffed') return courseStatus(c.id)==='unstaffed';
-    if(state.bemanFilter==='partial') return courseStatus(c.id)==='partial';
-    if(state.bemanFilter==='ht1') return c.period.includes('HT1');
-    if(state.bemanFilter==='ht2') return c.period.includes('HT2');
-    return true;
-  });
-  const detail=state.selectedCourse?renderCourseDetail(state.selectedCourse):`<div class="empty">← Välj en kurs för att se detaljer och tilldela lärare</div>`;
-  return `<div class="topbar">
-    <div><h1>Bemanning</h1><div class="sub">Tilldela lärare till kurser · Avtalsvalidering i realtid</div></div>
-    <button class="btn btn-primary btn-sm" onclick="navigate('kapacitet')">📈 Se kapacitetskarta</button>
-  </div>
-  <div class="content" style="padding-bottom:0">
-    <div class="bem-filters">
-      ${[['all','Alla ('+COURSES.length+')'],['unstaffed','Ej bemannade'],['partial','Delvis'],['ht1','HT1'],['ht2','HT2']].map(([v,l])=>
-        `<button class="filter-btn${state.bemanFilter===v?' active':''}" onclick="setBemFilter('${v}')">${l}</button>`
-      ).join('')}
-    </div>
-    <div class="bem-layout">
-      <div class="bem-list">
-        ${filtered.map(c=>{
-          const st=courseStatus(c.id);
-          const asgnd=getCourseAssignments(c.id).reduce((s,a)=>s+a.hours,0);
-          return `<div class="course-row${state.selectedCourse===c.id?' selected':''}" onclick="selectCourse('${c.id}')">
-            <div class="cr-body">
-              <div class="cr-name">${c.name}</div>
-              <div class="cr-meta">${c.id} · ${c.period} · ${c.credits}hp · ${asgnd}/${c.neededHours}h</div>
-            </div>
-            <div class="cr-right">${statusBadge(st)}</div>
-          </div>`;
-        }).join('')}
-      </div>
-      <div class="bem-detail">${detail}</div>
-    </div>
-  </div>`;
-}
+  const panel = S.selectedPerson ? renderPersonPanel(S.selectedPerson) : '';
 
-function renderCourseDetail(courseId){
-  const course=getCourse(courseId);
-  if(!course) return '';
-  const asgns=getCourseAssignments(courseId);
-  const asgndH=asgns.reduce((s,a)=>s+a.hours,0);
-  const pct=Math.round(asgndH/course.neededHours*100);
-  const st=courseStatus(courseId);
-  return `<div class="detail-header">
-      <h2>${course.name}</h2>
-      <div class="meta">${course.id} · ${course.period} · ${course.credits} hp · ${course.students} studenter</div>
-      <div style="margin-top:10px">${statusBadge(st)}</div>
-      <div class="load-bar-wrap" style="margin-top:10px">
-        <div class="load-bar-track"><div class="load-bar-fill" style="width:${Math.min(100,pct)}%;background:${pct>=90?'var(--green)':pct>=50?'var(--amber)':'var(--red)'}"></div></div>
-        <div class="load-bar-labels"><span>Bemanning ${pct}%</span><span>${asgndH}/${course.neededHours}h</span></div>
-      </div>
+  return `<div class="page-title">Kapacitetskarta</div>
+    <div class="page-sub">Tillgänglig undervisningstid · ${S.year}</div>
+    <div class="filter-bar">
+      <button class="filter-btn ${!S.kapFilter?'active':''}" onclick="setKapFilter(null)">Alla</button>
+      ${avdBtns}
     </div>
-    <div class="detail-section">
-      <h3>Kursinformation</h3>
-      <div class="hours-grid">
-        <div class="hours-item"><div class="label">Behov totalt</div><div class="value">${course.neededHours}h</div></div>
-        <div class="hours-item"><div class="label">Tillsatt</div><div class="value" style="color:${pct>=90?'var(--green)':pct>=50?'var(--amber)':'var(--red)'}">${asgndH}h</div></div>
-        <div class="hours-item"><div class="label">Period</div><div class="value" style="font-size:16px">${course.period}</div></div>
-        <div class="hours-item"><div class="label">Ämnesområden</div><div class="value" style="font-size:13px">${course.subjects.join(', ')}</div></div>
-      </div>
+    <input style="width:240px;margin-bottom:12px;padding:7px 12px;background:var(--bg2);border:1px solid var(--bg3);border-radius:6px;color:var(--t1);font-size:13px;outline:none"
+      placeholder="Sök person…" value="${S.kapSearch}" oninput="S.kapSearch=this.value;rc()"/>
+    <div class="kap-legend">
+      <div class="kap-legend-item"><div class="kap-dot" style="background:var(--green)"></div>Godkänd</div>
+      <div class="kap-legend-item"><div class="kap-dot" style="background:var(--amber)"></div>Begärd</div>
+      <div class="kap-legend-item"><div class="kap-dot" style="background:var(--bg3)"></div>Tillgänglig</div>
     </div>
-    <div class="detail-section">
-      <h3>Tilldelade lärare (${asgns.length})</h3>
-      ${asgns.length?asgns.map(a=>{
-        const s=getStaff(a.staffId);
-        const lp=loadPct(a.staffId);
-        return `<div class="assigned-teacher">
-          <div class="avatar" style="background:${titleColor(s.title)}22;color:${titleColor(s.title)}">${s.initials}</div>
-          <div class="teacher-info">
-            <div class="name">${s.name}</div>
-            <div class="meta">${s.title} · ${a.hours}h denna kurs · ${lp}% belagd</div>
-          </div>
-          <button class="remove-btn" onclick="removeAssignment(${a.id})">Ta bort</button>
-        </div>`;
-      }).join(''):`<div style="color:var(--t4);font-size:13px;padding:8px 0">Inga lärare tilldelade ännu</div>`}
-      <button class="btn btn-primary btn-sm" style="margin-top:12px" onclick="openPicker('${courseId}')">+ Tilldela lärare</button>
-    </div>
-    <div class="detail-section">
-      <h3>Matchande kompetens</h3>
-      <div style="font-size:12px;color:var(--t3);margin-bottom:8px">Personal med rätt ämnesområde för denna kurs</div>
-      ${STAFF.filter(s=>course.subjects.some(sub=>s.subject===sub)).slice(0,6).map(s=>{
-        const lp=loadPct(s.id);
-        return `<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;padding:6px 8px;background:var(--bg3);border-radius:var(--rad2);cursor:pointer" onclick="openPicker('${courseId}',${s.id})">
-          <div class="avatar" style="width:24px;height:24px;font-size:9px;background:${titleColor(s.title)}22;color:${titleColor(s.title)}">${s.initials}</div>
-          <span style="flex:1;font-size:12px;color:var(--t2)">${s.name} <span style="color:var(--t4)">${s.title}</span></span>
-          <span style="font-size:11px;font-weight:700;color:${loadColor(lp)}">${lp}% belagd</span>
-        </div>`;
-      }).join('')}
+    <div style="display:grid;grid-template-columns:${panel?'1fr 310px':'1fr'};gap:20px;align-items:start">
+      <div>${rows||'<div class="empty-state"><div class="empty-icon">👥</div><div>Ingen personal matchar</div></div>'}</div>
+      ${panel?`<div style="position:sticky;top:0">${panel}</div>`:''}
     </div>`;
 }
 
-function renderKapacitet(){
-  const titles=['Professor','Docent','Lektor','Adjunkt'];
-  const periods=['V36','V37','V38','V39','V40','V41','V42','V43','V44','V45','V46','V47','V48','V49','V50'];
-  const shown=STAFF.filter(s=>titles.includes(s.title)).slice(0,25);
-  return `<div class="topbar"><div><h1>Kapacitetskarta</h1><div class="sub">Undervisningsbelastning per person och vecka · HT 2025</div></div></div>
-  <div class="content">
-    <div class="alert info"><span class="icon">ℹ</span><div><div class="title">Läs kartan</div><div class="text">Visar estimerad veckabelastning baserat på terminsuppdragens totaltimmar fördelade jämnt. Grönt ≤60% · Gult 61–85% · Rött &gt;85%.</div></div></div>
-    <div class="heatmap-wrap">
-      <table class="heatmap">
-        <thead><tr><th>Lärare</th><th>Titel</th>${periods.map(p=>`<th>${p}</th>`).join('')}</tr></thead>
-        <tbody>
-          ${shown.map(s=>{
-            const lp=loadPct(s.id);
-            const basePct=lp;
-            return `<tr>
-              <td class="name-cell">${s.name}</td>
-              <td class="name-cell" style="color:${titleColor(s.title)};font-weight:700;font-size:11px">${s.title}</td>
-              ${periods.map((p,i)=>{
-                const noise=(Math.sin(s.id*7+i*3)*15)|0;
-                const pct=Math.max(0,Math.min(120,basePct+noise));
-                const cls=pct<=60?'cell-0':pct<=85?'cell-1':pct<=100?'cell-2':'cell-3';
-                return `<td class="cell ${cls}">${pct}%</td>`;
-              }).join('')}
-            </tr>`;
-          }).join('')}
-        </tbody>
-      </table>
-    </div>
-    <div style="display:flex;gap:16px;margin-top:12px;font-size:12px">
-      <span><span style="display:inline-block;width:12px;height:12px;background:#0d2e1e;border-radius:2px;margin-right:4px"></span>≤60% Låg</span>
-      <span><span style="display:inline-block;width:12px;height:12px;background:#1a3a1a;border-radius:2px;margin-right:4px"></span>61–85% Måttlig</span>
-      <span><span style="display:inline-block;width:12px;height:12px;background:#3b2600;border-radius:2px;margin-right:4px"></span>86–100% Hög</span>
-      <span><span style="display:inline-block;width:12px;height:12px;background:#3b0f0f;border-radius:2px;margin-right:4px"></span>&gt;100% Övertid</span>
-    </div>
-  </div>`;
-}
+function renderPersonPanel(personId) {
+  const konto  = S.kontoCache[personId];
+  const person = (S.kapacitet||[]).find(p=>p.person_id===personId);
+  if (!konto||!person) return `<div class="tidskonto-wrap">${loading()}</div>`;
 
-function renderRapporter(){
-  const groups={all:STAFF,Professor:STAFF.filter(s=>s.title==='Professor'),Docent:STAFF.filter(s=>s.title==='Docent'),Lektor:STAFF.filter(s=>s.title==='Lektor'),Adjunkt:STAFF.filter(s=>s.title==='Adjunkt'),Doktorand:STAFF.filter(s=>s.title==='Doktorand')};
-  const group=state.reportGroup;
-  const showStaff=group==='all'?STAFF:STAFF.filter(s=>s.title===group);
-  const periodFilter=state.reportPeriod;
-  const showCourses=periodFilter==='all'?COURSES:COURSES.filter(c=>c.period.includes(periodFilter));
-  const bars=showStaff.slice(0,20).map(s=>{
-    const lp=loadPct(s);
-    return {name:s.name.split(' ')[1]||s.name,value:lp,color:loadColor(lp)};
+  const udRows = (konto.uppdrag_detaljer||[]).map(u=>
+    `<div class="tk-row"><span class="tk-label" style="padding-left:10px">↳ ${u.namn}</span><span class="tk-value" style="color:var(--amber)">-${fh(u.timmar)}</span></div>`
+  ).join('');
+
+  const r=role(), canApprove=['avdc','sysadmin','prefekt'].includes(r);
+  const pending=[];
+  Object.values(S.kursCache).forEach(k=>{
+    (k.belaggningar||[]).forEach(b=>{
+      if (b.person_id===personId && b.status==='begard') pending.push({k,b});
+    });
   });
-  const maxBar=Math.max(...bars.map(b=>b.value),1);
-  return `<div class="topbar"><div><h1>Dynamiska rapporter</h1><div class="sub">Bygg egna rapporter med valfria filter — exporteras som tabell</div></div></div>
-  <div class="content">
-    <div class="report-filters">
-      <div class="filter-group"><label>Personalgrupp</label>
-        <select onchange="state.reportGroup=this.value;render()">
-          ${['all','Professor','Docent','Lektor','Adjunkt','Doktorand'].map(v=>`<option value="${v}"${state.reportGroup===v?' selected':''}>${v==='all'?'Alla kategorier':v+'er'}</option>`).join('')}
-        </select>
+
+  return `<div>
+    <div style="font-size:14px;font-weight:700;color:var(--t1);margin-bottom:12px">${person.namn}</div>
+    <div class="tidskonto-wrap">
+      <div class="section-title" style="margin-top:0">Tidskonto ${S.year}</div>
+      <div class="tk-row"><span class="tk-label">Bruttotid</span><span class="tk-value">${fh(konto.brutto_timmar)}</span></div>
+      <div class="tk-row"><span class="tk-label">− Semester</span><span class="tk-value" style="color:var(--t4)">-${fh(konto.semester_timmar)}</span></div>
+      <div class="tk-row"><span class="tk-label">Tjänstgöringsgrad</span><span class="tk-value">${konto.tjanstgoringspct}%</span></div>
+      <div class="tk-row"><span class="tk-label">Justerad heltidsbas</span><span class="tk-value">${fh(konto.justerad_heltidsbas)}</span></div>
+      ${+(konto.franvaro_timmar)>0?`<div class="tk-row"><span class="tk-label">− Frånvaro</span><span class="tk-value" style="color:var(--t4)">-${fh(konto.franvaro_timmar)}</span></div>`:''}
+      <div class="tk-row" style="font-weight:700"><span class="tk-label">Netto bemanningsbar</span><span class="tk-value">${fh(konto.netto_bemanningsbar)}</span></div>
+      <div class="tk-row"><span class="tk-label">− FOK (${konto.fok_pct}%)</span><span class="tk-value" style="color:var(--purple)">-${fh(konto.fok_timmar)}</span></div>
+      <div class="tk-row"><span class="tk-label">− Kollegialt (${konto.kollegialt_pct}%)</span><span class="tk-value" style="color:var(--purple)">-${fh(konto.kollegialt_timmar)}</span></div>
+      ${udRows}
+      <div class="tk-row" style="background:var(--bg3);border-radius:5px;padding:7px;margin-top:4px">
+        <span class="tk-label" style="color:var(--t1);font-weight:700">Tillgänglig undervisning</span>
+        <span class="tk-value" style="color:var(--green)">${fh(konto.tillganglig_undervisning)}</span>
       </div>
-      <div class="filter-group"><label>Period</label>
-        <select onchange="state.reportPeriod=this.value;render()">
-          <option value="all"${state.reportPeriod==='all'?' selected':''}>Hela terminen</option>
-          <option value="HT1"${state.reportPeriod==='HT1'?' selected':''}>HT1</option>
-          <option value="HT2"${state.reportPeriod==='HT2'?' selected':''}>HT2</option>
-        </select>
-      </div>
-      <button class="btn btn-secondary btn-sm" onclick="alert('Export till Excel simuleras i produktionsversion')">⬇ Exportera CSV</button>
+      <div class="tk-row"><span class="tk-label">✓ Godkänd</span><span class="tk-value" style="color:var(--green)">${fh(konto.undervisning_godkand)}</span></div>
+      ${+(konto.undervisning_begard)>0?`<div class="tk-row"><span class="tk-label">⏳ Begärd</span><span class="tk-value" style="color:var(--amber)">${fh(konto.undervisning_begard)}</span></div>`:''}
+      <div class="tk-row"><span class="tk-label">Återstår (ink. begärd)</span>
+        <span class="tk-value" style="color:${+(konto.aterstaar_inkl_begard)<0?'var(--red)':'var(--t1)'}">${fh(konto.aterstaar_inkl_begard)}</span></div>
     </div>
-    <div class="section-title">Undervisningsbelastning (% av tillgänglig tid) — ${showStaff.length} personer</div>
-    <div class="chart-bar-wrap" style="margin-bottom:16px">
-      <div class="chart-bars">
-        ${bars.map(b=>`<div class="chart-bar">
-          <div class="bar-val">${b.value}%</div>
-          <div class="bar" style="height:${Math.round(b.value/maxBar*100)}%;background:${b.color}"></div>
-          <div class="bar-label">${b.name}</div>
-        </div>`).join('')}
-      </div>
-      <div style="font-size:11px;color:var(--t4)">Grön ≤60% · Gul 61–85% · Röd &gt;85%  (text + färg · ej enbart färg)</div>
-    </div>
-    <div class="section-title">Kursbemanningsstatus — ${showCourses.length} kurser</div>
-    <div class="table-wrap">
-      <table>
-        <thead><tr><th>Kurs</th><th>Period</th><th>Studenter</th><th>Behov</th><th>Tillsatt</th><th>Status</th><th>Lärare</th></tr></thead>
-        <tbody>
-          ${showCourses.map(c=>{
-            const asgns=getCourseAssignments(c.id);
-            const asgndH=asgns.reduce((s,a)=>s+a.hours,0);
-            const teachers=asgns.map(a=>getStaff(a.staffId)?.name.split(' ')[0]).join(', ')||'—';
-            return `<tr>
-              <td style="font-weight:600">${c.name}</td>
-              <td><span class="badge gray">${c.period}</span></td>
-              <td>${c.students}</td>
-              <td>${c.neededHours}h</td>
-              <td>${asgndH}h</td>
-              <td>${statusBadge(courseStatus(c.id))}</td>
-              <td style="color:var(--t3)">${teachers}</td>
-            </tr>`;
-          }).join('')}
-        </tbody>
-      </table>
-    </div>
-    <div class="section-title" style="margin-top:16px">UIÅ-summering per kategori</div>
-    <div class="table-wrap">
-      <table>
-        <thead><tr><th>Kategori</th><th>Antal</th><th>Undervisning sn.</th><th>FOK sn.</th><th>Kollegialt sn.</th><th>Belastning sn.</th></tr></thead>
-        <tbody>
-          ${['Professor','Docent','Lektor','Adjunkt','Doktorand'].map(title=>{
-            const members=STAFF.filter(s=>s.title===title);
-            if(!members.length) return '';
-            const snTeach=Math.round(members.reduce((s,m)=>s+totalTeachingHours(m.id),0)/members.length);
-            const snFok=Math.round(members.reduce((s,m)=>s+m.fok,0)/members.length);
-            const snKoll=Math.round(members.reduce((s,m)=>s+m.koll,0)/members.length);
-            const snLoad=Math.round(members.reduce((s,m)=>s+loadPct(m.id),0)/members.length);
-            return `<tr>
-              <td style="font-weight:700;color:${titleColor(title)}">${title}er</td>
-              <td>${members.length}</td>
-              <td>${snTeach}h</td>
-              <td>${snFok}%</td>
-              <td>${snKoll}%</td>
-              <td><span style="color:${loadColor(snLoad)};font-weight:700">${snLoad}% ${loadLabel(snLoad)}</span></td>
-            </tr>`;
-          }).join('')}
-        </tbody>
-      </table>
-    </div>
+    ${pending.length>0?`<div class="section-title">⏳ Begärda (${pending.length})</div>
+      ${pending.map(({k,b})=>`<div class="pending-item">
+        <div class="pending-kurs">${k.namn}</div>
+        <div class="pending-meta">${fh(b.timmar)} · ${periodName(k.period_id)} · ${k.kod}</div>
+        ${canApprove?`<div class="pending-actions">
+          <button class="btn-approve" onclick="approveAsg(${b.id},true)">✓ Godkänn</button>
+          <button class="btn-reject" onclick="approveAsg(${b.id},false)">✗ Neka</button>
+        </div>`:''}
+      </div>`).join('')}`:''}
+    <button style="width:100%;margin-top:8px;background:none;border:1px solid var(--bg3);border-radius:6px;padding:7px;color:var(--t4);font-size:12px;cursor:pointer" onclick="S.selectedPerson=null;rc()">Stäng ×</button>
   </div>`;
 }
 
-function renderFranvaro(){
-  const upcoming=[
-    {name:"Björn Lindahl",type:"Semester",from:"2025-12-22",to:"2026-01-04",conflict:false},
-    {name:"Karin Björk",type:"Föräldraledighet",from:"2025-11-01",to:"2026-04-30",conflict:true,note:"Undervisar PPK100 t.o.m. v44"},
-    {name:"Daniel Persson",type:"Tjänstledighet",from:"2025-10-13",to:"2025-10-17",conflict:false},
-    {name:"Marcus Ek",type:"Sjukdom",from:"2025-09-15",to:"2025-09-19",conflict:true,note:"MET200 saknar vikarie"},
-  ];
-  return `<div class="topbar"><div><h1>Frånvaro & vikariat</h1><div class="sub">Planerad och akut frånvaro · Vikariebehov</div></div></div>
-  <div class="content">
-    <div class="alert warning"><span class="icon">⚠</span><div><div class="title">2 frånvaror kräver åtgärd</div><div class="text">Karin Björk (föräldraledighet) och Marcus Ek (sjukdom) behöver vikarie för sina kurser.</div></div></div>
-    <div class="section-title">Registrerad frånvaro HT 2025</div>
-    <div class="table-wrap">
-      <table>
-        <thead><tr><th>Lärare</th><th>Typ</th><th>Från</th><th>Till</th><th>Konflikt</th><th>Åtgärd</th></tr></thead>
-        <tbody>
-          ${upcoming.map(f=>`<tr>
-            <td style="font-weight:600">${f.name}</td>
-            <td>${f.type}</td>
-            <td>${f.from}</td>
-            <td>${f.to}</td>
-            <td>${f.conflict?`<span class="badge red">⚠ ${f.note}</span>`:'<span class="badge green">✓ Ingen</span>'}</td>
-            <td>${f.conflict?`<button class="btn btn-secondary btn-sm" onclick="navigate('bemanning')">Hitta vikarie</button>`:'—'}</td>
-          </tr>`).join('')}
-        </tbody>
-      </table>
-    </div>
-  </div>`;
+// ─── RENDER: PERSONAL ────────────────────────────────────────────────────────
+function renderPersonal() {
+  const ps=S.personal||[];
+  return `<div class="page-title">Personal</div>
+    <div class="page-sub">${ps.length} personer registrerade</div>
+    <table><thead><tr><th>Namn</th><th>Titel</th><th>Avdelning</th><th>Typ</th><th>Kategori</th></tr></thead>
+    <tbody>${ps.map(p=>`<tr>
+      <td style="font-weight:600">${p.namn}</td>
+      <td style="font-size:11px;color:var(--t4)">${p.titel_display||'—'}</td>
+      <td>${p.avdelning?.namn||(p.fran_organisation?'↪ '+p.fran_organisation:'—')}</td>
+      <td>${p.kategori_typ==='anstalld'?'<span class="badge green">Anst.</span>':p.kategori_typ==='inlanad'?'<span class="badge blue">Inlånad</span>':'<span class="badge gray">Extern</span>'}</td>
+      <td style="font-size:11px;color:var(--t4)">${p.personalkategori}</td>
+    </tr>`).join('')}</tbody></table>`;
 }
 
-// ===== LÄRARE =====
-function larareSidebar(){
-  return `<nav class="sidebar-nav">
-    <div class="nav-section">Min tjänst</div>
-    ${[['tjansteplan','📋','Min tjänsteplan'],['mina-kurser','📚','Mina kurser'],['franvaro','🗓','Frånvaroanmälan']].map(([id,icon,label])=>
-      `<div class="nav-item${state.view===id?' active':''}" onclick="navigate('${id}')">${icon} ${label}</div>`
-    ).join('')}
-    <div class="nav-section" style="margin-top:16px">Välj person (demo)</div>
-    ${STAFF.filter(s=>['Lektor','Adjunkt','Professor','Docent'].includes(s.title)).slice(0,10).map(s=>
-      `<div class="nav-item${state.currentStaffId===s.id?' active':''}" onclick="state.currentStaffId=${s.id};state.view='tjansteplan';render()" style="font-size:12px">
-        <span class="avatar" style="width:22px;height:22px;font-size:9px;background:${titleColor(s.title)}22;color:${titleColor(s.title)}">${s.initials}</span>
-        ${s.name.split(' ')[0]} ${s.name.split(' ')[1]||''}
-      </div>`
-    ).join('')}
-  </nav>`;
-}
-
-function renderLarare(){
-  if(state.view==='tjansteplan') return renderTjansteplan();
-  if(state.view==='mina-kurser') return renderMinaKurser();
-  if(state.view==='franvaro') return renderFranvaroLarare();
-  return renderTjansteplan();
-}
-
-function renderTjansteplan(){
-  const p=getStaff(state.currentStaffId);
-  const d=uiaData(state.currentStaffId);
-  const lp=loadPct(state.currentStaffId);
-  const segs=[
-    {value:d.teach,color:'var(--blue)',label:'Undervisning',annual:p.annual},
-    {value:d.fok,color:'var(--purple)',label:'FOK'},
-    {value:d.koll,color:'var(--teal)',label:'Kollegialt'},
-    {value:d.ext,color:'var(--amber)',label:'Ext. forskning'},
-    {value:d.admin,color:'var(--bg4)',label:'Administration'},
-  ].filter(s=>s.value>0);
-  const minFok=p.title==='Doktorand'?80:p.title==='Adjunkt'?10:15;
-  const fokOk=p.fok>=minFok;
-  const teachPct=Math.round(d.teach/p.annual*100);
-  return `<div class="topbar">
-    <div><h1>Min tjänsteplan</h1><div class="sub">${p.name} · ${p.title} · ${Math.round(p.pct*100)}% · ${p.annual}h/år</div></div>
-    <div>
-      <span class="badge ${lp>100?'red':lp>85?'amber':'green'}">${lp>100?'✗ Övertid':lp>85?'⚠ Hög belastning':'✓ OK'}</span>
-    </div>
-  </div>
-  <div class="content">
-    <div class="uia-layout" style="margin-bottom:20px">
-      <div class="uia-donut-wrap">
-        <div style="font-size:13px;font-weight:700;color:var(--t2);margin-bottom:12px">UIÅ-fördelning</div>
-        ${donutSVGFixed(segs,p.annual)}
-        <div class="uia-legend">
-          ${segs.map(s=>`<div class="uia-legend-item">
-            <div class="uia-legend-dot" style="background:${s.color}"></div>
-            <span class="uia-legend-label">${s.label}</span>
-            <span class="uia-legend-value">${s.value}h</span>
-          </div>`).join('')}
-        </div>
-      </div>
-      <div>
-        <div class="uia-cards">
-          <div class="uia-cat-card">
-            <div class="cat-label"><div class="cat-dot" style="background:var(--blue)"></div>Undervisning</div>
-            <div class="cat-hours">${d.teach}h</div>
-            <div class="cat-pct">${teachPct}% av årsarbetstid</div>
-            <div class="cat-min">Avtalsenligt min 15%</div>
-            <div class="cat-status"><span class="badge ${teachPct>=15?'green':'amber'}">${teachPct>=15?'✓ Uppfyllt':'⚠ Under minimum'}</span></div>
-            <div class="progress-bar"><div class="progress-fill" style="width:${Math.min(100,teachPct)}%;background:var(--blue)"></div></div>
-          </div>
-          <div class="uia-cat-card">
-            <div class="cat-label"><div class="cat-dot" style="background:var(--purple)"></div>FOK</div>
-            <div class="cat-hours">${d.fok}h</div>
-            <div class="cat-pct">${p.fok}% av årsarbetstid</div>
-            <div class="cat-min">Avtalsenligt min ${minFok}%</div>
-            <div class="cat-status"><span class="badge ${fokOk?'green':'red'}">${fokOk?'✓ Uppfyllt':'✗ Under avtalsgräns'}</span></div>
-            <div class="progress-bar"><div class="progress-fill" style="width:${Math.min(100,p.fok/27*100)}%;background:var(--purple)"></div></div>
-          </div>
-          <div class="uia-cat-card">
-            <div class="cat-label"><div class="cat-dot" style="background:var(--teal)"></div>Kollegialt</div>
-            <div class="cat-hours">${d.koll}h</div>
-            <div class="cat-pct">${p.koll}% av årsarbetstid</div>
-            <div class="cat-min">${p.title==='Professor'?'10%':'5%'} för ${p.title}</div>
-            <div class="cat-status"><span class="badge green">✓ Schemalagt</span></div>
-          </div>
-          <div class="uia-cat-card">
-            <div class="cat-label"><div class="cat-dot" style="background:var(--bg4)"></div>Årsarbetstid</div>
-            <div class="cat-hours">${p.annual}h</div>
-            <div class="cat-pct">${p.semDays} semesterdagar</div>
-            <div class="cat-min">Total planerad: ${d.teach+d.fok+d.koll+d.ext+d.admin}h</div>
-            <div class="cat-status"><span class="badge ${lp>100?'red':lp>85?'amber':'green'}">${lp>100?'✗ Övertid':lp>85?'⚠ Hög belastning':'✓ I balans'}</span></div>
-            <div class="progress-bar"><div class="progress-fill" style="width:${Math.min(100,Math.round((d.teach+d.fok+d.koll+d.ext)/p.annual*100))}%;background:${loadColor(lp)}"></div></div>
-          </div>
-        </div>
-        ${lp>100?`<div class="alert error" style="margin-top:12px"><span class="icon">✗</span><div><div class="title">Övertid detekterat</div><div class="text">Planerad arbetstid överstiger årsarbetstid ${p.annual}h. Diskutera omfördelning med närmaste chef.</div></div></div>`:''}
-        ${!fokOk?`<div class="alert warning" style="margin-top:12px"><span class="icon">⚠</span><div><div class="title">FOK under avtalsgräns</div><div class="text">FOK-andelen (${p.fok}%) understiger avtalsenligt minimum (${minFok}%). Alla ${p.title}er garanteras minst ${minFok}% FOK enligt PA 2021/2991.</div></div></div>`:''}
-      </div>
-    </div>
-    <div class="section-title">Mina uppdrag denna termin</div>
-    ${renderMinaKurserTable(state.currentStaffId)}
-  </div>`;
-}
-
-function donutSVGFixed(segs,annual){
-  const r=54,size=160,cx=80,cy=80;
-  const C=2*Math.PI*r;
-  const total=annual;
-  let circles='',cum=0;
-  for(const g of segs){
-    if(!g.value) continue;
-    const segLen=(g.value/total)*C;
-    const offset=(C*0.25)-cum;
-    circles+=`<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${g.color}" stroke-width="20" stroke-dasharray="${segLen.toFixed(1)} ${(C-segLen).toFixed(1)}" stroke-dashoffset="${offset.toFixed(1)}"/>`;
-    cum+=segLen;
-  }
-  const totalUsed=segs.reduce((s,g)=>s+g.value,0);
-  return `<svg viewBox="0 0 160 160" width="160" height="160">
-    <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="#334155" stroke-width="20"/>
-    ${circles}
-    <text x="${cx}" y="${cy-8}" text-anchor="middle" fill="#f1f5f9" font-size="20" font-weight="800">${totalUsed}h</text>
-    <text x="${cx}" y="${cy+10}" text-anchor="middle" fill="#94a3b8" font-size="10">av ${annual}h</text>
-  </svg>`;
-}
-
-function renderMinaKurserTable(staffId){
-  const asgns=getStaffAssignments(staffId);
-  if(!asgns.length) return '<div class="empty">Inga uppdrag tilldelade denna termin</div>';
-  return `<div class="table-wrap"><table>
-    <thead><tr><th>Kurs</th><th>Period</th><th>Timmar</th><th>Studenter</th></tr></thead>
-    <tbody>
-      ${asgns.map(a=>{
-        const c=getCourse(a.courseId);
-        return `<tr><td style="font-weight:600">${c.name}<br><span style="font-size:11px;color:var(--t4)">${c.id}</span></td>
-          <td><span class="badge gray">${c.period}</span></td>
-          <td>${a.hours}h</td>
-          <td>${c.students}</td></tr>`;
-      }).join('')}
-      <tr style="background:var(--bg3)">
-        <td colspan="2" style="font-weight:700;color:var(--t1)">Totalt undervisning</td>
-        <td style="font-weight:800;color:var(--blue)">${asgns.reduce((s,a)=>s+a.hours,0)}h</td>
-        <td>—</td>
-      </tr>
-    </tbody>
-  </table></div>`;
-}
-
-function renderMinaKurser(){
-  const p=getStaff(state.currentStaffId);
-  return `<div class="topbar"><div><h1>Mina kurser</h1><div class="sub">${p.name} · HT 2025</div></div></div>
-  <div class="content">${renderMinaKurserTable(state.currentStaffId)}</div>`;
-}
-
-function renderFranvaroLarare(){
-  return `<div class="topbar"><div><h1>Frånvaroanmälan</h1><div class="sub">Anmäl semester, sjukdom eller tjänstledighet</div></div></div>
-  <div class="content">
-    <div class="card">
-      <div class="section-title" style="margin-bottom:16px">Ny frånvaroanmälan</div>
-      <div style="display:flex;flex-direction:column;gap:12px;max-width:400px">
-        <div class="filter-group"><label style="font-size:12px;color:var(--t3);font-weight:600;margin-bottom:4px;display:block">Typ av frånvaro</label>
-          <select style="width:100%"><option>Semester</option><option>Sjukdom</option><option>Föräldraledighet</option><option>Tjänstledighet</option><option>Vård av barn (VAB)</option></select>
-        </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-          <div class="filter-group"><label style="font-size:12px;color:var(--t3);font-weight:600;margin-bottom:4px;display:block">Från datum</label><input type="date" value="2025-10-13" style="width:100%"></div>
-          <div class="filter-group"><label style="font-size:12px;color:var(--t3);font-weight:600;margin-bottom:4px;display:block">Till datum</label><input type="date" value="2025-10-17" style="width:100%"></div>
-        </div>
-        <div class="filter-group"><label style="font-size:12px;color:var(--t3);font-weight:600;margin-bottom:4px;display:block">Kommentar (valfritt)</label><input type="text" placeholder="..." style="width:100%"></div>
-        <div class="alert warning"><span class="icon">⚠</span><div><div class="title">Semesterregel</div><div class="text">Semester utanför sommartiden kräver godkännande av närmaste chef i dialog med studierektor (IPS policy §4).</div></div></div>
-        <button class="btn btn-primary" onclick="alert('Anmälan skickad till prefekt för godkännande (simulerat)')">Skicka anmälan</button>
-      </div>
-    </div>
-    <div class="section-title">Sparade semesterdagar</div>
-    <div class="card">
-      <div style="display:flex;justify-content:space-between;align-items:center">
-        <span style="color:var(--t3);font-size:13px">Sparade semesterdagar (max 30 dagar)</span>
-        <span style="font-size:24px;font-weight:800;color:var(--blue)">7 dagar</span>
-      </div>
-      <div class="progress-bar" style="margin-top:8px"><div class="progress-fill" style="width:${7/30*100}%;background:var(--blue)"></div></div>
-    </div>
-  </div>`;
-}
-
-// ===== HR =====
-function hrSidebar(){
-  return `<nav class="sidebar-nav">
-    ${[['personal','👥','Personalregister'],['kompetens','🎓','Kompetensmatrix'],['behorigheter','🔒','Roller & behörigheter']].map(([id,icon,label])=>
-      `<div class="nav-item${state.view===id?' active':''}" onclick="navigate('${id}')">${icon} ${label}</div>`
-    ).join('')}
-  </nav>`;
-}
-
-function renderHR(){
-  if(state.view==='personal') return renderPersonal();
-  if(state.view==='kompetens') return renderKompetens();
-  if(state.view==='behorigheter') return renderBehörigheter();
-  return renderPersonal();
-}
-
-function renderPersonal(){
-  const q=state.staffSearch.toLowerCase();
-  const filtered=STAFF.filter(s=>!q||s.name.toLowerCase().includes(q)||s.title.toLowerCase().includes(q)||s.subject.toLowerCase().includes(q));
-  return `<div class="topbar"><div><h1>Personalregister</h1><div class="sub">50 anställda · IPS HT 2025</div></div></div>
-  <div class="content">
-    <div class="search-box">🔍 <input placeholder="Sök namn, titel eller ämne..." value="${state.staffSearch}" oninput="state.staffSearch=this.value;render()"></div>
-    <div class="table-wrap">
-      <table>
-        <thead><tr><th></th><th>Namn</th><th>Titel</th><th>Ämne</th><th>Grad</th><th>Årsarbetstid</th><th>FOK</th><th>Belastning</th></tr></thead>
-        <tbody>
-          ${filtered.map(s=>{
-            const lp=loadPct(s.id);
-            return `<tr>
-              <td><div class="avatar" style="background:${titleColor(s.title)}22;color:${titleColor(s.title)}">${s.initials}</div></td>
-              <td style="font-weight:600">${s.name}</td>
-              <td><span style="color:${titleColor(s.title)};font-weight:700">${s.title}</span></td>
-              <td>${s.subject}</td>
-              <td>${Math.round(s.pct*100)}%</td>
-              <td>${s.annual}h</td>
-              <td>${s.fok}%</td>
-              <td><span style="color:${loadColor(lp)};font-weight:700">${lp}% ${loadLabel(lp)}</span></td>
-            </tr>`;
-          }).join('')}
-        </tbody>
-      </table>
-    </div>
-  </div>`;
-}
-
-function renderKompetens(){
-  const subjects=["Pedagogik","Specialpedagogik","Didaktik","Utbildningsvetenskap","Pedagogisk psykologi","Kunskapsteori"];
-  const shown=STAFF.filter(s=>s.title!=='Doktorand').slice(0,20);
-  return `<div class="topbar"><div><h1>Kompetensmatrix</h1><div class="sub">Ämnesexpertis per lärare</div></div></div>
-  <div class="content">
-    <div style="overflow-x:auto">
-      <div class="comp-grid" style="grid-template-columns:180px repeat(${subjects.length},1fr);display:grid">
-        <div class="comp-header" style="text-align:left;padding-left:10px">Lärare</div>
-        ${subjects.map(s=>`<div class="comp-header">${s.split(' ')[0]}</div>`).join('')}
-        ${shown.map(s=>`
-          <div class="comp-name">${s.name}</div>
-          ${subjects.map(sub=>s.subject===sub?`<div class="comp-cell yes">✓</div>`:s.subject.includes(sub.split(' ')[0])?`<div class="comp-cell partial">~</div>`:`<div class="comp-cell"></div>`).join('')}
-        `).join('')}
-      </div>
-    </div>
-    <div style="margin-top:12px;font-size:12px;color:var(--t4)">✓ Primärt ämnesområde · ~ Angränsande kompetens</div>
-  </div>`;
-}
-
-function renderBehörigheter(){
-  const roles=[
-    {name:"Prefekt",users:["Alli Klapp"],access:["Alla moduler","Godkänna frånvaro","Exportera rapporter","Hantera roller"]},
-    {name:"Studierektor",users:["Anna Lindqvist","Lars Petersson"],access:["Bemanning","Kapacitetskarta","Kursregister"]},
-    {name:"Lärare",users:["Alla 50 anställda"],access:["Min tjänsteplan","Mina kurser","Frånvaroanmälan"]},
-    {name:"HR-administratör",users:["HR-enheten"],access:["Personalregister","Kompetensmatrix","Roller"]},
-    {name:"Ekonom",users:["Ekonomiavdelningen"],access:["Budgetrapporter","Dynamiska rapporter","Export"]},
-  ];
-  return `<div class="topbar"><div><h1>Roller & behörigheter</h1><div class="sub">Rollbaserad åtkomstkontroll</div></div></div>
-  <div class="content">
-    ${roles.map(r=>`<div class="card">
-      <div style="display:flex;justify-content:space-between;align-items:flex-start">
-        <div><div style="font-weight:700;font-size:15px;color:var(--t1);margin-bottom:4px">${r.name}</div>
-          <div style="font-size:12px;color:var(--t4)">${r.users.join(' · ')}</div></div>
-        <span class="badge blue">🔒 ${r.access.length} rättigheter</span>
-      </div>
-      <div style="margin-top:10px;display:flex;flex-wrap:wrap;gap:4px">${r.access.map(a=>`<span class="tag">${a}</span>`).join('')}</div>
-    </div>`).join('')}
-  </div>`;
-}
-
-// ===== EKONOM =====
-function ekonomSidebar(){
-  return `<nav class="sidebar-nav">
-    ${[['budget','💰','Budgetöversikt'],['rapportbyggare','📊','Rapportbyggare']].map(([id,icon,label])=>
-      `<div class="nav-item${state.view===id?' active':''}" onclick="navigate('${id}')">${icon} ${label}</div>`
-    ).join('')}
-  </nav>`;
-}
-
-function renderEkonom(){
-  if(state.view==='budget') return renderBudget();
-  if(state.view==='rapportbyggare') return renderRapporter();
-  return renderBudget();
-}
-
-function renderBudget(){
-  const totalHours=ASSIGNMENTS.reduce((s,a)=>s+a.hours,0);
-  const avgCostPerH=450; // SEK
-  const totalCost=totalHours*avgCostPerH;
-  const budget=totalCost*1.15;
-  const pct=Math.round(totalCost/budget*100);
-  return `<div class="topbar"><div><h1>Budgetöversikt</h1><div class="sub">HT 2025 · Undervisningskostnader</div></div></div>
-  <div class="content">
+// ─── RENDER: BUDGET ──────────────────────────────────────────────────────────
+function renderBudget() {
+  const ks=S.kurser||[], SNL=450;
+  const tB=ks.reduce((s,k)=>s+(+(k.budget_timmar)||0),0);
+  const tG=ks.reduce((s,k)=>s+(+(k.bemannat_godkand)||0),0);
+  return `<div class="page-title">Budget & uppdrag</div>
+    <div class="page-sub">Undervisningskostnader · Snittpris ${SNL} kr/h</div>
     <div class="stat-grid">
-      <div class="stat-card"><div class="label">Budget HT 2025</div><div class="value" style="color:var(--teal)">${(budget/1e6).toFixed(2)} Mkr</div><div class="sub">Anslagsfinansierat</div></div>
-      <div class="stat-card"><div class="label">Planerad kostnad</div><div class="value" style="color:var(--blue)">${(totalCost/1e6).toFixed(2)} Mkr</div><div class="sub">${totalHours}h × ${avgCostPerH} kr/h sn.</div></div>
-      <div class="stat-card"><div class="label">Budgetutnyttjande</div><div class="value" style="color:${pct>100?'var(--red)':pct>85?'var(--amber)':'var(--green)'}">${pct}%</div><div class="sub">${budget-totalCost>0?'+'+(((budget-totalCost)/1e3)|0)+' tkr marginal':'UNDERSKOTT'}</div></div>
-      <div class="stat-card"><div class="label">Obemanning risk</div><div class="value" style="color:var(--amber)">${COURSES.filter(c=>courseStatus(c.id)!=='full').length}</div><div class="sub">kurser ej fullt bemannade</div></div>
+      <div class="stat-card"><div class="stat-label">Budget totalt</div><div class="stat-value">${fh(tB)}</div><div class="stat-sub">${Math.round(tB*SNL/1000)} tkr est.</div></div>
+      <div class="stat-card green"><div class="stat-label">Planerad kostnad</div><div class="stat-value">${Math.round(tG*SNL/1000)} tkr</div><div class="stat-sub">${fh(tG)} godkänd</div></div>
+      <div class="stat-card"><div class="stat-label">Utnyttjande</div><div class="stat-value">${tB>0?fp(Math.round(tG/tB*100)):'—'}</div></div>
+      <div class="stat-card amber"><div class="stat-label">Ej planerat</div><div class="stat-value">${fh(tB-tG)}</div><div class="stat-sub">${Math.round((tB-tG)*SNL/1000)} tkr risk</div></div>
     </div>
-    <div class="progress-bar" style="height:12px;margin-bottom:20px">
-      <div class="progress-fill" style="width:${Math.min(100,pct)}%;background:${pct>100?'var(--red)':pct>85?'var(--amber)':'var(--green)'}"></div>
-    </div>
-    <div class="section-title">Kostnad per kurs</div>
-    <div class="table-wrap">
-      <table>
-        <thead><tr><th>Kurs</th><th>Period</th><th>Tim totalt</th><th>Est. kostnad</th><th>Status</th></tr></thead>
-        <tbody>
-          ${COURSES.map(c=>{
-            const h=getCourseAssignments(c.id).reduce((s,a)=>s+a.hours,0);
-            const cost=h*avgCostPerH;
-            return `<tr>
-              <td style="font-weight:600">${c.name}</td>
-              <td><span class="badge gray">${c.period}</span></td>
-              <td>${h}h</td>
-              <td>${(cost/1e3)|0} tkr</td>
-              <td>${statusBadge(courseStatus(c.id))}</td>
-            </tr>`;
-          }).join('')}
-          <tr style="background:var(--bg3)">
-            <td colspan="2" style="font-weight:700">Totalt</td>
-            <td style="font-weight:800;color:var(--blue)">${totalHours}h</td>
-            <td style="font-weight:800;color:var(--blue)">${(totalCost/1e3)|0} tkr</td>
-            <td>—</td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-  </div>`;
+    <table><thead><tr><th>Kurs</th><th>Period</th><th>Budget</th><th>Godkänd</th><th>Est. kostnad</th></tr></thead>
+    <tbody>${ks.map(k=>{const b=+(k.budget_timmar)||0,g=+(k.bemannat_godkand)||0;return`<tr>
+      <td style="font-weight:600">${k.namn}</td>
+      <td><span class="badge gray" style="font-size:10px">${periodName(k.period_id)}</span></td>
+      <td>${fh(b)}</td><td style="color:${g>=b&&b>0?'var(--green)':'var(--t3)'}">${fh(g)}</td>
+      <td style="color:var(--t4)">${b?Math.round(b*SNL/1000)+' tkr':'—'}</td>
+    </tr>`;}).join('')}</tbody></table>`;
 }
 
-// ============================================================
-// TEACHER PICKER MODAL
-// ============================================================
-function showModal(){
-  const existing=document.getElementById('modal-overlay');
-  if(existing) existing.remove();
-  const course=getCourse(state.pickerCourseId);
-  if(!course) return;
-  const already=getCourseAssignments(course.id).map(a=>a.staffId);
-  const candidates=STAFF.filter(s=>!already.includes(s.id)).sort((a,b)=>{
-    const aMatch=course.subjects.some(sub=>a.subject===sub)?0:1;
-    const bMatch=course.subjects.some(sub=>b.subject===sub)?0:1;
-    return aMatch-bMatch||loadPct(a.id)-loadPct(b.id);
-  });
-  const sel=state.pickerSelectedStaffId;
-  const valResult=sel?validate(sel,state.pickerHours):null;
+// ─── RENDER: RAPPORTER ───────────────────────────────────────────────────────
+function renderRapporter() {
+  if (!S.kapacitet) return `<div class="page-title">Rapporter</div><div class="page-sub">Kapacitetsrapport</div>${loading()}`;
+  const data=S.kapacitet.filter(p=>p.personalkategori==='undervisande'&&p.kategori_typ==='anstalld');
+  return `<div class="page-title">Rapporter</div>
+    <div class="page-sub">Kapacitetsrapport · Undervisande personal · ${S.year}</div>
+    <table><thead><tr><th>Namn</th><th>Titel</th><th>Avdelning</th><th>Netto</th><th>Godkänd</th><th>Belagd%</th><th>Återstår</th></tr></thead>
+    <tbody>${data.map(p=>{const bl=+(p.belaggningspct)||0,at=+(p.aterstaar)||0;return`<tr>
+      <td style="font-weight:600">${p.namn}</td>
+      <td style="font-size:11px;color:var(--t4)">${p.titel_display||'—'}</td>
+      <td>${p.avdelning_namn||'—'}</td>
+      <td>${fh(p.netto_bemanningsbar)}</td>
+      <td style="color:var(--green)">${fh(p.undervisning_godkand)}</td>
+      <td style="color:${bl>100?'var(--red)':bl>90?'var(--amber)':'var(--t1)'}">${fp(bl)}</td>
+      <td style="color:${at<0?'var(--red)':'var(--t3)'}">${fh(at)}</td>
+    </tr>`;}).join('')}</tbody></table>`;
+}
 
-  const html=`<div class="modal-overlay" id="modal-overlay" onclick="closePickerOutside(event)">
-    <div class="modal">
+// ─── PICKER ──────────────────────────────────────────────────────────────────
+function renderPicker() {
+  const kurs=(S.kurser||[]).find(k=>k.id===S.pickerKursId);
+  if (!kurs) return '';
+  const q=S.pickerSearch.toLowerCase();
+  let cands=(S.kapacitet||[]).filter(p=>p.personalkategori==='undervisande');
+  if (q) cands=cands.filter(p=>p.namn.toLowerCase().includes(q)||(p.avdelning_namn||'').toLowerCase().includes(q));
+  cands.sort((a,b)=>+(b.aterstaar_inkl_begard)- +(a.aterstaar_inkl_begard));
+  const t=S.pickerTimmar||60;
+
+  return `<div class="modal-bg" onclick="if(event.target===this)closePicker()">
+    <div class="modal" onclick="event.stopPropagation()">
       <div class="modal-header">
-        <h2>Tilldela lärare — ${course.name}</h2>
+        <div class="modal-title">Tilldela lärare — ${kurs.namn}</div>
         <button class="modal-close" onclick="closePicker()">×</button>
       </div>
       <div class="modal-body">
-        <div style="margin-bottom:12px">
-          <div class="search-box">🔍 <input id="picker-search" placeholder="Sök lärare..." oninput="filterPickerList(this.value)"></div>
+        <input class="picker-search" placeholder="Sök lärare eller avdelning…" value="${S.pickerSearch}"
+          oninput="S.pickerSearch=this.value;refreshPicker()"/>
+        ${cands.length>0?cands.map(p=>{
+          const rem=+(p.aterstaar_inkl_begard)||0;
+          const cls=rem>=t*1.5?'cap-ok':rem>=t?'cap-warn':'cap-over';
+          return `<div class="picker-person-row ${S.pickerPersonId===p.person_id?'selected':''}" onclick="pickerSel(${p.person_id})">
+            ${av(p,28)}
+            <div class="teacher-info"><div class="teacher-name">${p.namn}</div>
+              <div class="teacher-meta">${p.titel_display||''} · ${p.avdelning_namn||'Extern'}</div></div>
+            <div class="picker-cap"><div class="picker-cap-val ${cls}">${fh(rem)}</div><div class="picker-cap-label">återstår</div></div>
+          </div>`;}).join('')
+        :'<div style="text-align:center;color:var(--t4);padding:20px">Ingen match</div>'}
+        <div class="hours-row">
+          <label>Timmar:</label>
+          <input class="hours-input" id="pk-t" type="number" min="1" max="500" value="${t}"
+            oninput="S.pickerTimmar=parseInt(this.value)||60;refreshPicker()"/>
+          <select id="pk-typ" class="sel">
+            <option value="">Allmän</option>
+            <option value="forelasning">Föreläsning</option>
+            <option value="seminarium">Seminarium</option>
+            <option value="examination">Examination</option>
+            <option value="handledning">Handledning</option>
+          </select>
+          <select id="pk-st" class="sel">
+            <option value="begard">Begär (→ AVDC)</option>
+            <option value="utkast">Utkast</option>
+            <option value="godkand">Godkänn direkt</option>
+          </select>
         </div>
-        <div style="font-size:11px;color:var(--t3);margin-bottom:8px">Sorterat: Ämnesträff → Ledighet. Klicka för att välja.</div>
-        <div id="picker-list">
-          ${candidates.map(s=>{
-            const lp=loadPct(s.id);
-            const match=course.subjects.some(sub=>s.subject===sub);
-            const isBlocked=lp>=100;
-            const isSel=sel===s.id;
-            return `<div class="teacher-pick-item${isSel?' selected':''}${isBlocked?' blocked':''}"
-              onclick="${isBlocked?'':'pickTeacher('+s.id+')'}" data-name="${s.name.toLowerCase()}" data-title="${s.title.toLowerCase()}" data-subject="${s.subject.toLowerCase()}">
-              <div class="avatar" style="background:${titleColor(s.title)}22;color:${titleColor(s.title)}">${s.initials}</div>
-              <div class="pick-info">
-                <div class="name">${s.name}</div>
-                <div class="title">${s.title} · ${s.subject}</div>
-                <div style="margin-top:4px">
-                  ${match?'<span class="badge green" style="font-size:10px">✓ Ämnesträff</span>':'<span class="badge gray" style="font-size:10px">Angränsande</span>'}
-                  ${isBlocked?'<span class="badge red" style="font-size:10px;margin-left:4px">✗ Fullt belagd</span>':''}
-                </div>
-              </div>
-              <div class="pick-load">
-                <div class="pct" style="color:${loadColor(lp)}">${lp}%</div>
-                <div class="lbl">belagd</div>
-              </div>
-            </div>`;
-          }).join('')}
-        </div>
+        ${S.pickerValMsg?`<div class="val-msg ${S.pickerValMsg.typ==='fel'?'err':'warn'}">${S.pickerValMsg.meddelande}</div>`:''}
       </div>
-      ${sel?`<div style="padding:14px 20px;border-top:1px solid var(--bg3);border-bottom:1px solid var(--bg3);background:var(--bg3)">
-        <div style="font-size:12px;color:var(--t3);margin-bottom:6px;font-weight:700">Antal timmar att tilldela</div>
-        <div style="display:flex;align-items:center;gap:12px">
-          <input type="range" min="10" max="300" value="${state.pickerHours}" step="5" oninput="state.pickerHours=+this.value;document.getElementById('picker-hours-val').textContent=this.value+'h';document.getElementById('picker-validation').innerHTML=renderValidation(${sel},+this.value)">
-          <span id="picker-hours-val" style="font-size:18px;font-weight:800;color:var(--blue);min-width:50px">${state.pickerHours}h</span>
-        </div>
-        <div id="picker-validation">${renderValidation(sel,state.pickerHours)}</div>
-      </div>`:''}
       <div class="modal-footer">
-        <button class="btn btn-secondary" onclick="closePicker()">Avbryt</button>
-        ${sel&&valResult?.ok?`<button class="btn btn-primary" onclick="confirmAssign()">✓ Tilldela ${state.pickerHours}h</button>`:
-          sel?`<button class="btn btn-danger" disabled>✗ Kan ej tilldela</button>`:'<button class="btn btn-primary" disabled>Välj lärare</button>'}
+        <button class="btn-cancel" onclick="closePicker()">Avbryt</button>
+        <button class="btn-confirm" onclick="confirmAssign()" ${!S.pickerPersonId?'disabled':''}>Tilldela</button>
       </div>
     </div>
   </div>`;
-  document.body.insertAdjacentHTML('beforeend',html);
-  if(state.pickerSelectedStaffId){
-    document.querySelector('.teacher-pick-item.selected')?.scrollIntoView({block:'nearest'});
+}
+
+function refreshPicker() {
+  const e=document.querySelector('.modal-bg');
+  if (!e) return;
+  const t=document.createElement('div');
+  t.innerHTML=renderPicker();
+  e.replaceWith(t.firstChild);
+}
+
+async function openPicker(kursId) {
+  S.pickerKursId=kursId; S.pickerPersonId=null; S.pickerTimmar=60;
+  S.pickerStatus='begard'; S.pickerSearch=''; S.pickerValMsg=null;
+  if (!S.kapacitet) {
+    document.getElementById('app').insertAdjacentHTML('beforeend',
+      `<div class="modal-bg"><div class="loading"><div class="spinner"></div><span>Laddar kapacitet…</span></div></div>`);
+    await ensureKap();
+    document.querySelector('.modal-bg')?.remove();
+  }
+  document.getElementById('app').insertAdjacentHTML('beforeend', renderPicker());
+}
+
+function closePicker() { document.querySelector('.modal-bg')?.remove(); }
+
+function pickerSel(id) {
+  S.pickerPersonId=id; S.pickerValMsg=null;
+  refreshPicker();
+  // async validation in background
+  api(`/personal/${id}/validera?timmar=${S.pickerTimmar}&ar=${S.year}`)
+    .then(res=>{ S.pickerValMsg=res.fel.length>0?res.fel[0]:null; refreshPicker(); })
+    .catch(()=>{});
+}
+
+async function confirmAssign() {
+  if (!S.pickerPersonId||!S.pickerKursId) return;
+  const timtyp=document.getElementById('pk-typ')?.value||null;
+  const status=document.getElementById('pk-st')?.value||'begard';
+  try {
+    await api('/kurser/belaggningar',{method:'POST',body:JSON.stringify({
+      kurs_id:S.pickerKursId, person_id:S.pickerPersonId,
+      timmar:S.pickerTimmar, timtyp:timtyp||null, status
+    })});
+    delete S.kursCache[S.pickerKursId];
+    S.kurser=null; S.kapacitet=null;
+    closePicker();
+    await loadBase();
+    if (S.selectedKurs===S.pickerKursId) await loadKurs(S.pickerKursId);
+    render();
+  } catch(e) {
+    const msg=Array.isArray(e.detail)?e.detail[0]?.meddelande:(typeof e.detail==='string'?e.detail:'Fel vid tilldelning');
+    S.pickerValMsg={typ:'fel',meddelande:msg};
+    refreshPicker();
   }
 }
 
-function renderValidation(staffId,hours){
-  const v=validate(staffId,hours);
-  const p=getStaff(staffId);
-  let html=`<div style="margin-top:10px;font-size:12px">
-    <div style="margin-bottom:6px;color:var(--t3)">Konsekvenser för ${p.name}:</div>
-    <div style="display:flex;gap:16px;margin-bottom:8px">
-      <span>Undervisning nu: <b style="color:var(--t2)">${v.curTeach}h</b></span>
-      <span>→ Efter: <b style="color:${loadColor(v.pct)}">${v.newTeach}h (${v.pct}%)</b></span>
-      <span>Tillgängligt: <b style="color:var(--t3)">${v.avail}h</b></span>
-    </div>`;
-  if(v.errors.length) html+=v.errors.map(e=>`<div class="alert error" style="margin-bottom:6px;padding:8px 12px"><span class="icon">✗</span><div><div class="title">${e}</div></div></div>`).join('');
-  if(v.warnings.length) html+=v.warnings.map(w=>`<div class="alert warning" style="margin-bottom:6px;padding:8px 12px"><span class="icon">⚠</span><div><div class="title">${w}</div></div></div>`).join('');
-  if(v.ok&&!v.warnings.length) html+=`<div class="alert ok" style="padding:8px 12px"><span class="icon">✓</span><div><div class="title">Inga avtalskonflikter — OK att tilldela</div></div></div>`;
-  html+='</div>';
-  return html;
+// ─── EVENTS ──────────────────────────────────────────────────────────────────
+function navigate(view) { S.view=view; S.selectedKurs=null; S.kursDetail=null; S.selectedPerson=null; render(); }
+function setBemanFilter(f) { S.bemanFilter=f; rc(); }
+function setKapFilter(id)  { S.kapFilter=id; rc(); }
+
+async function selectKurs(id) {
+  S.selectedKurs=id; S.kursDetail=null; rc();
+  await loadKurs(id); rc();
 }
 
-// ============================================================
-// EVENTS
-// ============================================================
-function attachEvents(){}
-
-function selectRole(role){
-  state.role=role;
-  state.view=role==='prefekt'?'dashboard':role==='larare'?'tjansteplan':role==='hr'?'personal':role==='ekonom'?'budget':'dashboard';
-  state.selectedCourse=null;
-  state.pickerOpen=false;
-  render();
+async function selectPerson(id) {
+  if (S.selectedPerson===id) { S.selectedPerson=null; rc(); return; }
+  S.selectedPerson=id; rc();
+  await loadKonto(id);
+  // load kurs details for any pending to show approve buttons
+  for (const k of (S.kurser||[]).filter(k=>+(k.bemannat_begard)>0)) {
+    if (!S.kursCache[k.id]) await loadKurs(k.id);
+  }
+  rc();
 }
 
-function navigate(view){
-  state.view=view;
-  if(view!=='bemanning') state.selectedCourse=null;
-  render();
+async function approveAsg(id, godkand) {
+  await api('/kurser/belaggningar/'+id+'/status',{method:'PATCH',body:JSON.stringify({status:godkand?'godkand':'nekad'})});
+  S.kurser=null; S.kursCache={}; S.kontoCache={}; S.kapacitet=null;
+  await loadBase();
+  if (S.selectedKurs) await loadKurs(S.selectedKurs);
+  if (S.selectedPerson) await loadKonto(S.selectedPerson);
+  rc();
 }
 
-function selectCourse(id){
-  state.selectedCourse=id;
-  state.view='bemanning';
-  render();
+async function deleteAsg(id) {
+  await api('/kurser/belaggningar/'+id,{method:'DELETE'});
+  S.kurser=null; S.kursCache={}; S.kontoCache={}; S.kapacitet=null;
+  await loadBase();
+  if (S.selectedKurs) await loadKurs(S.selectedKurs);
+  rc();
 }
 
-function setBemFilter(f){
-  state.bemanFilter=f;
-  render();
+// rc = render content only (faster for non-structural updates)
+function rc() {
+  const el=document.getElementById('content');
+  if (el) el.innerHTML=currentView();
 }
 
-function openPicker(courseId,preselect){
-  state.pickerOpen=true;
-  state.pickerCourseId=courseId;
-  state.pickerSelectedStaffId=preselect||null;
-  state.pickerHours=60;
-  showModal();
+function currentView() {
+  switch(S.view) {
+    case 'dashboard': return renderDashboard();
+    case 'bemanning': return renderBemanning();
+    case 'kapacitet': return renderKapacitet();
+    case 'personal':  return renderPersonal();
+    case 'budget':    return renderBudget();
+    case 'rapporter': return renderRapporter();
+    default:          return renderDashboard();
+  }
 }
 
-function closePicker(){
-  state.pickerOpen=false;
-  const el=document.getElementById('modal-overlay');
-  if(el) el.remove();
+async function render() {
+  const app=document.getElementById('app');
+  if (!S.token||!S.user) { app.innerHTML=renderLogin(); return; }
+  if (!S.kurser) {
+    app.innerHTML=renderShell(loading());
+    try { await loadBase(); } catch(e) { console.error(e); }
+  }
+  if ((S.view==='kapacitet'||S.view==='rapporter') && !S.kapacitet) {
+    app.innerHTML=renderShell(loading());
+    await ensureKap();
+  }
+  app.innerHTML=renderShell(currentView());
 }
 
-function closePickerOutside(e){
-  if(e.target.id==='modal-overlay') closePicker();
-}
-
-function pickTeacher(id){
-  state.pickerSelectedStaffId=id;
-  showModal();
-}
-
-function confirmAssign(){
-  if(!state.pickerSelectedStaffId||!state.pickerCourseId) return;
-  const v=validate(state.pickerSelectedStaffId,state.pickerHours);
-  if(!v.ok){alert('Kan inte tilldela: '+v.errors.join('\n'));return;}
-  ASSIGNMENTS.push({id:nextAssignId++,courseId:state.pickerCourseId,staffId:state.pickerSelectedStaffId,hours:state.pickerHours});
-  closePicker();
-  render();
-}
-
-function removeAssignment(id){
-  ASSIGNMENTS=ASSIGNMENTS.filter(a=>a.id!==id);
-  render();
-}
-
-function filterPickerList(q){
-  const ql=q.toLowerCase();
-  document.querySelectorAll('.teacher-pick-item').forEach(el=>{
-    const matches=!q||el.dataset.name.includes(ql)||el.dataset.title.includes(ql)||el.dataset.subject.includes(ql);
-    el.style.display=matches?'flex':'none';
-  });
-}
-
-// Init
 render();
 </script>
 </body>
