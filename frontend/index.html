@@ -310,8 +310,8 @@ async function loadBase() {
   S.avdelningar=avd; S.perioder=per; S.personal=pers; S.kurser=kurs;
   // default: activate the most recent year's full-year period
   if (!S.activePeriodId && per.length) {
-    const fullYear = per.filter(p=>p.typ==='kalenderar').sort((a,b)=>b.planeringsår-a.planeringsår)[0];
-    if (fullYear) { S.activePeriodId=fullYear.id; S.year=fullYear.planeringsår; }
+    const fullYear = per.filter(p=>p.typ==='kalenderar').sort((a,b)=>b.start_datum.localeCompare(a.start_datum))[0];
+    if (fullYear) { S.activePeriodId=fullYear.id; S.year=parseInt(fullYear.start_datum.substring(0,4)); }
   }
   S.pendingCount=kurs.filter(k=>+(k.bemannat_begard)>0).length;
 }
@@ -347,8 +347,9 @@ function onPeriodChange(val) {
   else {
     const pid=parseInt(val); S.activePeriodId=pid;
     const p=(S.perioder||[]).find(p=>p.id===pid);
-    if (p && p.planeringsår!==S.year) {
-      S.year=p.planeringsår; S.kapacitet=null; S.kontoCache={}; S.belaggningsCache={};
+    if (p) {
+      const yr=parseInt(p.start_datum.substring(0,4));
+      if (yr!==S.year) { S.year=yr; S.kapacitet=null; S.kontoCache={}; S.belaggningsCache={}; }
     }
   }
   rc();
