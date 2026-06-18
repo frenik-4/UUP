@@ -105,7 +105,28 @@ class KursListOut(BaseModel):
     period_id: int
     studenter: int | None
     budget_timmar: Decimal | None
+    bemannat_godkand: Decimal = Decimal("0")
+    bemannat_begard: Decimal = Decimal("0")
     model_config = {"from_attributes": True}
+
+
+class KapacitetOut(BaseModel):
+    person_id: int
+    namn: str
+    initialer: str
+    titel_display: str | None
+    titel_typ: TitelTyp | None
+    avdelning_id: int | None
+    avdelning_namn: str | None
+    personalkategori: PersonKategori
+    kategori_typ: PersonKategoriTyp
+    netto_bemanningsbar: float
+    tillganglig_undervisning: float
+    undervisning_godkand: float
+    undervisning_begard: float
+    aterstaar: float
+    aterstaar_inkl_begard: float
+    belaggningspct: float
 
 
 class KurstimTypOut(BaseModel):
@@ -147,6 +168,28 @@ class BelaggningCreate(BaseModel):
 class BelaggningGranska(BaseModel):
     status: AssignmentStatus  # godkand eller nekad
     kommentar: str | None = None
+
+
+class KursMiniOut(BaseModel):
+    id: int
+    kod: str
+    namn: str
+    hp: Decimal
+    period_id: int
+    budget_timmar: Decimal | None
+    model_config = {"from_attributes": True}
+
+
+class PersonBelaggningOut(BaseModel):
+    id: int
+    kurs: KursMiniOut
+    timtyp: KurstimTyp | None
+    timmar: Decimal
+    status: AssignmentStatus
+    begard_vid: datetime | None
+    granskad_vid: datetime | None
+    gransknings_kommentar: str | None
+    model_config = {"from_attributes": True}
 
 
 class ValideringsResultat(BaseModel):

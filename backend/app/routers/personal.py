@@ -3,23 +3,52 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session, selectinload
 
 from app.database import get_db
-from app.models.core import Person, PersonKategori, PersonKategoriTyp
-from app.schemas.core import PersonListOut, PersonDetailOut, TidskontoDel, ValideringsResultat
+from app.models.core import Person, PersonKategori, PersonKategoriTyp, Kursbelaggning, Kurs, Planeringsperiod
+from app.schemas.core import PersonListOut, PersonDetailOut, TidskontoDel, ValideringsResultat, KapacitetOut, PersonBelaggningOut
 from app.services.calculations import berakna_tidskonto, validera_belaggning
 
 router = APIRouter(prefix="/personal", tags=["personal"])
 
 
+def _full_load(db: Session):
+    return (db.query(Person)
+            .options(
+                selectinload(Person.avdelning),
+                selectinload(Person.anstallningar),
+                selectinload(Person.franvaro),
+                selectinload(Person.uppdrag),
+                selectinload(Person.kursbelaggningar),
+            ))
+
+
+@router.get("/kapacitet", response_model=list[KapacitetOut])
+def kapacitet(ar: int = 2026, avdelning_id: int | None = None, db: Session = Depends(get_db)):
+    q = _full_load(db).filter(Person.aktiv == True)
+    if avdelning_id:
+        q = q.filter(Person.avdelning_id == avdelning_id)
+    result = []
+    for p in q.order_by(Person.namn).all():
+        k = berakna_tidskonto(p, ar, db)
+        result.append(KapacitetOut(
+            person_id=p.id, namn=p.namn, initialer=p.initialer,
+            titel_display=p.titel_display, titel_typ=p.titel_typ,
+            avdelning_id=p.avdelning_id,
+            avdelning_namn=p.avdelning.namn if p.avdelning else None,
+            personalkategori=p.personalkategori, kategori_typ=p.kategori_typ,
+            netto_bemanningsbar=float(k.netto_bemanningsbar),
+            tillganglig_undervisning=float(k.tillganglig_undervisning),
+            undervisning_godkand=float(k.undervisning_godkand),
+            undervisning_begard=float(k.undervisning_begard),
+            aterstaar=float(k.aterstaar),
+            aterstaar_inkl_begard=float(k.aterstaar_inkl_begard),
+            belaggningspct=float(k.belaggningspct),
+        ))
+    return result
+
+
 def _load_person(db: Session, person_id: int) -> Person:
-    p = (db.query(Person)
-         .options(
-             selectinload(Person.avdelning),
-             selectinload(Person.anstallningar),
-             selectinload(Person.franvaro),
-             selectinload(Person.uppdrag),
-             selectinload(Person.kursbelaggningar),
-             selectinload(Person.anvandare),
-         )
+    p = (_full_load(db)
+         .options(selectinload(Person.anvandare))
          .filter(Person.id == person_id)
          .first())
     if not p:
@@ -81,6 +110,19 @@ def tidskonto(person_id: int, ar: int = 2026, db: Session = Depends(get_db)):
         aterstaar_inkl_begard=konto.aterstaar_inkl_begard,
         belaggningspct=konto.belaggningspct,
     )
+
+
+@router.get("/{person_id}/belaggningar", response_model=list[PersonBelaggningOut])
+def person_belaggningar(person_id: int, ar: int | None = None, db: Session = Depends(get_db)):
+    _load_person(db, person_id)
+    q = (db.query(Kursbelaggning)
+         .options(selectinload(Kursbelaggning.kurs))
+         .filter(Kursbelaggning.person_id == person_id))
+    if ar:
+        q = q.join(Kurs, Kursbelaggning.kurs_id == Kurs.id)\
+             .join(Planeringsperiod, Kurs.period_id == Planeringsperiod.id)\
+             .filter(Planeringsperiod.planeringsår == ar)
+    return q.order_by(Kursbelaggning.status).all()
 
 
 @router.get("/{person_id}/validera", response_model=ValideringsResultat)
