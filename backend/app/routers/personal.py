@@ -1,5 +1,6 @@
 from decimal import Decimal
 from fastapi import APIRouter, Depends, HTTPException, Query
+from sqlalchemy import extract
 from sqlalchemy.orm import Session, selectinload
 
 from app.database import get_db
@@ -121,7 +122,7 @@ def person_belaggningar(person_id: int, ar: int | None = None, db: Session = Dep
     if ar:
         q = q.join(Kurs, Kursbelaggning.kurs_id == Kurs.id)\
              .join(Planeringsperiod, Kurs.period_id == Planeringsperiod.id)\
-             .filter(Planeringsperiod.planeringsår == ar)
+             .filter(extract('year', Planeringsperiod.start_datum) == ar)
     return q.order_by(Kursbelaggning.status).all()
 
 
