@@ -33,6 +33,8 @@ class PersonListOut(BaseModel):
     titel_typ: TitelTyp | None
     titel_display: str | None
     amnesomrade: str | None
+    personnummer: str | None = None
+    kompetenser: str | None = None
     personalkategori: PersonKategori
     kategori_typ: PersonKategoriTyp
     fran_organisation: str | None
@@ -144,6 +146,8 @@ class BelaggningOut(BaseModel):
     person: PersonListOut
     timtyp: KurstimTyp | None
     timmar: Decimal
+    belaggning_start: date | None = None
+    belaggning_slut: date | None = None
     status: AssignmentStatus
     begard_av_id: int | None
     begard_vid: datetime | None
@@ -164,6 +168,8 @@ class BelaggningCreate(BaseModel):
     timmar: Decimal
     timtyp: KurstimTyp | None = None
     status: AssignmentStatus = AssignmentStatus.utkast
+    belaggning_start: date | None = None
+    belaggning_slut: date | None = None
 
 
 class BelaggningGranska(BaseModel):
@@ -186,6 +192,8 @@ class PersonBelaggningOut(BaseModel):
     kurs: KursMiniOut
     timtyp: KurstimTyp | None
     timmar: Decimal
+    belaggning_start: date | None = None
+    belaggning_slut: date | None = None
     status: AssignmentStatus
     begard_vid: datetime | None
     granskad_vid: datetime | None
@@ -201,6 +209,7 @@ class ValideringsResultat(BaseModel):
 class AnvandarRollOut(BaseModel):
     roll: UserRoll
     avdelning: AvdelningOut | None
+    amnesomrade: str | None = None
     model_config = {"from_attributes": True}
 
 
@@ -219,6 +228,8 @@ class PersonUpdate(BaseModel):
     titel_typ: TitelTyp | None = None
     titel_display: str | None = None
     amnesomrade: str | None = None
+    personnummer: str | None = None
+    kompetenser: str | None = None
     personalkategori: PersonKategori | None = None
     kategori_typ: PersonKategoriTyp | None = None
     fran_organisation: str | None = None

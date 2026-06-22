@@ -265,7 +265,7 @@ body{background:var(--bg0);color:var(--t1);font-family:system-ui,sans-serif;font
 <script>
 'use strict';
 const API = '/api';
-const VERSION = '0.2.4';
+const VERSION = '0.3.0';
 
 let S = {
   token: localStorage.getItem('uup_token'),
@@ -295,6 +295,7 @@ let S = {
   // picker
   pickerKursId:null, pickerPersonId:null, pickerTimmar:60,
   pickerStatus:'begard', pickerSearch:'', pickerValMsg:null,
+  pickerBelStart:'', pickerBelSlut:'',
   // installningar
   installningar:null, installSaving:false, installMsg:null,
   pendingCount:0, loginErr:'', loginLoading:false,
@@ -453,6 +454,22 @@ function filteredKurser() {
 // ── RENDER HELPERS ────────────────────────────────────────────────────────────
 const fh = h => Math.round(+h||0)+'h';
 const fp = p => Math.round(+p||0)+'%';
+
+// Beräkna hur många av en beläggnings timmar som faller i vald period
+function periodTimmar(b) {
+  const per = (S.perioder||[]).find(p=>p.id===S.activePeriodId);
+  if (!per || !b.belaggning_start || !b.belaggning_slut) return null;
+  const bS=new Date(b.belaggning_start).getTime(), bE=new Date(b.belaggning_slut).getTime();
+  const pS=new Date(per.start_datum).getTime(), pE=new Date(per.slut_datum).getTime();
+  const oS=Math.max(bS,pS), oE=Math.min(bE,pE);
+  if (oE<=oS) return 0;
+  return Math.round(+(b.timmar)*(oE-oS)/(bE-bS));
+}
+
+// Returnera STR-användarens ämnesområdes-scope (null = inga filter)
+function strAmne() {
+  return S.user?.roller.find(r=>r.roll==='str_roll')?.amnesomrade || null;
+}
 
 function kursStatus(k) {
   const b=+(k.budget_timmar)||0,g=+(k.bemannat_godkand)||0,beg=+(k.bemannat_begard)||0;
@@ -618,15 +635,24 @@ function renderPersonOverlay() {
   const begarda=bels.filter(b=>b.status==='begard'), godkanda=bels.filter(b=>b.status==='godkand');
   const utkast=bels.filter(b=>b.status==='utkast'), nekade=bels.filter(b=>b.status==='nekad');
 
-  const belRow=(b)=>`<div class="asg-row">
+  const belRow=(b)=>{
+    const ph=periodTimmar(b);
+    const dateRange=b.belaggning_start||b.belaggning_slut
+      ?`<div class="asg-meta" style="color:var(--blue)">${b.belaggning_start||'?'} – ${b.belaggning_slut||'→'}</div>`:'';
+    return `<div class="asg-row">
     <div class="asg-info">
       <div class="asg-name" onclick="closePersonOverlayGoKurs(${b.kurs.id})">${b.kurs.namn}</div>
       <div class="asg-meta">${b.kurs.kod} · ${periodName(b.kurs.period_id)} · ${b.kurs.hp} hp${b.timtyp?' · '+b.timtyp:''}</div>
+      ${dateRange}
     </div>
-    <div style="font-size:14px;font-weight:700;flex-shrink:0">${fh(b.timmar)}</div>
+    <div style="flex-shrink:0;text-align:right">
+      <div style="font-size:14px;font-weight:700">${fh(b.timmar)}</div>
+      ${ph!==null&&S.activePeriodId?`<div style="font-size:10px;color:var(--blue)">${fh(ph)} i perioden</div>`:''}
+    </div>
     ${asgBadge(b.status)}
     <button class="btn-sm del" onclick="deleteAsg(${b.id})">✕</button>
   </div>`;
+  };
 
   return `<div class="person-overlay">
     <div class="person-overlay-inner">
@@ -849,9 +875,15 @@ function renderDashAvdc() {
     ${_kursTable(ks, 6)}`;
 }
 
-// STR: kurs-fokus — bemanningsstatus på kurser
+// STR: kurs-fokus — bemanningsstatus på kurser, filtrerat till eget ämnesområde
 function renderDashStr() {
-  const ks=filteredKurser();
+  const allKs=filteredKurser();
+  const myAmne=strAmne();
+  // Gruppera kurser efter ämnesområde om STR har ett scope
+  const ks = myAmne ? allKs.filter(k=>k.amnesomrade===myAmne) : allKs;
+  const otherAmnen = myAmne
+    ? [...new Set(allKs.filter(k=>k.amnesomrade&&k.amnesomrade!==myAmne).map(k=>k.amnesomrade))]
+    : [];
   const full=ks.filter(k=>kursStatus(k)==='full').length;
   const ej=ks.filter(k=>kursStatus(k)==='unstaffed').length;
   const del=ks.filter(k=>kursStatus(k)==='partial').length;
@@ -861,17 +893,20 @@ function renderDashStr() {
     const ord={unstaffed:0,partial:1,begard:2,full:3,okand:4};
     return (ord[kursStatus(a)]||9)-(ord[kursStatus(b)]||9)||a.namn.localeCompare(b.namn,'sv');
   });
+  const amneLabel = myAmne ? ` · Ämnesområde: ${myAmne}` : '';
   return `<div class="page-title">Dashboard</div>
-    <div class="page-sub">Kursöversikt · ${perLabel}</div>
+    <div class="page-sub">Kursöversikt · ${perLabel}${amneLabel}</div>
     <div class="stat-grid">
-      <div class="stat-card"><div class="stat-label">Kurser</div><div class="stat-value">${ks.length}</div></div>
+      <div class="stat-card"><div class="stat-label">Mina kurser</div><div class="stat-value">${ks.length}</div>${myAmne?`<div class="stat-sub">${myAmne}</div>`:''}</div>
       <div class="stat-card green"><div class="stat-label">Fullt bemannade</div><div class="stat-value">${full}</div></div>
       <div class="stat-card ${ej>0?'red':''}"><div class="stat-label">Ej bemannade</div><div class="stat-value">${ej}</div><div class="stat-sub">${del} delvis bemannade</div></div>
       <div class="stat-card ${pend>0?'amber':''}"><div class="stat-label">Begärda</div><div class="stat-value">${pend}</div><div class="stat-sub">väntar godkännande</div></div>
     </div>
     ${_dashAlerts(ks, null)}
-    <div class="section-title" style="margin-top:16px">Alla kurser — prioriterat efter bemanningsstatus</div>
-    ${_kursTable(sorted, null)}`;
+    <div class="section-title" style="margin-top:16px">Kurser${myAmne?' i '+myAmne:''} — prioriterat efter bemanningsstatus</div>
+    ${_kursTable(sorted, null)}
+    ${otherAmnen.length?`<div class="section-title" style="margin-top:20px;color:var(--t4)">Övriga ämnesområden (${otherAmnen.join(' · ')})</div>
+    <div style="color:var(--t4);font-size:12px">Kontakta respektive STR för dessa kurser.</div>`:''}`;
 }
 
 // Prefekt: generell sammanfattning
@@ -1303,6 +1338,12 @@ function renderPicker() {
           <select id="pk-st" class="sel"><option value="begard">Begär (→ AVDC)</option>
             <option value="utkast">Utkast</option><option value="godkand">Godkänn direkt</option></select>
         </div>
+        <div class="hours-row" style="margin-top:8px">
+          <label style="font-size:12px;color:var(--t4)">Period för läraren (valfritt):</label>
+          <input type="date" id="pk-bs" class="hours-input" style="width:140px" value="${S.pickerBelStart||''}" oninput="S.pickerBelStart=this.value"/>
+          <span style="color:var(--t4)">–</span>
+          <input type="date" id="pk-be" class="hours-input" style="width:140px" value="${S.pickerBelSlut||''}" oninput="S.pickerBelSlut=this.value"/>
+        </div>
         ${S.pickerValMsg?`<div class="val-msg ${S.pickerValMsg.typ==='fel'?'err':'warn'}">${S.pickerValMsg.meddelande}</div>`:''}
       </div>
       <div class="modal-footer">
@@ -1316,7 +1357,7 @@ function renderPicker() {
 function refreshPicker(){ const e=document.querySelector('.modal-bg'); if(!e)return; const t=document.createElement('div'); t.innerHTML=renderPicker(); e.replaceWith(t.firstChild); }
 
 async function openPicker(kursId) {
-  S.pickerKursId=kursId; S.pickerPersonId=null; S.pickerTimmar=60; S.pickerStatus='begard'; S.pickerSearch=''; S.pickerValMsg=null;
+  S.pickerKursId=kursId; S.pickerPersonId=null; S.pickerTimmar=60; S.pickerStatus='begard'; S.pickerSearch=''; S.pickerValMsg=null; S.pickerBelStart=''; S.pickerBelSlut='';
   if (!S.kapacitet){
     document.getElementById('app').insertAdjacentHTML('beforeend',`<div class="modal-bg"><div class="loading"><div class="spinner"></div><span>Laddar kapacitet…</span></div></div>`);
     await ensureKap(); document.querySelector('.modal-bg')?.remove();
@@ -1337,8 +1378,11 @@ async function confirmAssign() {
   const timtyp=document.getElementById('pk-typ')?.value||null;
   const status=document.getElementById('pk-st')?.value||'begard';
   try {
+    const belStart=document.getElementById('pk-bs')?.value||null;
+    const belSlut=document.getElementById('pk-be')?.value||null;
     await api('/kurser/belaggningar',{method:'POST',body:JSON.stringify({
-      kurs_id:S.pickerKursId, person_id:S.pickerPersonId, timmar:S.pickerTimmar, timtyp:timtyp||null, status
+      kurs_id:S.pickerKursId, person_id:S.pickerPersonId, timmar:S.pickerTimmar, timtyp:timtyp||null, status,
+      belaggning_start:belStart||null, belaggning_slut:belSlut||null,
     })});
     invalidate(); closePicker(); await loadBase();
     if (S.selectedKurs===S.pickerKursId) await loadKurs(S.pickerKursId);
@@ -1385,6 +1429,8 @@ async function openPersonEdit() {
     namn: p.namn, initialer: p.initialer,
     titel_typ: p.titel_typ||'', titel_display: p.titel_display||'',
     amnesomrade: p.amnesomrade||'',
+    personnummer: p.personnummer||'',
+    kompetenser: p.kompetenser||'',
     personalkategori: p.personalkategori, kategori_typ: p.kategori_typ,
     fran_organisation: p.fran_organisation||'',
     avdelning_id: p.avdelning?.id ?? null,
@@ -1398,7 +1444,7 @@ async function openPersonEdit() {
     giltig_fran: anst.giltig_fran||'',
     giltig_till: anst.giltig_till||'',
     anv_epost: p.anvandare?.epost||'',
-    saveMsg: null, saving: false,
+    saveMsg: null, saving: false, _confirmPending: false, _confirmedSave: false,
   };
   render();
 }
@@ -1412,6 +1458,32 @@ async function cancelPersonEdit() {
 
 function editField(f, v) { if (S.personEditData) { S.personEditData[f]=v; S.personEditData.saveMsg=null; } }
 
+function confirmEditAndSave() {
+  if (S.personEditData) { S.personEditData._confirmedSave=true; S.personEditData._confirmPending=false; savePersonEdit(); }
+}
+function cancelEditConfirm() {
+  if (S.personEditData) { S.personEditData._confirmPending=false; render(); }
+}
+
+function renderConfirmDialog(d) {
+  return `<div class="modal-bg" onclick="cancelEditConfirm()" style="z-index:200">
+    <div class="modal" style="width:380px" onclick="event.stopPropagation()">
+      <div class="modal-header">
+        <div class="modal-title">⚠ Bekräfta sparning</div>
+        <button class="modal-close" onclick="cancelEditConfirm()">×</button>
+      </div>
+      <div class="modal-body">
+        <p style="color:var(--t3)">Du är inloggad som prefekt. Ändringarna sparas direkt och påverkar beräkningar i systemet.</p>
+        <p style="margin-top:10px;font-size:12px;color:var(--t4)">Person: <strong style="color:var(--t1)">${d.namn}</strong></p>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-cancel" onclick="cancelEditConfirm()">Avbryt</button>
+        <button class="btn-confirm" onclick="confirmEditAndSave()">Ja, spara</button>
+      </div>
+    </div>
+  </div>`;
+}
+
 function renderPersonEditForm() {
   const d = S.personEditData;
   if (!d) return loadingHtml();
@@ -1421,7 +1493,11 @@ function renderPersonEditForm() {
   const katOpts = ['undervisande','administrativ','teknisk','extern'].map(k=>`<option value="${k}" ${d.personalkategori===k?'selected':''}>${k}</option>`).join('');
   const katTypOpts = ['anstalld','inlanad','extern'].map(k=>`<option value="${k}" ${d.kategori_typ===k?'selected':''}>${k}</option>`).join('');
 
-  return `<div class="edit-form">
+  const komp = d.kompetenser||'';
+  const kompTags = komp.split(',').map(t=>t.trim()).filter(Boolean);
+
+  return `${d._confirmPending?renderConfirmDialog(d):''}
+  <div class="edit-form">
     <div class="form-section">Grunduppgifter</div>
     <div class="form-grid">
       <div class="form-field">
@@ -1451,6 +1527,10 @@ function renderPersonEditForm() {
         </select>
       </div>
       <div class="form-field">
+        <label class="form-label">Personnummer (ÅÅMMDD-XXXX)</label>
+        <input class="form-input" placeholder="ex. 750312-1234" value="${d.personnummer}" oninput="editField('personnummer',this.value)"/>
+      </div>
+      <div class="form-field">
         <label class="form-label">Personalkategori</label>
         <select class="form-select" onchange="editField('personalkategori',this.value)">${katOpts}</select>
       </div>
@@ -1465,6 +1545,16 @@ function renderPersonEditForm() {
       <div class="form-field" style="display:flex;align-items:center;gap:10px;padding-top:20px">
         <input type="checkbox" id="aktiv-cb" ${d.aktiv?'checked':''} onchange="editField('aktiv',this.checked)" style="width:16px;height:16px;cursor:pointer"/>
         <label for="aktiv-cb" class="form-label" style="margin:0;cursor:pointer">Aktiv</label>
+      </div>
+    </div>
+    <div class="form-section">Kompetenser</div>
+    <div class="form-grid wide">
+      <div class="form-field">
+        <label class="form-label">Kompetenser (komma-separerade taggar)</label>
+        <input class="form-input" placeholder="ex. Läs- och skrivsvårigheter, Dyslexi, ADHD" value="${d.kompetenser}" oninput="editField('kompetenser',this.value)"/>
+        ${kompTags.length?`<div style="margin-top:6px;display:flex;flex-wrap:wrap;gap:4px">
+          ${kompTags.map(t=>`<span class="badge blue" style="font-weight:400">${t}</span>`).join('')}
+        </div>`:''}
       </div>
     </div>
 
@@ -1521,12 +1611,20 @@ function renderPersonEditForm() {
 async function savePersonEdit() {
   const d = S.personEditData;
   if (!d) return;
+  // Prefekt-bekräftelse
+  if (role()==='prefekt' && !d._confirmedSave) {
+    d._confirmPending = true; render(); return;
+  }
+  d._confirmPending = false; d._confirmedSave = false;
   d.saving = true; d.saveMsg = null; render();
   try {
     const personBody = {
       namn: d.namn, initialer: d.initialer,
       titel_typ: d.titel_typ||null, titel_display: d.titel_display||null,
-      amnesomrade: d.amnesomrade||null, personalkategori: d.personalkategori,
+      amnesomrade: d.amnesomrade||null,
+      personnummer: d.personnummer||null,
+      kompetenser: d.kompetenser||null,
+      personalkategori: d.personalkategori,
       kategori_typ: d.kategori_typ, fran_organisation: d.fran_organisation||null,
       avdelning_id: d.avdelning_id||null, aktiv: d.aktiv,
     };
@@ -1556,7 +1654,10 @@ async function savePersonEdit() {
     Object.assign(d, {
       namn: fresh.namn, initialer: fresh.initialer,
       titel_typ: fresh.titel_typ||'', titel_display: fresh.titel_display||'',
-      amnesomrade: fresh.amnesomrade||'', personalkategori: fresh.personalkategori,
+      amnesomrade: fresh.amnesomrade||'',
+      personnummer: fresh.personnummer||'',
+      kompetenser: fresh.kompetenser||'',
+      personalkategori: fresh.personalkategori,
       kategori_typ: fresh.kategori_typ, fran_organisation: fresh.fran_organisation||'',
       avdelning_id: fresh.avdelning?.id ?? null, aktiv: fresh.aktiv,
       anst_id: freshAnst.id||null,
@@ -1568,6 +1669,7 @@ async function savePersonEdit() {
       giltig_fran: freshAnst.giltig_fran||'', giltig_till: freshAnst.giltig_till||'',
       anv_epost: fresh.anvandare?.epost||'',
       saving: false, saveMsg: {ok:true, text:'Ändringar sparade.'},
+      _confirmPending: false, _confirmedSave: false,
     });
     render();
   } catch(e) {

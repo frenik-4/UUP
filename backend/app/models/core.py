@@ -112,6 +112,8 @@ class Person(Base):
     titel_typ: Mapped[TitelTyp | None] = mapped_column(SAEnum(TitelTyp))
     titel_display: Mapped[str | None] = mapped_column(String(100))  # fritext t.ex. "Universitetslektor"
     amnesomrade: Mapped[str | None] = mapped_column(String(200))
+    personnummer: Mapped[str | None] = mapped_column(String(13))
+    kompetenser: Mapped[str | None] = mapped_column(Text)  # komma-separerade fritext-taggar
     personalkategori: Mapped[PersonKategori] = mapped_column(SAEnum(PersonKategori))
     kategori_typ: Mapped[PersonKategoriTyp] = mapped_column(SAEnum(PersonKategoriTyp), default=PersonKategoriTyp.anstalld)
     fran_organisation: Mapped[str | None] = mapped_column(String(200))  # för externa/inlånade
@@ -234,6 +236,8 @@ class Kursbelaggning(Base):
     person_id: Mapped[int] = mapped_column(ForeignKey("personer.id"))
     timtyp: Mapped[KurstimTyp | None] = mapped_column(SAEnum(KurstimTyp))  # null = generell
     timmar: Mapped[Decimal] = mapped_column(Numeric(8, 2))
+    belaggning_start: Mapped[date | None] = mapped_column(Date)
+    belaggning_slut: Mapped[date | None] = mapped_column(Date)
     status: Mapped[AssignmentStatus] = mapped_column(SAEnum(AssignmentStatus), default=AssignmentStatus.utkast)
     begard_av_id: Mapped[int | None] = mapped_column(ForeignKey("anvandare.id"))
     begard_vid: Mapped[datetime | None] = mapped_column(DateTime)
@@ -271,7 +275,8 @@ class AnvandarRoll(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     anvandare_id: Mapped[int] = mapped_column(ForeignKey("anvandare.id"))
     roll: Mapped[UserRoll] = mapped_column(SAEnum(UserRoll))
-    avdelning_id: Mapped[int | None] = mapped_column(ForeignKey("avdelningar.id"))  # scope för avdc
+    avdelning_id: Mapped[int | None] = mapped_column(ForeignKey("avdelningar.id"))  # scope för avdc/str
+    amnesomrade: Mapped[str | None] = mapped_column(String(200))  # scope för str_roll
 
     anvandare: Mapped["Anvandare"] = relationship("Anvandare", back_populates="roller")
     avdelning: Mapped["Avdelning | None"] = relationship("Avdelning", back_populates="roller")

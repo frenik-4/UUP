@@ -1,5 +1,7 @@
 from datetime import datetime
+from decimal import Decimal
 from fastapi import APIRouter, Depends, HTTPException, Header
+from sqlalchemy import func
 from sqlalchemy.orm import Session, selectinload
 
 from app.database import get_db
@@ -7,9 +9,26 @@ from app.models.core import Kurs, Kursbelaggning, Person, AssignmentStatus
 from app.schemas.core import KursListOut, KursDetailOut, BelaggningCreate, BelaggningOut, BelaggningGranska
 from app.routers.auth import get_current_user
 from app.services.calculations import validera_belaggning
-from decimal import Decimal
 
 router = APIRouter(prefix="/kurser", tags=["kurser"])
+
+
+def _kurs_stats(db: Session) -> dict[int, dict]:
+    """Returnerar {kurs_id: {godkand: h, begard: h}} för alla kurser."""
+    rows = db.query(
+        Kursbelaggning.kurs_id,
+        Kursbelaggning.status,
+        func.sum(Kursbelaggning.timmar).label("total")
+    ).group_by(Kursbelaggning.kurs_id, Kursbelaggning.status).all()
+    result: dict[int, dict] = {}
+    for kurs_id, status, total in rows:
+        if kurs_id not in result:
+            result[kurs_id] = {"godkand": Decimal("0"), "begard": Decimal("0")}
+        if status == AssignmentStatus.godkand:
+            result[kurs_id]["godkand"] = total or Decimal("0")
+        elif status == AssignmentStatus.begard:
+            result[kurs_id]["begard"] = total or Decimal("0")
+    return result
 
 
 def _load_kurs(db: Session, kurs_id: int) -> Kurs:
@@ -30,7 +49,15 @@ def lista_kurser(period_id: int | None = None, db: Session = Depends(get_db)):
     q = db.query(Kurs)
     if period_id:
         q = q.filter(Kurs.period_id == period_id)
-    return [KursListOut.model_validate(k) for k in q.order_by(Kurs.kod).all()]
+    stats = _kurs_stats(db)
+    result = []
+    for k in q.order_by(Kurs.kod).all():
+        out = KursListOut.model_validate(k)
+        s = stats.get(k.id, {})
+        out.bemannat_godkand = s.get("godkand", Decimal("0"))
+        out.bemannat_begard = s.get("begard", Decimal("0"))
+        result.append(out)
+    return result
 
 
 @router.get("/{kurs_id}", response_model=KursDetailOut)
@@ -73,6 +100,8 @@ def skapa_belaggning(
         timmar=body.timmar,
         timtyp=body.timtyp,
         status=body.status,
+        belaggning_start=body.belaggning_start,
+        belaggning_slut=body.belaggning_slut,
         begard_av=user,
         begard_vid=datetime.utcnow() if user else None,
     )

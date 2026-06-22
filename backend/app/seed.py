@@ -230,24 +230,35 @@ def seed(db: Session):
     timtyp(k13, KurstimTyp.forelasning, 60); timtyp(k13, KurstimTyp.seminarium, 60); timtyp(k13, KurstimTyp.examination, 30)
 
     # ── Kursbeläggningar (mix av statusar för att visa flödet) ────────────
-    def belagg(kurs, person, timmar, status, begard_av=None, granskad_av=None):
+    def belagg(kurs, person, timmar, status, begard_av=None, granskad_av=None,
+               bel_start=None, bel_slut=None):
         kb = Kursbelaggning(
             kurs=kurs, person=person, timmar=Decimal(str(timmar)), status=status,
-            begard_av=begard_av, granskad_av=granskad_av
+            begard_av=begard_av, granskad_av=granskad_av,
+            belaggning_start=bel_start, belaggning_slut=bel_slut,
         )
         db.add(kb)
         return kb
 
-    # Godkända
-    belagg(k1, p_hansson, 80, AssignmentStatus.godkand)
-    belagg(k1, p_ekberg, 40, AssignmentStatus.godkand)
-    belagg(k2, p_bergstrom, 60, AssignmentStatus.godkand)
-    belagg(k2, p_svensson, 80, AssignmentStatus.godkand)
-    belagg(k4, p_olsson, 60, AssignmentStatus.godkand)
-    belagg(k4, p_johansson, 30, AssignmentStatus.godkand)
-    belagg(k5, p_nilsson, 80, AssignmentStatus.godkand)
-    belagg(k5, p_petersson, 80, AssignmentStatus.godkand)
-    belagg(k5, p_olsson, 40, AssignmentStatus.godkand)
+    # Godkända — några med datum för att visa per-period-timmar
+    belagg(k1, p_hansson, 80, AssignmentStatus.godkand,
+           bel_start=date(2025,8,25), bel_slut=date(2026,1,19))
+    belagg(k1, p_ekberg, 40, AssignmentStatus.godkand,
+           bel_start=date(2025,8,25), bel_slut=date(2025,10,31))
+    belagg(k2, p_bergstrom, 60, AssignmentStatus.godkand,
+           bel_start=date(2025,9,1), bel_slut=date(2026,1,19))
+    belagg(k2, p_svensson, 80, AssignmentStatus.godkand,
+           bel_start=date(2025,10,1), bel_slut=date(2026,1,19))
+    belagg(k4, p_olsson, 60, AssignmentStatus.godkand,
+           bel_start=date(2025,8,25), bel_slut=date(2025,12,15))
+    belagg(k4, p_johansson, 30, AssignmentStatus.godkand,
+           bel_start=date(2025,10,1), bel_slut=date(2025,12,15))
+    belagg(k5, p_nilsson, 80, AssignmentStatus.godkand,
+           bel_start=date(2025,8,25), bel_slut=date(2026,1,19))
+    belagg(k5, p_petersson, 80, AssignmentStatus.godkand,
+           bel_start=date(2025,8,25), bel_slut=date(2026,1,19))
+    belagg(k5, p_olsson, 40, AssignmentStatus.godkand,
+           bel_start=date(2025,11,1), bel_slut=date(2026,1,19))
     belagg(k7, p_bjork, 70, AssignmentStatus.godkand)
     belagg(k7, p_hedlund, 30, AssignmentStatus.godkand)
     belagg(k8, p_wallin, 90, AssignmentStatus.godkand)
@@ -284,8 +295,10 @@ def seed(db: Session):
                       person=person)
         db.add(u)
         db.flush()
-        for roll, avd in roller_list:
-            db.add(AnvandarRoll(anvandare=u, roll=roll, avdelning=avd))
+        for item in roller_list:
+            roll, avd = item[0], item[1]
+            amne = item[2] if len(item) > 2 else None
+            db.add(AnvandarRoll(anvandare=u, roll=roll, avdelning=avd, amnesomrade=amne))
         return u
 
     u_admin  = anvandare("admin@uup.local", "Systemadministratör",
@@ -301,15 +314,15 @@ def seed(db: Session):
     u_avdc4  = anvandare("avdc.utb@uup.local", "Gunnar Eliasson (AVDC Utb)",
                          [(UserRoll.avdc, avd_utb)], person=p_eliasson)
     u_str1   = anvandare("str.ped@uup.local", "Anna Lindqvist (STR Ped)",
-                         [(UserRoll.str_roll, avd_ped)], person=p_lindqvist)
+                         [(UserRoll.str_roll, avd_ped, "Pedagogik")], person=p_lindqvist)
     u_str2   = anvandare("str.spe@uup.local", "Helena Olsson (STR Spe)",
-                         [(UserRoll.str_roll, avd_spe)], person=p_olsson)
+                         [(UserRoll.str_roll, avd_spe, "Specialpedagogik")], person=p_olsson)
     u_str3   = anvandare("str.spr@uup.local", "Martin Björk (STR Spr)",
-                         [(UserRoll.str_roll, avd_spr)], person=p_bjork)
+                         [(UserRoll.str_roll, avd_spr, "Språkpedagogik")], person=p_bjork)
     u_str4   = anvandare("str.utb@uup.local", "Niklas Lindström (STR Utb)",
-                         [(UserRoll.str_roll, avd_utb)], person=p_lindstrom)
+                         [(UserRoll.str_roll, avd_utb, "Utbildningsledarskap")], person=p_lindstrom)
     u_str5   = anvandare("str.sbe@uup.local", "Cecilia Wallin (STR Bdn)",
-                         [(UserRoll.str_roll, avd_spr)], person=p_wallin)
+                         [(UserRoll.str_roll, avd_spr, "Bedömning")], person=p_wallin)
     u_ek1    = anvandare("ekonom@uup.local", "Jonas Lindahl (Ekonom)",
                          [(UserRoll.ekonom, None)], person=p_adm2)
 
