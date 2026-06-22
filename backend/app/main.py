@@ -32,6 +32,8 @@ def _migrate(engine):
         "ALTER TABLE kursbelaggningar ADD COLUMN IF NOT EXISTS belaggning_start DATE",
         "ALTER TABLE kursbelaggningar ADD COLUMN IF NOT EXISTS belaggning_slut DATE",
         "ALTER TABLE anvandar_roller ADD COLUMN IF NOT EXISTS amnesomrade VARCHAR(200)",
+        "ALTER TABLE uppdrag ADD COLUMN IF NOT EXISTS start_datum DATE",
+        "ALTER TABLE uppdrag ADD COLUMN IF NOT EXISTS slut_datum DATE",
         # Sätt amnesomrade på befintliga STR-användare baserat på person.amnesomrade
         """UPDATE anvandar_roller ar SET amnesomrade = (
             SELECT p.amnesomrade FROM personer p

@@ -173,7 +173,8 @@ class Uppdrag(Base):
     typ: Mapped[UppdragTyp] = mapped_column(SAEnum(UppdragTyp))
     varde: Mapped[Decimal] = mapped_column(Numeric(8, 2))  # % eller timmar beroende på typ
     planeringsår: Mapped[int] = mapped_column(Integer)
-    period: Mapped[str | None] = mapped_column(String(20))  # "HT", "VT", eller null för hela året
+    start_datum: Mapped[date | None] = mapped_column(Date)  # null = hela planeringsåret
+    slut_datum: Mapped[date | None] = mapped_column(Date)
     notering: Mapped[str | None] = mapped_column(Text)
 
     person: Mapped["Person"] = relationship("Person", back_populates="uppdrag")

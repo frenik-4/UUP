@@ -1717,13 +1717,15 @@ function renderBemanningDialog() {
           <input class="hours-input" style="width:100%" type="number" min="0" step="any" placeholder="0" value="${d.varde||''}"
             oninput="S.bemanningDialog.varde=this.value;refreshBemanningDialog()"/>
         </div>
-        <div>
-          <label style="font-size:11px;color:var(--t4);display:block;margin-bottom:3px">Period</label>
-          <select class="sel" style="width:100%" onchange="S.bemanningDialog.period=this.value||null">
-            <option value="" ${!d.period?'selected':''}>Hela året</option>
-            <option value="HT" ${d.period==='HT'?'selected':''}>HT</option>
-            <option value="VT" ${d.period==='VT'?'selected':''}>VT</option>
-          </select>
+      </div>
+      <div style="margin-bottom:8px">
+        <label style="font-size:11px;color:var(--t4);display:block;margin-bottom:3px">Period (valfritt — lämna tomt för hela planeringsåret)</label>
+        <div style="display:flex;align-items:center;gap:8px">
+          <input type="date" lang="sv" class="hours-input" style="flex:1" placeholder="Startdatum" value="${d.uppdragStart||''}"
+            oninput="S.bemanningDialog.uppdragStart=this.value"/>
+          <span style="color:var(--t4)">–</span>
+          <input type="date" lang="sv" class="hours-input" style="flex:1" placeholder="Slutdatum" value="${d.uppdragSlut||''}"
+            oninput="S.bemanningDialog.uppdragSlut=this.value"/>
         </div>
       </div>
       <div>
@@ -1772,7 +1774,7 @@ function refreshBemanningDialog(){
 async function openBemanningDialog(personId) {
   S.bemanningDialog={personId, mode:'kurs', search:'', katalogUppdrag:[],
     selKursId:null, timmar:60, timtyp:'', status:'begard', belStart:'', belSlut:'',
-    selNamn:'', uppdragTyp:'pct_heltid', varde:'', period:null, ar:S.year, notering:'', error:null};
+    selNamn:'', uppdragTyp:'pct_heltid', varde:'', uppdragStart:'', uppdragSlut:'', ar:S.year, notering:'', error:null};
   document.getElementById('app').insertAdjacentHTML('beforeend', renderBemanningDialog());
   try {
     const katalog = await api('/personal/uppdrag/katalog');
@@ -1814,7 +1816,9 @@ async function confirmBemanning() {
       const namn=(d.selNamn||'').trim(); if(!namn||!+(d.varde)) return;
       await api(`/personal/${d.personId}/uppdrag`,{method:'POST',body:JSON.stringify({
         namn, typ:d.uppdragTyp, varde:parseFloat(d.varde),
-        planeringsår:d.ar||S.year, period:d.period||null, notering:d.notering||null,
+        planeringsår:d.ar||S.year,
+        start_datum:d.uppdragStart||null, slut_datum:d.uppdragSlut||null,
+        notering:d.notering||null,
       })});
       closeBemanningDialog(); await loadKonto(d.personId); render();
     }

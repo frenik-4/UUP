@@ -136,7 +136,22 @@ def berakna_tidskonto(
             timmar = (konto.netto_bemanningsbar * v / 100).quantize(Decimal("0.01"))
         else:  # fasta_timmar
             timmar = v
-        konto.uppdrag_detaljer.append({"id": u.id, "namn": u.namn, "typ": u.typ, "timmar": timmar})
+        # Prorate pct-typer om exakta datum är satta
+        if u.start_datum and u.slut_datum and u.typ != UppdragTyp.fasta_timmar:
+            from datetime import date as _date
+            year_start = _date(planeringsår, 1, 1)
+            year_end = _date(planeringsår, 12, 31)
+            eff_start = max(u.start_datum, year_start)
+            eff_end = min(u.slut_datum, year_end)
+            if eff_end >= eff_start:
+                year_days = (year_end - year_start).days + 1
+                uppdrag_days = (eff_end - eff_start).days + 1
+                timmar = (timmar * Decimal(str(uppdrag_days)) / Decimal(str(year_days))).quantize(Decimal("0.01"))
+            else:
+                timmar = Decimal("0")
+        konto.uppdrag_detaljer.append({"id": u.id, "namn": u.namn, "typ": u.typ, "timmar": timmar,
+                                        "start_datum": str(u.start_datum) if u.start_datum else None,
+                                        "slut_datum": str(u.slut_datum) if u.slut_datum else None})
         totalt_uppdrag += timmar
     konto.uppdrag_timmar_totalt = totalt_uppdrag
 

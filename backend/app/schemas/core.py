@@ -49,7 +49,8 @@ class UppdragOut(BaseModel):
     typ: UppdragTyp
     varde: Decimal
     planeringsår: int
-    period: str | None
+    start_datum: date | None = None
+    slut_datum: date | None = None
     notering: str | None
     model_config = {"from_attributes": True}
 
@@ -242,7 +243,8 @@ class UppdragCreate(BaseModel):
     typ: UppdragTyp
     varde: Decimal
     planeringsår: int
-    period: str | None = None
+    start_datum: date | None = None
+    slut_datum: date | None = None
     notering: str | None = None
 
 
