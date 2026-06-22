@@ -1542,12 +1542,13 @@ async function savePersonEdit() {
       await api('/personal/'+d.id+'/anstallning/'+d.anst_id, {method:'PATCH', body:JSON.stringify(anstBody)});
     }
 
-    // Invalidate caches for this person
+    // Invalidate caches and reload
     Object.keys(S.kontoCache).filter(k=>k.startsWith(d.id+'_')).forEach(k=>delete S.kontoCache[k]);
     S.personal = null; S.kapacitet = null;
-    d.saving = false; d.saveMsg = {ok:true, text:'Ändringar sparade.'};
+    const pid = d.id;
+    S.personEditMode = false; S.personEditData = null;
     await loadBase();
-    render();
+    await openPersonOverlay(pid);
   } catch(e) {
     d.saving = false;
     d.saveMsg = {ok:false, text:'Fel: '+(e.detail||(Array.isArray(e)?e[0]?.msg:'okänt fel'))};
