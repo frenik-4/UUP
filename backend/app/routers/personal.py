@@ -4,10 +4,10 @@ from sqlalchemy import extract
 from sqlalchemy.orm import Session, selectinload
 
 from app.database import get_db
-from app.models.core import Person, PersonKategori, PersonKategoriTyp, Kursbelaggning, Kurs, Planeringsperiod, Anstallning
+from app.models.core import Person, PersonKategori, PersonKategoriTyp, Kursbelaggning, Kurs, Planeringsperiod, Anstallning, Uppdrag
 from app.schemas.core import (PersonListOut, PersonDetailOut, TidskontoDel, ValideringsResultat,
                                KapacitetOut, PersonBelaggningOut, PersonUpdate, AnstallningOut,
-                               AnstallningUpdate, AnstallningCreate)
+                               AnstallningUpdate, AnstallningCreate, UppdragOut, UppdragCreate)
 from app.services.calculations import berakna_tidskonto, validera_belaggning
 
 router = APIRouter(prefix="/personal", tags=["personal"])
@@ -162,6 +162,36 @@ def person_belaggningar(person_id: int, ar: int | None = None, db: Session = Dep
              .join(Planeringsperiod, Kurs.period_id == Planeringsperiod.id)\
              .filter(extract('year', Planeringsperiod.start_datum) == ar)
     return q.order_by(Kursbelaggning.status).all()
+
+
+@router.get("/uppdrag/katalog")
+def lista_uppdrag_katalog(db: Session = Depends(get_db)):
+    """Returnerar alla unika uppdragsnamn + vanligaste typ (för autocomplete)."""
+    rows = db.query(Uppdrag.namn, Uppdrag.typ).order_by(Uppdrag.namn).all()
+    seen: dict[str, str] = {}
+    for namn, typ in rows:
+        if namn not in seen:
+            seen[namn] = typ
+    return [{"namn": n, "typ": t} for n, t in seen.items()]
+
+
+@router.post("/{person_id}/uppdrag", response_model=UppdragOut, status_code=201)
+def skapa_uppdrag(person_id: int, body: UppdragCreate, db: Session = Depends(get_db)):
+    _load_person(db, person_id)
+    u = Uppdrag(person_id=person_id, **body.model_dump())
+    db.add(u)
+    db.commit()
+    db.refresh(u)
+    return UppdragOut.model_validate(u)
+
+
+@router.delete("/{person_id}/uppdrag/{uppdrag_id}", status_code=204)
+def ta_bort_uppdrag(person_id: int, uppdrag_id: int, db: Session = Depends(get_db)):
+    u = db.query(Uppdrag).filter(Uppdrag.id == uppdrag_id, Uppdrag.person_id == person_id).first()
+    if not u:
+        raise HTTPException(404, "Uppdrag finns inte")
+    db.delete(u)
+    db.commit()
 
 
 @router.get("/{person_id}/validera", response_model=ValideringsResultat)

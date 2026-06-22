@@ -237,6 +237,15 @@ class PersonUpdate(BaseModel):
     aktiv: bool | None = None
 
 
+class UppdragCreate(BaseModel):
+    namn: str
+    typ: UppdragTyp
+    varde: Decimal
+    planeringsår: int
+    period: str | None = None
+    notering: str | None = None
+
+
 class AnstallningUpdate(BaseModel):
     tjanstgoringspct: Decimal | None = None
     brutto_timmar: int | None = None
