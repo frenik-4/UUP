@@ -1377,7 +1377,7 @@ async function approveAsgOverlay(id, godkand) {
 // ── PERSON EDIT ───────────────────────────────────────────────────────────────
 async function openPersonEdit() {
   const {personId} = S.personOverlay;
-  S.personEditMode = true; S.personEditData = null; rc();
+  S.personEditMode = true; S.personEditData = null; render();
   const p = await api('/personal/'+personId);
   const anst = (p.anstallningar||[])[0] || {};
   S.personEditData = {
@@ -1400,10 +1400,10 @@ async function openPersonEdit() {
     anv_epost: p.anvandare?.epost||'',
     saveMsg: null, saving: false,
   };
-  rc();
+  render();
 }
 
-function cancelPersonEdit() { S.personEditMode=false; S.personEditData=null; rc(); }
+function cancelPersonEdit() { S.personEditMode=false; S.personEditData=null; render(); }
 
 function editField(f, v) { if (S.personEditData) { S.personEditData[f]=v; S.personEditData.saveMsg=null; } }
 
@@ -1516,7 +1516,7 @@ function renderPersonEditForm() {
 async function savePersonEdit() {
   const d = S.personEditData;
   if (!d) return;
-  d.saving = true; d.saveMsg = null; rc();
+  d.saving = true; d.saveMsg = null; render();
   try {
     const personBody = {
       namn: d.namn, initialer: d.initialer,
@@ -1547,11 +1547,11 @@ async function savePersonEdit() {
     S.personal = null; S.kapacitet = null;
     d.saving = false; d.saveMsg = {ok:true, text:'Ändringar sparade.'};
     await loadBase();
-    rc();
+    render();
   } catch(e) {
     d.saving = false;
     d.saveMsg = {ok:false, text:'Fel: '+(e.detail||(Array.isArray(e)?e[0]?.msg:'okänt fel'))};
-    rc();
+    render();
   }
 }
 
