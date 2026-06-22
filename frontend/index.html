@@ -468,6 +468,7 @@ function filteredKurser() {
 // ── RENDER HELPERS ────────────────────────────────────────────────────────────
 const fh = h => Math.round(+h||0)+'h';
 const fp = p => Math.round(+p||0)+'%';
+const fd = s => s ? (s+'').substring(0,10) : '—';
 
 // Beräkna hur många av en beläggnings timmar som faller i vald period
 function periodTimmar(b) {
@@ -543,7 +544,7 @@ function renderTimeline(bels, activePeriodId) {
       <div class="tl-track">
         ${todayVisible?`<div class="tl-today" style="left:${todayPct}%"></div>`:''}
         <div class="tl-bar" style="left:${left}%;width:${w}%;background:${col};opacity:${opacity}"
-             title="${b.kurs.namn} · ${fh(b.timmar)} · ${d.start}–${d.slut}${d.exact?'':' (perioden, exakt ej satt)'}">
+             title="${b.kurs.namn} · ${fh(b.timmar)} · ${fd(d.start)}–${fd(d.slut)}${d.exact?'':' (perioden, exakt ej satt)'}">
           ${w>6?`<span class="tl-bar-label">${labelText}</span>`:''}
         </div>
       </div>
@@ -742,7 +743,7 @@ function renderPersonOverlay() {
   const belRow=(b)=>{
     const ph=periodTimmar(b);
     const dateRange=b.belaggning_start||b.belaggning_slut
-      ?`<div class="asg-meta" style="color:var(--blue)">${b.belaggning_start||'?'} – ${b.belaggning_slut||'→'}</div>`:'';
+      ?`<div class="asg-meta" style="color:var(--blue)">${fd(b.belaggning_start)||'?'} – ${fd(b.belaggning_slut)||'→'}</div>`:'';
     return `<div class="asg-row">
     <div class="asg-info">
       <div class="asg-name" onclick="closePersonOverlayGoKurs(${b.kurs.id})">${b.kurs.namn}</div>
@@ -1170,7 +1171,7 @@ function renderKursDetail(k) {
     const exact=!!(b.belaggning_start&&b.belaggning_slut);
     const left=pct2(bS), right=pct2(bE), w=Math.max(1,right-left);
     const col=statusCol[b.status]||'var(--bg3)';
-    const dateStr=exact?`${b.belaggning_start} – ${b.belaggning_slut}`:'Hela perioden*';
+    const dateStr=exact?`${fd(b.belaggning_start)} – ${fd(b.belaggning_slut)}`:'Hela perioden*';
     return `<div style="display:flex;align-items:center;gap:0;padding:6px 0;border-top:1px solid var(--bg3)">
       <div style="width:${colW}px;flex-shrink:0;padding-right:10px;min-width:0;overflow:hidden">
         <div style="display:flex;align-items:center;gap:6px">
@@ -1208,7 +1209,7 @@ function renderKursDetail(k) {
         <div style="font-size:11px;font-weight:700;color:var(--blue);letter-spacing:.05em;text-transform:uppercase;margin-bottom:3px">${k.kod}${k.niva?' · '+k.niva:''}${k.amnesomrade?' · '+k.amnesomrade:''}</div>
         <div style="font-size:17px;font-weight:800;line-height:1.2;margin-bottom:5px">${k.namn}</div>
         <div style="font-size:11px;color:var(--t4);display:flex;gap:12px;flex-wrap:wrap">
-          ${per?`<span>📅 ${per.start_datum} – ${per.slut_datum}</span>`:''}
+          ${per?`<span>📅 ${fd(per.start_datum)} – ${fd(per.slut_datum)}</span>`:''}
           <span>📚 ${k.hp} hp</span>
           ${k.studenter?`<span>👥 ${k.studenter} studenter</span>`:''}
         </div>
@@ -1604,102 +1605,96 @@ const _typLabel = {pct_heltid:'% av heltid', pct_bemanningsbar:'% av bemanningsb
 function renderBemanningDialog() {
   const d = S.bemanningDialog; if (!d) return '';
   const q = (d.search||'').toLowerCase();
+  const mode = d.mode||'kurs';
 
-  // Filtrera kurser och uppdragskatalog
-  const allKurser = (S.kurser||[]);
-  const kursHits = q
-    ? allKurser.filter(k=>k.namn.toLowerCase().includes(q)||k.kod.toLowerCase().includes(q))
-    : allKurser;
-  const katalog = d.katalogUppdrag||[];
-  const uppdragHits = q
-    ? katalog.filter(u=>u.namn.toLowerCase().includes(q))
-    : katalog;
-  const showCustom = q && !uppdragHits.some(u=>u.namn.toLowerCase()===q.toLowerCase());
+  // Tabknappar
+  const tabBtn = (m, label) => {
+    const active = mode===m;
+    return `<button onclick="bemanningSetMode('${m}')" style="
+      flex:1;padding:8px 0;font-size:13px;font-weight:${active?700:500};border:none;cursor:pointer;
+      background:${active?'var(--blue)':'var(--bg3)'};color:${active?'#fff':'var(--t3)'};
+      border-radius:6px;transition:background .15s">${label}</button>`;
+  };
 
+  // ── Kurslista ──
+  const allKurser = S.kurser||[];
+  const kursHits = allKurser.filter(k=>!q||k.namn.toLowerCase().includes(q)||k.kod.toLowerCase().includes(q));
   const kursItems = kursHits.map(k=>{
-    const sel = d.selType==='kurs' && d.selKursId===k.id;
-    return `<div class="picker-row ${sel?'selected':''}" onclick="bemanningSel('kurs',${k.id},'')">
+    const sel = d.selKursId===k.id;
+    return `<div class="picker-row ${sel?'selected':''}" onclick="bemanningSel(${k.id})">
       <div style="flex:1;min-width:0">
         <div style="font-size:12px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${k.kod} · ${k.namn}</div>
-        <div style="font-size:11px;color:var(--t4)">${periodName(k.period_id)} · ${k.hp} hp${k.budget_timmar?(' · budget '+fh(k.budget_timmar)):''}</div>
+        <div style="font-size:11px;color:var(--t4)">${periodName(k.period_id)} · ${k.hp} hp${k.budget_timmar?' · budget '+fh(k.budget_timmar):''}</div>
       </div>
-      <span style="font-size:10px;font-weight:700;color:var(--blue);background:rgba(59,130,246,.15);padding:2px 7px;border-radius:10px;flex-shrink:0">KURS</span>
     </div>`;
-  }).join('');
+  }).join('') || `<div style="text-align:center;color:var(--t4);padding:16px;font-size:12px">Inga kurser matchar</div>`;
 
-  const uppdragItems = uppdragHits.map(u=>{
-    const sel = d.selType==='uppdrag' && d.selNamn===u.namn;
-    return `<div class="picker-row ${sel?'selected':''}" onclick="bemanningSel('uppdrag',0,'${u.namn.replace(/'/g,"\\'")}','${u.typ}')">
-      <div style="flex:1">
-        <div style="font-size:12px;font-weight:700">${u.namn}</div>
-        <div style="font-size:11px;color:var(--t4)">${_typLabel[u.typ]||u.typ}</div>
-      </div>
-      <span style="font-size:10px;font-weight:700;color:var(--amber);background:rgba(245,158,11,.15);padding:2px 7px;border-radius:10px;flex-shrink:0">UPPDRAG</span>
-    </div>`;
-  }).join('');
-
-  const customItem = showCustom?`<div class="picker-row ${d.selType==='uppdrag'&&d.selNamn===d.search?'selected':''}"
-    onclick="bemanningSel('uppdrag',0,'${(d.search||'').replace(/'/g,"\\'")}','pct_heltid')">
-    <div style="flex:1"><div style="font-size:12px;font-weight:700">+ "${d.search}" — nytt uppdrag/projekt</div></div>
-    <span style="font-size:10px;font-weight:700;color:var(--t4);background:var(--bg3);padding:2px 7px;border-radius:10px;flex-shrink:0">NYTT</span>
-  </div>`:'';
-
-  const hasResults = kursItems||uppdragItems||customItem;
-  const listSection = hasResults
-    ? `<div style="max-height:220px;overflow-y:auto;border:1px solid var(--bg3);border-radius:6px;margin-bottom:12px">
-        ${kursItems?`<div style="font-size:10px;font-weight:700;color:var(--t4);text-transform:uppercase;letter-spacing:.06em;padding:6px 10px 2px;background:var(--bg2)">Kurser</div>${kursItems}`:''}
-        ${uppdragItems||customItem?`<div style="font-size:10px;font-weight:700;color:var(--t4);text-transform:uppercase;letter-spacing:.06em;padding:6px 10px 2px;background:var(--bg2)">Uppdrag / Projekt</div>${uppdragItems}${customItem}`:''}
-      </div>`
-    : `<div style="text-align:center;color:var(--t4);padding:16px;font-size:12px">Inga träffar</div>`;
-
-  // Formulär beroende på vald typ
-  let form = '';
-  if (d.selType==='kurs') {
-    const selKurs = allKurser.find(k=>k.id===d.selKursId);
-    form = `<div style="border-top:1px solid var(--bg3);padding-top:12px">
-      <div style="font-size:11px;font-weight:700;color:var(--t4);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">
-        ${selKurs?selKurs.namn:'Kursbeläggning'}
-      </div>
+  // Kursformulär
+  const selKurs = allKurser.find(k=>k.id===d.selKursId);
+  const kursForm = selKurs ? `
+    <div style="border-top:1px solid var(--bg3);padding-top:12px;margin-top:4px">
+      <div style="font-size:11px;color:var(--t4);margin-bottom:8px">Vald: <strong style="color:var(--t1)">${selKurs.kod} · ${selKurs.namn}</strong></div>
       <div style="display:grid;grid-template-columns:80px 1fr 1fr;gap:8px;margin-bottom:8px">
         <div>
           <label style="font-size:11px;color:var(--t4);display:block;margin-bottom:3px">Timmar</label>
           <input class="hours-input" style="width:100%" type="number" min="1" max="999" value="${d.timmar||60}"
-            oninput="S.bemanningDialog.timmar=parseInt(this.value)||60;refreshBemanningDialog()"/>
+            oninput="S.bemanningDialog.timmar=parseInt(this.value)||60"/>
         </div>
         <div>
           <label style="font-size:11px;color:var(--t4);display:block;margin-bottom:3px">Timtyp</label>
           <select class="sel" style="width:100%" onchange="S.bemanningDialog.timtyp=this.value">
-            <option value="">Allmän</option>
-            <option value="forelasning">Föreläsning</option>
-            <option value="seminarium">Seminarium</option>
-            <option value="examination">Examination</option>
-            <option value="handledning">Handledning</option>
+            <option value="" ${!d.timtyp?'selected':''}>Allmän</option>
+            <option value="forelasning" ${d.timtyp==='forelasning'?'selected':''}>Föreläsning</option>
+            <option value="seminarium" ${d.timtyp==='seminarium'?'selected':''}>Seminarium</option>
+            <option value="examination" ${d.timtyp==='examination'?'selected':''}>Examination</option>
+            <option value="handledning" ${d.timtyp==='handledning'?'selected':''}>Handledning</option>
           </select>
         </div>
         <div>
           <label style="font-size:11px;color:var(--t4);display:block;margin-bottom:3px">Status</label>
           <select class="sel" style="width:100%" onchange="S.bemanningDialog.status=this.value">
-            <option value="begard">Begär (→ AVDC)</option>
-            <option value="utkast">Utkast</option>
-            <option value="godkand">Godkänn direkt</option>
+            <option value="begard" ${d.status==='begard'?'selected':''}>Begär (→ AVDC)</option>
+            <option value="utkast" ${d.status==='utkast'?'selected':''}>Utkast</option>
+            <option value="godkand" ${d.status==='godkand'?'selected':''}>Godkänn direkt</option>
           </select>
         </div>
       </div>
       <div style="display:flex;align-items:center;gap:8px">
-        <label style="font-size:11px;color:var(--t4);white-space:nowrap">Period för läraren (valfritt):</label>
+        <label style="font-size:11px;color:var(--t4);white-space:nowrap">Lärarens period (valfritt):</label>
         <input type="date" class="hours-input" style="flex:1" value="${d.belStart||''}" oninput="S.bemanningDialog.belStart=this.value"/>
         <span style="color:var(--t4)">–</span>
         <input type="date" class="hours-input" style="flex:1" value="${d.belSlut||''}" oninput="S.bemanningDialog.belSlut=this.value"/>
       </div>
-    </div>`;
-  } else if (d.selType==='uppdrag') {
-    const selTyp = d.uppdragTyp||'pct_heltid';
-    form = `<div style="border-top:1px solid var(--bg3);padding-top:12px">
-      <div style="font-size:11px;font-weight:700;color:var(--t4);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">Uppdrag / Projekt</div>
+    </div>` : '';
+
+  // ── Uppdragslista ──
+  const katalog = d.katalogUppdrag||[];
+  const uppdragHits = katalog.filter(u=>!q||u.namn.toLowerCase().includes(q));
+  const showCustom = q && !uppdragHits.some(u=>u.namn.toLowerCase()===q.toLowerCase());
+  const uppdragItems = [
+    ...uppdragHits.map(u=>{
+      const sel = d.selNamn===u.namn;
+      return `<div class="picker-row ${sel?'selected':''}" onclick="bemanningSel(0,'${u.namn.replace(/'/g,"\\'")}','${u.typ}')">
+        <div style="flex:1">
+          <div style="font-size:12px;font-weight:700">${u.namn}</div>
+          <div style="font-size:11px;color:var(--t4)">${_typLabel[u.typ]||u.typ}</div>
+        </div>
+      </div>`;
+    }),
+    showCustom?`<div class="picker-row ${d.selNamn===d.search?'selected':''}"
+        onclick="bemanningSel(0,'${(d.search||'').replace(/'/g,"\\'")}','pct_heltid')">
+      <div style="flex:1"><div style="font-size:12px;font-weight:700">+ "${d.search}" — nytt uppdrag/projekt</div></div>
+    </div>`:'',
+  ].join('') || `<div style="text-align:center;color:var(--t4);padding:12px;font-size:12px">${q?'Inga träffar — skriv nedan':'Inga befintliga uppdrag'}</div>`;
+
+  // Uppdragsformulär (alltid synligt i uppdrag-läge)
+  const selTyp = d.uppdragTyp||'pct_heltid';
+  const uppdragForm = `
+    <div style="border-top:1px solid var(--bg3);padding-top:12px;margin-top:4px">
       <div style="display:grid;grid-template-columns:1fr auto;gap:8px;margin-bottom:8px">
         <div>
           <label style="font-size:11px;color:var(--t4);display:block;margin-bottom:3px">Namn</label>
-          <input class="hours-input" style="width:100%" placeholder="Uppdragsnamn" value="${d.selNamn||''}"
+          <input class="hours-input" style="width:100%" placeholder="Uppdragsnamn eller projektnamn" value="${d.selNamn||''}"
             oninput="S.bemanningDialog.selNamn=this.value;refreshBemanningDialog()"/>
         </div>
         <div>
@@ -1737,23 +1732,28 @@ function renderBemanningDialog() {
           oninput="S.bemanningDialog.notering=this.value"/>
       </div>
     </div>`;
-  }
 
-  const canSave = d.selType==='kurs' ? (d.selKursId && +(d.timmar||0)>0)
-               : d.selType==='uppdrag' ? ((d.selNamn||'').trim() && +(d.varde||0)>0)
-               : false;
+  const canSave = mode==='kurs'
+    ? !!(d.selKursId && +(d.timmar||0)>0)
+    : !!((d.selNamn||'').trim() && +(d.varde||0)>0);
 
   return `<div class="modal-bg" onclick="if(event.target===this)closeBemanningDialog()">
-    <div class="modal" onclick="event.stopPropagation()" style="max-width:560px">
+    <div class="modal" onclick="event.stopPropagation()" style="max-width:540px">
       <div class="modal-header">
         <div class="modal-title">Lägg till bemanning</div>
         <button class="modal-close" onclick="closeBemanningDialog()">×</button>
       </div>
       <div class="modal-body">
-        <input class="picker-search" placeholder="Sök kurs, uppdrag eller projekt…" value="${d.search||''}"
-          oninput="S.bemanningDialog.search=this.value;refreshBemanningDialog()" autofocus/>
-        ${listSection}
-        ${form}
+        <div style="display:flex;gap:6px;margin-bottom:12px">
+          ${tabBtn('kurs','Kurs')}
+          ${tabBtn('uppdrag','Uppdrag / Projekt')}
+        </div>
+        <input class="picker-search" placeholder="${mode==='kurs'?'Sök kurs…':'Sök bland befintliga uppdrag…'}"
+          value="${d.search||''}" oninput="S.bemanningDialog.search=this.value;refreshBemanningDialog()"/>
+        <div style="max-height:200px;overflow-y:auto;border:1px solid var(--bg3);border-radius:6px;margin-bottom:8px">
+          ${mode==='kurs'?kursItems:uppdragItems}
+        </div>
+        ${mode==='kurs'?kursForm:uppdragForm}
         ${d.error?`<div class="val-msg err" style="margin-top:8px">${d.error}</div>`:''}
       </div>
       <div class="modal-footer">
@@ -1770,46 +1770,47 @@ function refreshBemanningDialog(){
 }
 
 async function openBemanningDialog(personId) {
-  S.bemanningDialog={personId, search:'', katalogUppdrag:[], selType:null,
-    selKursId:null, selNamn:'', uppdragTyp:'pct_heltid',
-    timmar:60, timtyp:'', status:'begard', belStart:'', belSlut:'',
-    varde:'', period:null, ar:S.year, notering:'', error:null};
+  S.bemanningDialog={personId, mode:'kurs', search:'', katalogUppdrag:[],
+    selKursId:null, timmar:60, timtyp:'', status:'begard', belStart:'', belSlut:'',
+    selNamn:'', uppdragTyp:'pct_heltid', varde:'', period:null, ar:S.year, notering:'', error:null};
   document.getElementById('app').insertAdjacentHTML('beforeend', renderBemanningDialog());
   try {
-    const [katalog] = await Promise.all([
-      api('/personal/uppdrag/katalog'),
-      S.kurser ? Promise.resolve() : loadBase(),
-    ]);
+    const katalog = await api('/personal/uppdrag/katalog');
     S.bemanningDialog.katalogUppdrag = katalog;
+    if (!S.kurser) await loadBase();
     refreshBemanningDialog();
   } catch(e){}
 }
 
 function closeBemanningDialog(){ document.querySelector('.modal-bg')?.remove(); S.bemanningDialog=null; }
 
-function bemanningSel(typ, kursId, namn, uppdragTyp) {
+function bemanningSetMode(m){
   const d=S.bemanningDialog; if(!d) return;
-  d.selType=typ;
-  if (typ==='kurs') { d.selKursId=kursId; }
-  else { d.selNamn=namn; d.uppdragTyp=uppdragTyp||d.uppdragTyp||'pct_heltid'; }
+  d.mode=m; d.search=''; d.selKursId=null; d.selNamn=''; d.error=null;
+  refreshBemanningDialog();
+}
+
+function bemanningSel(kursId, namn, uppdragTyp) {
+  const d=S.bemanningDialog; if(!d) return;
+  if (d.mode==='kurs') { d.selKursId=kursId; }
+  else { d.selNamn=namn||''; d.uppdragTyp=uppdragTyp||d.uppdragTyp||'pct_heltid'; }
   refreshBemanningDialog();
 }
 
 async function confirmBemanning() {
   const d=S.bemanningDialog; if (!d) return;
+  d.error=null;
   try {
-    if (d.selType==='kurs') {
-      const timtyp=document.querySelector('.modal select')?.value||d.timtyp||null;
-      const status=document.querySelectorAll('.modal select')[1]?.value||d.status||'begard';
-      const belStart=d.belStart||null, belSlut=d.belSlut||null;
+    if (d.mode==='kurs') {
       await api('/kurser/belaggningar',{method:'POST',body:JSON.stringify({
         kurs_id:d.selKursId, person_id:d.personId, timmar:d.timmar,
-        timtyp:timtyp||null, status, belaggning_start:belStart, belaggning_slut:belSlut,
+        timtyp:d.timtyp||null, status:d.status||'begard',
+        belaggning_start:d.belStart||null, belaggning_slut:d.belSlut||null,
       })});
       invalidate(); closeBemanningDialog();
       await Promise.all([loadBase(), loadPersonBel(d.personId), loadKonto(d.personId)]);
       render();
-    } else if (d.selType==='uppdrag') {
+    } else {
       const namn=(d.selNamn||'').trim(); if(!namn||!+(d.varde)) return;
       await api(`/personal/${d.personId}/uppdrag`,{method:'POST',body:JSON.stringify({
         namn, typ:d.uppdragTyp, varde:parseFloat(d.varde),
@@ -1818,7 +1819,7 @@ async function confirmBemanning() {
       closeBemanningDialog(); await loadKonto(d.personId); render();
     }
   } catch(e) {
-    S.bemanningDialog.error='Kunde inte spara';
+    S.bemanningDialog.error='Kunde inte spara — kontrollera fälten';
     refreshBemanningDialog();
   }
 }
