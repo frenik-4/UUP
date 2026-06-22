@@ -1387,7 +1387,7 @@ async function openPersonEdit() {
     amnesomrade: p.amnesomrade||'',
     personalkategori: p.personalkategori, kategori_typ: p.kategori_typ,
     fran_organisation: p.fran_organisation||'',
-    avdelning_id: p.avdelning_id||'',
+    avdelning_id: p.avdelning?.id ?? null,
     aktiv: p.aktiv,
     anst_id: anst.id||null,
     tjanstgoringspct: anst.tjanstgoringspct||100,
@@ -1403,7 +1403,12 @@ async function openPersonEdit() {
   render();
 }
 
-function cancelPersonEdit() { S.personEditMode=false; S.personEditData=null; render(); }
+async function cancelPersonEdit() {
+  const personId = S.personOverlay?.personId;
+  S.personEditMode=false; S.personEditData=null;
+  if (personId) { await openPersonOverlay(personId); }
+  else { render(); }
+}
 
 function editField(f, v) { if (S.personEditData) { S.personEditData[f]=v; S.personEditData.saveMsg=null; } }
 
@@ -1542,13 +1547,29 @@ async function savePersonEdit() {
       await api('/personal/'+d.id+'/anstallning/'+d.anst_id, {method:'PATCH', body:JSON.stringify(anstBody)});
     }
 
-    // Invalidate caches and reload
+    // Refresh from server and stay in edit mode
     Object.keys(S.kontoCache).filter(k=>k.startsWith(d.id+'_')).forEach(k=>delete S.kontoCache[k]);
     S.personal = null; S.kapacitet = null;
-    const pid = d.id;
-    S.personEditMode = false; S.personEditData = null;
     await loadBase();
-    await openPersonOverlay(pid);
+    const fresh = await api('/personal/'+d.id);
+    const freshAnst = (fresh.anstallningar||[])[0] || {};
+    Object.assign(d, {
+      namn: fresh.namn, initialer: fresh.initialer,
+      titel_typ: fresh.titel_typ||'', titel_display: fresh.titel_display||'',
+      amnesomrade: fresh.amnesomrade||'', personalkategori: fresh.personalkategori,
+      kategori_typ: fresh.kategori_typ, fran_organisation: fresh.fran_organisation||'',
+      avdelning_id: fresh.avdelning?.id ?? null, aktiv: fresh.aktiv,
+      anst_id: freshAnst.id||null,
+      tjanstgoringspct: freshAnst.tjanstgoringspct||100,
+      brutto_timmar: freshAnst.brutto_timmar||1975,
+      semester_timmar: freshAnst.semester_timmar||275,
+      fok_pct_override: freshAnst.fok_pct_override??'',
+      kollegialt_pct_override: freshAnst.kollegialt_pct_override??'',
+      giltig_fran: freshAnst.giltig_fran||'', giltig_till: freshAnst.giltig_till||'',
+      anv_epost: fresh.anvandare?.epost||'',
+      saving: false, saveMsg: {ok:true, text:'Ändringar sparade.'},
+    });
+    render();
   } catch(e) {
     d.saving = false;
     d.saveMsg = {ok:false, text:'Fel: '+(e.detail||(Array.isArray(e)?e[0]?.msg:'okänt fel'))};
