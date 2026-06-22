@@ -248,6 +248,20 @@ body{background:var(--bg0);color:var(--t1);font-family:system-ui,sans-serif;font
 .form-msg.ok{background:#064e3b;color:#6ee7b7;border:1px solid #065f46}
 .form-msg.err{background:#2d1515;color:#fca5a5;border:1px solid #7f1d1d}
 
+/* Timeline */
+.tl-wrap{background:var(--bg2);border:1px solid var(--bg3);border-radius:8px;padding:12px 14px 10px;overflow-x:auto;min-height:60px}
+.tl-row{display:flex;align-items:center;margin-bottom:3px}
+.tl-label{flex-shrink:0;font-size:11px;color:var(--t3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding-right:8px;cursor:pointer}
+.tl-label:hover{color:var(--blue)}
+.tl-track{flex:1;position:relative;height:16px;background:var(--bg3);border-radius:3px;min-width:200px}
+.tl-bar{position:absolute;height:100%;border-radius:3px;overflow:hidden;display:flex;align-items:center;padding:0 4px;cursor:default}
+.tl-bar-label{font-size:9px;color:#fff;white-space:nowrap;overflow:hidden}
+.tl-today{position:absolute;top:-2px;bottom:-2px;width:2px;background:var(--red);border-radius:1px;z-index:2}
+.tl-months{position:relative;height:14px;margin-bottom:5px;border-bottom:1px solid var(--bg3)}
+.tl-month{position:absolute;font-size:9px;color:var(--t4);white-space:nowrap;transform:translateX(-50%);top:0}
+.tl-legend{display:flex;gap:12px;margin-top:7px;flex-wrap:wrap}
+.tl-legend-item{display:flex;align-items:center;gap:4px;font-size:10px;color:var(--t4)}
+
 /* Settings page */
 .settings-section{background:var(--bg2);border:1px solid var(--bg3);border-radius:8px;padding:16px;margin-bottom:16px}
 .settings-row{display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--bg3)}
@@ -469,6 +483,90 @@ function periodTimmar(b) {
 // Returnera STR-användarens ämnesområdes-scope (null = inga filter)
 function strAmne() {
   return S.user?.roller.find(r=>r.roll==='str_roll')?.amnesomrade || null;
+}
+
+// Hämta belaggningens datumintervall — exakta datum eller period som fallback
+function getBelaggningDates(b) {
+  if (b.belaggning_start && b.belaggning_slut)
+    return {start: b.belaggning_start, slut: b.belaggning_slut, exact: true};
+  const per = (S.perioder||[]).find(p=>p.id===b.kurs.period_id);
+  if (per) return {start: per.start_datum, slut: per.slut_datum, exact: false};
+  return null;
+}
+
+// Render Gantt-tidslinje för en persons belaggningar
+function renderTimeline(bels, activePeriodId) {
+  const datedBels = bels.map(b=>({b, d:getBelaggningDates(b)})).filter(x=>x.d);
+  if (!datedBels.length) return '';
+
+  const allStarts = datedBels.map(x=>new Date(x.d.start).getTime());
+  const allEnds   = datedBels.map(x=>new Date(x.d.slut).getTime());
+
+  let rangeStart, rangeEnd;
+  const selPer = (S.perioder||[]).find(p=>p.id===activePeriodId);
+  if (selPer) {
+    rangeStart = new Date(selPer.start_datum).getTime();
+    rangeEnd   = new Date(selPer.slut_datum).getTime();
+  } else {
+    rangeStart = Math.min(...allStarts);
+    rangeEnd   = Math.max(...allEnds);
+  }
+  const totalMs = rangeEnd - rangeStart;
+  if (totalMs <= 0) return '';
+
+  const pct = (ms) => Math.max(0, Math.min(100, (ms - rangeStart) / totalMs * 100));
+
+  // Månadsmarkeringar
+  const months = [];
+  let m = new Date(new Date(rangeStart).getFullYear(), new Date(rangeStart).getMonth(), 1);
+  while (m.getTime() <= rangeEnd) {
+    months.push({label: m.toLocaleDateString('sv',{month:'short'}), p: pct(m.getTime())});
+    m = new Date(m.getFullYear(), m.getMonth()+1, 1);
+  }
+
+  // Idag-markör
+  const todayPct = pct(Date.now());
+  const todayVisible = todayPct>=0 && todayPct<=100;
+
+  const statusColor = {godkand:'var(--green)',begard:'var(--amber)',utkast:'var(--t4)',nekad:'var(--red)'};
+  const colW = 90; // px för kurskod-kolumn
+
+  const rows = datedBels.map(({b, d}) => {
+    const bS = new Date(d.start).getTime(), bE = new Date(d.slut).getTime();
+    const left = pct(bS), right = pct(bE);
+    const w = Math.max(0.5, right - left);
+    const col = statusColor[b.status]||'var(--t4)';
+    const opacity = d.exact ? 1 : 0.45;
+    const labelText = fh(b.timmar)+(d.exact?'':'*');
+    return `<div class="tl-row">
+      <div class="tl-label" style="width:${colW}px" onclick="closePersonOverlayGoKurs(${b.kurs.id})" title="${b.kurs.namn}">${b.kurs.kod}</div>
+      <div class="tl-track">
+        ${todayVisible?`<div class="tl-today" style="left:${todayPct}%"></div>`:''}
+        <div class="tl-bar" style="left:${left}%;width:${w}%;background:${col};opacity:${opacity}"
+             title="${b.kurs.namn} · ${fh(b.timmar)} · ${d.start}–${d.slut}${d.exact?'':' (perioden, exakt ej satt)'}">
+          ${w>6?`<span class="tl-bar-label">${labelText}</span>`:''}
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+
+  const monthLabels = months.map(({label,p})=>
+    `<div class="tl-month" style="left:${p}%">${label}</div>`
+  ).join('');
+
+  const hasEstimates = datedBels.some(x=>!x.d.exact);
+
+  return `<div class="tl-wrap">
+    <div class="tl-months" style="margin-left:${colW}px">${monthLabels}</div>
+    ${rows}
+    <div class="tl-legend">
+      <div class="tl-legend-item"><div style="width:10px;height:10px;border-radius:2px;background:var(--green)"></div>Godkänd</div>
+      <div class="tl-legend-item"><div style="width:10px;height:10px;border-radius:2px;background:var(--amber)"></div>Begärd</div>
+      <div class="tl-legend-item"><div style="width:10px;height:10px;border-radius:2px;background:var(--t4)"></div>Utkast</div>
+      ${todayVisible?'<div class="tl-legend-item"><div style="width:2px;height:10px;background:var(--red)"></div>Idag</div>':''}
+      ${hasEstimates?'<div class="tl-legend-item" style="margin-left:auto;font-style:italic">* = exakta datum ej satta, visar period</div>':''}
+    </div>
+  </div>`;
 }
 
 function kursStatus(k) {
@@ -705,8 +803,10 @@ function renderPersonOverlay() {
           </div>
         </div>
         <div>
+          ${bels.length?`<div class="section-title" style="margin-top:0">Tidslinje — kursbeläggning</div>
+          ${renderTimeline(bels, S.activePeriodId)}`:''}
           ${begarda.length?`
-            <div class="section-title" style="margin-top:0">⏳ Begärda — kräver beslut (${begarda.length})</div>
+            <div class="section-title">⏳ Begärda — kräver beslut (${begarda.length})</div>
             ${begarda.map(b=>`<div class="pending-item">
               <div class="pending-kurs" onclick="closePersonOverlayGoKurs(${b.kurs.id})">${b.kurs.namn}</div>
               <div class="pending-meta">${b.kurs.kod} · ${periodName(b.kurs.period_id)} · ${b.kurs.hp} hp${b.timtyp?' · '+b.timtyp:''}</div>
