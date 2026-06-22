@@ -788,7 +788,7 @@ function renderPersonOverlay() {
             <div class="tk-row"><span class="tk-label">− FOK (${konto.fok_pct}%)</span><span class="tk-val" style="color:var(--purple)">-${fh(konto.fok_timmar)}</span></div>
             <div class="tk-row"><span class="tk-label">− Kollegialt (${konto.kollegialt_pct}%)</span><span class="tk-val" style="color:var(--purple)">-${fh(konto.kollegialt_timmar)}</span></div>
             ${udRows}
-            ${canEdit?`<div style="margin:4px 0 4px 10px"><button class="btn-sm" style="font-size:11px;background:var(--bg3);color:var(--t1);border:1px dashed var(--bg3)" onclick="openUppdragDialog(${personId})">+ Lägg till uppdrag</button></div>`:''}
+            ${canEdit?`<div style="margin:4px 0 4px 10px"><button class="btn-sm" style="font-size:11px;background:var(--bg3);color:var(--t1);border:1px dashed var(--bg3)" onclick="openBemanningDialog(${personId})">+ Lägg till bemanning</button></div>`:''}
             <div class="tk-row" style="background:var(--bg3);border-radius:5px;padding:7px;margin-top:4px">
               <span class="tk-label" style="color:var(--t1);font-weight:700">Tillgänglig undervisning</span>
               <span class="tk-val" style="color:var(--green)">${fh(avail)}</span>
@@ -1598,125 +1598,235 @@ async function confirmAssign() {
   }
 }
 
-// ── UPPDRAG DIALOG ───────────────────────────────────────────────────────────
-function renderUppdragDialog() {
-  const d = S.uppdragDialog; if (!d) return '';
+// ── BEMANNING DIALOG ─────────────────────────────────────────────────────────
+const _typLabel = {pct_heltid:'% av heltid', pct_bemanningsbar:'% av bemanningsbar', fasta_timmar:'timmar'};
+
+function renderBemanningDialog() {
+  const d = S.bemanningDialog; if (!d) return '';
   const q = (d.search||'').toLowerCase();
-  const katalog = d.katalog||[];
-  const matches = q ? katalog.filter(k=>k.namn.toLowerCase().includes(q)) : katalog;
-  const typLabel = {pct_heltid:'% av heltid', pct_bemanningsbar:'% av bemanningsbar', fasta_timmar:'timmar'};
-  const selTyp = d.typ||'pct_heltid';
-  const vaLabel = typLabel[selTyp]||'';
-  const canSave = (d.namn||'').trim() && +(d.varde)>0;
-  return `<div class="modal-bg" onclick="if(event.target===this)closeUppdragDialog()">
-    <div class="modal" onclick="event.stopPropagation()" style="max-width:520px">
-      <div class="modal-header">
-        <div class="modal-title">Lägg till uppdrag</div>
-        <button class="modal-close" onclick="closeUppdragDialog()">×</button>
+
+  // Filtrera kurser och uppdragskatalog
+  const allKurser = (S.kurser||[]);
+  const kursHits = q
+    ? allKurser.filter(k=>k.namn.toLowerCase().includes(q)||k.kod.toLowerCase().includes(q))
+    : allKurser;
+  const katalog = d.katalogUppdrag||[];
+  const uppdragHits = q
+    ? katalog.filter(u=>u.namn.toLowerCase().includes(q))
+    : katalog;
+  const showCustom = q && !uppdragHits.some(u=>u.namn.toLowerCase()===q.toLowerCase());
+
+  const kursItems = kursHits.map(k=>{
+    const sel = d.selType==='kurs' && d.selKursId===k.id;
+    return `<div class="picker-row ${sel?'selected':''}" onclick="bemanningSel('kurs',${k.id},'')">
+      <div style="flex:1;min-width:0">
+        <div style="font-size:12px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${k.kod} · ${k.namn}</div>
+        <div style="font-size:11px;color:var(--t4)">${periodName(k.period_id)} · ${k.hp} hp${k.budget_timmar?(' · budget '+fh(k.budget_timmar)):''}</div>
       </div>
-      <div class="modal-body">
-        <input class="picker-search" placeholder="Sök bland befintliga uppdrag…" value="${d.search||''}"
-          oninput="S.uppdragDialog.search=this.value;refreshUppdragDialog()"/>
-        ${matches.length?`<div style="max-height:160px;overflow-y:auto;margin-bottom:10px;border:1px solid var(--bg3);border-radius:6px">
-          ${matches.map(k=>`<div class="picker-row ${d.namn===k.namn?'selected':''}" style="padding:7px 10px;cursor:pointer"
-            onclick="uppdragSel('${k.namn.replace(/'/g,"\\'")}','${k.typ}')">
-            <div style="font-size:13px;font-weight:600">${k.namn}</div>
-            <div style="font-size:11px;color:var(--t4)">${typLabel[k.typ]||k.typ}</div>
-          </div>`).join('')}
-        </div>`:`<div style="font-size:12px;color:var(--t4);padding:8px 0 10px">Inga träffar — ange namn manuellt nedan</div>`}
-        <div style="display:grid;grid-template-columns:1fr auto;gap:8px;margin-bottom:8px">
-          <div>
-            <label style="font-size:11px;color:var(--t4);display:block;margin-bottom:3px">Namn</label>
-            <input class="hours-input" style="width:100%" placeholder="Uppdragsnamn" value="${d.namn||''}"
-              oninput="S.uppdragDialog.namn=this.value;refreshUppdragDialog()"/>
-          </div>
-          <div>
-            <label style="font-size:11px;color:var(--t4);display:block;margin-bottom:3px">År</label>
-            <input class="hours-input" style="width:70px" type="number" min="2020" max="2040" value="${d.ar||S.year}"
-              oninput="S.uppdragDialog.ar=parseInt(this.value)||S.year;refreshUppdragDialog()"/>
-          </div>
-        </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:8px">
-          <div>
-            <label style="font-size:11px;color:var(--t4);display:block;margin-bottom:3px">Typ</label>
-            <select class="sel" style="width:100%" onchange="S.uppdragDialog.typ=this.value;refreshUppdragDialog()">
-              <option value="pct_heltid" ${selTyp==='pct_heltid'?'selected':''}>% av heltid</option>
-              <option value="pct_bemanningsbar" ${selTyp==='pct_bemanningsbar'?'selected':''}>% av bemanningsbar</option>
-              <option value="fasta_timmar" ${selTyp==='fasta_timmar'?'selected':''}>Fasta timmar</option>
-            </select>
-          </div>
-          <div>
-            <label style="font-size:11px;color:var(--t4);display:block;margin-bottom:3px">Värde (${vaLabel})</label>
-            <input class="hours-input" style="width:100%" type="number" min="0" step="any" placeholder="0" value="${d.varde||''}"
-              oninput="S.uppdragDialog.varde=this.value;refreshUppdragDialog()"/>
-          </div>
-          <div>
-            <label style="font-size:11px;color:var(--t4);display:block;margin-bottom:3px">Period</label>
-            <select class="sel" style="width:100%" onchange="S.uppdragDialog.period=this.value||null;refreshUppdragDialog()">
-              <option value="" ${!d.period?'selected':''}>Hela året</option>
-              <option value="HT" ${d.period==='HT'?'selected':''}>HT</option>
-              <option value="VT" ${d.period==='VT'?'selected':''}>VT</option>
-            </select>
-          </div>
+      <span style="font-size:10px;font-weight:700;color:var(--blue);background:rgba(59,130,246,.15);padding:2px 7px;border-radius:10px;flex-shrink:0">KURS</span>
+    </div>`;
+  }).join('');
+
+  const uppdragItems = uppdragHits.map(u=>{
+    const sel = d.selType==='uppdrag' && d.selNamn===u.namn;
+    return `<div class="picker-row ${sel?'selected':''}" onclick="bemanningSel('uppdrag',0,'${u.namn.replace(/'/g,"\\'")}','${u.typ}')">
+      <div style="flex:1">
+        <div style="font-size:12px;font-weight:700">${u.namn}</div>
+        <div style="font-size:11px;color:var(--t4)">${_typLabel[u.typ]||u.typ}</div>
+      </div>
+      <span style="font-size:10px;font-weight:700;color:var(--amber);background:rgba(245,158,11,.15);padding:2px 7px;border-radius:10px;flex-shrink:0">UPPDRAG</span>
+    </div>`;
+  }).join('');
+
+  const customItem = showCustom?`<div class="picker-row ${d.selType==='uppdrag'&&d.selNamn===d.search?'selected':''}"
+    onclick="bemanningSel('uppdrag',0,'${(d.search||'').replace(/'/g,"\\'")}','pct_heltid')">
+    <div style="flex:1"><div style="font-size:12px;font-weight:700">+ "${d.search}" — nytt uppdrag/projekt</div></div>
+    <span style="font-size:10px;font-weight:700;color:var(--t4);background:var(--bg3);padding:2px 7px;border-radius:10px;flex-shrink:0">NYTT</span>
+  </div>`:'';
+
+  const hasResults = kursItems||uppdragItems||customItem;
+  const listSection = hasResults
+    ? `<div style="max-height:220px;overflow-y:auto;border:1px solid var(--bg3);border-radius:6px;margin-bottom:12px">
+        ${kursItems?`<div style="font-size:10px;font-weight:700;color:var(--t4);text-transform:uppercase;letter-spacing:.06em;padding:6px 10px 2px;background:var(--bg2)">Kurser</div>${kursItems}`:''}
+        ${uppdragItems||customItem?`<div style="font-size:10px;font-weight:700;color:var(--t4);text-transform:uppercase;letter-spacing:.06em;padding:6px 10px 2px;background:var(--bg2)">Uppdrag / Projekt</div>${uppdragItems}${customItem}`:''}
+      </div>`
+    : `<div style="text-align:center;color:var(--t4);padding:16px;font-size:12px">Inga träffar</div>`;
+
+  // Formulär beroende på vald typ
+  let form = '';
+  if (d.selType==='kurs') {
+    const selKurs = allKurser.find(k=>k.id===d.selKursId);
+    form = `<div style="border-top:1px solid var(--bg3);padding-top:12px">
+      <div style="font-size:11px;font-weight:700;color:var(--t4);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">
+        ${selKurs?selKurs.namn:'Kursbeläggning'}
+      </div>
+      <div style="display:grid;grid-template-columns:80px 1fr 1fr;gap:8px;margin-bottom:8px">
+        <div>
+          <label style="font-size:11px;color:var(--t4);display:block;margin-bottom:3px">Timmar</label>
+          <input class="hours-input" style="width:100%" type="number" min="1" max="999" value="${d.timmar||60}"
+            oninput="S.bemanningDialog.timmar=parseInt(this.value)||60;refreshBemanningDialog()"/>
         </div>
         <div>
-          <label style="font-size:11px;color:var(--t4);display:block;margin-bottom:3px">Notering (valfritt)</label>
-          <input class="hours-input" style="width:100%" placeholder="Fritext…" value="${d.notering||''}"
-            oninput="S.uppdragDialog.notering=this.value"/>
+          <label style="font-size:11px;color:var(--t4);display:block;margin-bottom:3px">Timtyp</label>
+          <select class="sel" style="width:100%" onchange="S.bemanningDialog.timtyp=this.value">
+            <option value="">Allmän</option>
+            <option value="forelasning">Föreläsning</option>
+            <option value="seminarium">Seminarium</option>
+            <option value="examination">Examination</option>
+            <option value="handledning">Handledning</option>
+          </select>
         </div>
+        <div>
+          <label style="font-size:11px;color:var(--t4);display:block;margin-bottom:3px">Status</label>
+          <select class="sel" style="width:100%" onchange="S.bemanningDialog.status=this.value">
+            <option value="begard">Begär (→ AVDC)</option>
+            <option value="utkast">Utkast</option>
+            <option value="godkand">Godkänn direkt</option>
+          </select>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <label style="font-size:11px;color:var(--t4);white-space:nowrap">Period för läraren (valfritt):</label>
+        <input type="date" class="hours-input" style="flex:1" value="${d.belStart||''}" oninput="S.bemanningDialog.belStart=this.value"/>
+        <span style="color:var(--t4)">–</span>
+        <input type="date" class="hours-input" style="flex:1" value="${d.belSlut||''}" oninput="S.bemanningDialog.belSlut=this.value"/>
+      </div>
+    </div>`;
+  } else if (d.selType==='uppdrag') {
+    const selTyp = d.uppdragTyp||'pct_heltid';
+    form = `<div style="border-top:1px solid var(--bg3);padding-top:12px">
+      <div style="font-size:11px;font-weight:700;color:var(--t4);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">Uppdrag / Projekt</div>
+      <div style="display:grid;grid-template-columns:1fr auto;gap:8px;margin-bottom:8px">
+        <div>
+          <label style="font-size:11px;color:var(--t4);display:block;margin-bottom:3px">Namn</label>
+          <input class="hours-input" style="width:100%" placeholder="Uppdragsnamn" value="${d.selNamn||''}"
+            oninput="S.bemanningDialog.selNamn=this.value;refreshBemanningDialog()"/>
+        </div>
+        <div>
+          <label style="font-size:11px;color:var(--t4);display:block;margin-bottom:3px">År</label>
+          <input class="hours-input" style="width:68px" type="number" min="2020" max="2040" value="${d.ar||S.year}"
+            oninput="S.bemanningDialog.ar=parseInt(this.value)||S.year"/>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:8px">
+        <div>
+          <label style="font-size:11px;color:var(--t4);display:block;margin-bottom:3px">Typ</label>
+          <select class="sel" style="width:100%" onchange="S.bemanningDialog.uppdragTyp=this.value;refreshBemanningDialog()">
+            <option value="pct_heltid" ${selTyp==='pct_heltid'?'selected':''}>% av heltid</option>
+            <option value="pct_bemanningsbar" ${selTyp==='pct_bemanningsbar'?'selected':''}>% av bemanningsbar</option>
+            <option value="fasta_timmar" ${selTyp==='fasta_timmar'?'selected':''}>Fasta timmar</option>
+          </select>
+        </div>
+        <div>
+          <label style="font-size:11px;color:var(--t4);display:block;margin-bottom:3px">Värde (${_typLabel[selTyp]})</label>
+          <input class="hours-input" style="width:100%" type="number" min="0" step="any" placeholder="0" value="${d.varde||''}"
+            oninput="S.bemanningDialog.varde=this.value;refreshBemanningDialog()"/>
+        </div>
+        <div>
+          <label style="font-size:11px;color:var(--t4);display:block;margin-bottom:3px">Period</label>
+          <select class="sel" style="width:100%" onchange="S.bemanningDialog.period=this.value||null">
+            <option value="" ${!d.period?'selected':''}>Hela året</option>
+            <option value="HT" ${d.period==='HT'?'selected':''}>HT</option>
+            <option value="VT" ${d.period==='VT'?'selected':''}>VT</option>
+          </select>
+        </div>
+      </div>
+      <div>
+        <label style="font-size:11px;color:var(--t4);display:block;margin-bottom:3px">Notering (valfritt)</label>
+        <input class="hours-input" style="width:100%" placeholder="Fritext…" value="${d.notering||''}"
+          oninput="S.bemanningDialog.notering=this.value"/>
+      </div>
+    </div>`;
+  }
+
+  const canSave = d.selType==='kurs' ? (d.selKursId && +(d.timmar||0)>0)
+               : d.selType==='uppdrag' ? ((d.selNamn||'').trim() && +(d.varde||0)>0)
+               : false;
+
+  return `<div class="modal-bg" onclick="if(event.target===this)closeBemanningDialog()">
+    <div class="modal" onclick="event.stopPropagation()" style="max-width:560px">
+      <div class="modal-header">
+        <div class="modal-title">Lägg till bemanning</div>
+        <button class="modal-close" onclick="closeBemanningDialog()">×</button>
+      </div>
+      <div class="modal-body">
+        <input class="picker-search" placeholder="Sök kurs, uppdrag eller projekt…" value="${d.search||''}"
+          oninput="S.bemanningDialog.search=this.value;refreshBemanningDialog()" autofocus/>
+        ${listSection}
+        ${form}
         ${d.error?`<div class="val-msg err" style="margin-top:8px">${d.error}</div>`:''}
       </div>
       <div class="modal-footer">
-        <button class="btn-cancel" onclick="closeUppdragDialog()">Avbryt</button>
-        <button class="btn-confirm" onclick="confirmUppdrag()" ${!canSave?'disabled':''}>Lägg till</button>
+        <button class="btn-cancel" onclick="closeBemanningDialog()">Avbryt</button>
+        <button class="btn-confirm" onclick="confirmBemanning()" ${!canSave?'disabled':''}>Lägg till</button>
       </div>
     </div>
   </div>`;
 }
 
-function refreshUppdragDialog(){
+function refreshBemanningDialog(){
   const e=document.querySelector('.modal-bg'); if(!e)return;
-  const t=document.createElement('div'); t.innerHTML=renderUppdragDialog(); e.replaceWith(t.firstChild);
+  const t=document.createElement('div'); t.innerHTML=renderBemanningDialog(); e.replaceWith(t.firstChild);
 }
 
-async function openUppdragDialog(personId) {
-  S.uppdragDialog={personId, search:'', katalog:[], namn:'', typ:'pct_heltid', varde:'', period:null, ar:S.year, notering:'', error:null};
-  document.getElementById('app').insertAdjacentHTML('beforeend', renderUppdragDialog());
+async function openBemanningDialog(personId) {
+  S.bemanningDialog={personId, search:'', katalogUppdrag:[], selType:null,
+    selKursId:null, selNamn:'', uppdragTyp:'pct_heltid',
+    timmar:60, timtyp:'', status:'begard', belStart:'', belSlut:'',
+    varde:'', period:null, ar:S.year, notering:'', error:null};
+  document.getElementById('app').insertAdjacentHTML('beforeend', renderBemanningDialog());
   try {
-    const katalog = await api('/personal/uppdrag/katalog');
-    S.uppdragDialog.katalog = katalog;
-    refreshUppdragDialog();
-  } catch(e) {}
+    const [katalog] = await Promise.all([
+      api('/personal/uppdrag/katalog'),
+      S.kurser ? Promise.resolve() : loadBase(),
+    ]);
+    S.bemanningDialog.katalogUppdrag = katalog;
+    refreshBemanningDialog();
+  } catch(e){}
 }
 
-function closeUppdragDialog(){ document.querySelector('.modal-bg')?.remove(); S.uppdragDialog=null; }
+function closeBemanningDialog(){ document.querySelector('.modal-bg')?.remove(); S.bemanningDialog=null; }
 
-function uppdragSel(namn, typ){
-  S.uppdragDialog.namn=namn; S.uppdragDialog.typ=typ; refreshUppdragDialog();
+function bemanningSel(typ, kursId, namn, uppdragTyp) {
+  const d=S.bemanningDialog; if(!d) return;
+  d.selType=typ;
+  if (typ==='kurs') { d.selKursId=kursId; }
+  else { d.selNamn=namn; d.uppdragTyp=uppdragTyp||d.uppdragTyp||'pct_heltid'; }
+  refreshBemanningDialog();
 }
 
-async function confirmUppdrag() {
-  const d=S.uppdragDialog; if (!d) return;
-  const namn=(d.namn||'').trim(); if (!namn||!+(d.varde)) return;
+async function confirmBemanning() {
+  const d=S.bemanningDialog; if (!d) return;
   try {
-    await api(`/personal/${d.personId}/uppdrag`, {method:'POST', body:JSON.stringify({
-      namn, typ:d.typ, varde:parseFloat(d.varde), planeringsår:d.ar||S.year,
-      period:d.period||null, notering:d.notering||null,
-    })});
-    closeUppdragDialog();
-    await loadKonto(d.personId);
-    render();
+    if (d.selType==='kurs') {
+      const timtyp=document.querySelector('.modal select')?.value||d.timtyp||null;
+      const status=document.querySelectorAll('.modal select')[1]?.value||d.status||'begard';
+      const belStart=d.belStart||null, belSlut=d.belSlut||null;
+      await api('/kurser/belaggningar',{method:'POST',body:JSON.stringify({
+        kurs_id:d.selKursId, person_id:d.personId, timmar:d.timmar,
+        timtyp:timtyp||null, status, belaggning_start:belStart, belaggning_slut:belSlut,
+      })});
+      invalidate(); closeBemanningDialog();
+      await Promise.all([loadBase(), loadPersonBel(d.personId), loadKonto(d.personId)]);
+      render();
+    } else if (d.selType==='uppdrag') {
+      const namn=(d.selNamn||'').trim(); if(!namn||!+(d.varde)) return;
+      await api(`/personal/${d.personId}/uppdrag`,{method:'POST',body:JSON.stringify({
+        namn, typ:d.uppdragTyp, varde:parseFloat(d.varde),
+        planeringsår:d.ar||S.year, period:d.period||null, notering:d.notering||null,
+      })});
+      closeBemanningDialog(); await loadKonto(d.personId); render();
+    }
   } catch(e) {
-    S.uppdragDialog.error='Kunde inte spara uppdrag';
-    refreshUppdragDialog();
+    S.bemanningDialog.error='Kunde inte spara';
+    refreshBemanningDialog();
   }
 }
 
 async function deleteUppdrag(personId, uppdragId) {
   if (!confirm('Ta bort uppdraget?')) return;
   await api(`/personal/${personId}/uppdrag/${uppdragId}`, {method:'DELETE'});
-  await loadKonto(personId);
-  render();
+  await loadKonto(personId); render();
 }
 
 // ── PERSON OVERLAY ────────────────────────────────────────────────────────────
