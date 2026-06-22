@@ -138,7 +138,7 @@ body{background:var(--bg0);color:var(--t1);font-family:system-ui,sans-serif;font
 .tk-val{font-size:13px;font-weight:600}
 
 /* Bemanning */
-.bem-layout{display:grid;grid-template-columns:1fr 300px;gap:12px;height:calc(100vh - 148px)}
+.bem-layout{display:grid;grid-template-columns:270px 1fr;gap:12px;height:calc(100vh - 148px)}
 .bem-list{overflow-y:auto;background:var(--bg2);border:1px solid var(--bg3);border-radius:var(--rad)}
 .bem-detail{overflow-y:auto;background:var(--bg2);border:1px solid var(--bg3);border-radius:var(--rad)}
 .course-row{display:flex;align-items:flex-start;gap:8px;padding:8px 12px;border-bottom:1px solid var(--bg3);cursor:pointer}
@@ -1124,41 +1124,139 @@ function renderBemanning() {
 
 function renderKursDetail(k) {
   const budget=+(k.budget_timmar)||0, god=+(k.bemannat_godkand)||0, beg=+(k.bemannat_begard)||0;
+  const diff=budget-god;
   const pct=budget>0?Math.min(100,Math.round(god/budget*100)):0;
   const begPct=budget>0?Math.min(100-pct,Math.round(beg/budget*100)):0;
   const r=role(), canApprove=['avdc','sysadmin','prefekt'].includes(r), canAssign=['str_roll','sysadmin','prefekt','avdc'].includes(r);
-  const bRow=(b,showApprove)=>{const p=b.person;return`<div class="asg-row">
-    ${av(p,26)}
-    <div class="asg-info">
-      <div class="asg-name" onclick="openPersonOverlay(${p.id})">${p.namn}</div>
-      <div class="asg-meta">${p.titel_display||''} · ${fh(b.timmar)}${b.timtyp?' ('+b.timtyp+')':''}</div>
-    </div>
-    ${asgBadge(b.status)}
-    ${showApprove&&b.status==='begard'
-      ?`<button class="btn-sm" title="Godkänn" onclick="approveAsg(${b.id},true)">✓</button>
-         <button class="btn-sm del" title="Neka" onclick="approveAsg(${b.id},false)">✗</button>`
-      :`<button class="btn-sm del" title="Ta bort" onclick="deleteAsg(${b.id})">✕</button>`}
-  </div>`;};
-  const godkanda=(k.belaggningar||[]).filter(b=>b.status==='godkand');
-  const begarda=(k.belaggningar||[]).filter(b=>b.status==='begard');
-  const utkast=(k.belaggningar||[]).filter(b=>b.status==='utkast');
+  const per=(S.perioder||[]).find(p=>p.id===k.period_id);
+  const bels=k.belaggningar||[];
+  const rStart=per?new Date(per.start_datum).getTime():0;
+  const rEnd=per?new Date(per.slut_datum).getTime():0;
+  const totalMs=rEnd-rStart;
+
+  // ── Timtyper-fördelning ─────────────────────────────────────────────────
+  const ttRows=(k.timtyper||[]).map(t=>
+    `<div style="display:flex;justify-content:space-between;font-size:11px;padding:2px 0;color:var(--t3)">
+       <span>${t.timtyp}</span><span style="font-weight:600">${fh(t.timmar)}</span>
+     </div>`
+  ).join('');
+
+  // ── Gantt ───────────────────────────────────────────────────────────────
+  const pct2=ms=>totalMs>0?Math.max(0,Math.min(100,(ms-rStart)/totalMs*100)):0;
+  const todayP=pct2(Date.now()), todayVis=todayP>=0&&todayP<=100&&totalMs>0;
+
+  // Månadsmarkeringar
+  let months=[];
+  if (totalMs>0) {
+    let m=new Date(new Date(rStart).getFullYear(),new Date(rStart).getMonth(),1);
+    while(m.getTime()<=rEnd){months.push({l:m.toLocaleDateString('sv',{month:'short'}),p:pct2(m.getTime())});m=new Date(m.getFullYear(),m.getMonth()+1,1);}
+  }
+  const monthLabels=months.map(({l,p})=>`<div style="position:absolute;left:${p}%;font-size:9px;color:var(--t4);white-space:nowrap;transform:translateX(-50%)">${l}</div>`).join('');
+  const todayLine=todayVis?`<div style="position:absolute;top:0;bottom:0;left:${todayP}%;width:2px;background:var(--red);border-radius:1px;z-index:2;opacity:.7"></div>`:'';
+  const statusCol={godkand:'var(--green)',begard:'var(--amber)',utkast:'var(--bg3)',nekad:'var(--red)'};
+  const colW=170; // px för namnkolumn
+
+  const ganttRows=bels.map(b=>{
+    const p=b.person;
+    const bS=b.belaggning_start?new Date(b.belaggning_start).getTime():rStart;
+    const bE=b.belaggning_slut?new Date(b.belaggning_slut).getTime():rEnd;
+    const exact=!!(b.belaggning_start&&b.belaggning_slut);
+    const left=pct2(bS), right=pct2(bE), w=Math.max(1,right-left);
+    const col=statusCol[b.status]||'var(--bg3)';
+    const dateStr=exact?`${b.belaggning_start} – ${b.belaggning_slut}`:'Hela perioden*';
+    return `<div style="display:flex;align-items:center;gap:0;padding:6px 0;border-top:1px solid var(--bg3)">
+      <div style="width:${colW}px;flex-shrink:0;padding-right:10px;min-width:0;overflow:hidden">
+        <div style="display:flex;align-items:center;gap:6px">
+          ${av(p,22)}
+          <div style="min-width:0;overflow:hidden">
+            <div class="asg-name" style="font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" onclick="openPersonOverlay(${p.id})">${p.namn}</div>
+            <div style="font-size:10px;color:var(--t4);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${p.avdelning?.kortnamn||p.avdelning?.namn||'—'}${b.timtyp?' · '+b.timtyp:''}</div>
+          </div>
+        </div>
+      </div>
+      <div style="flex:1;position:relative;height:24px;background:var(--bg1);border-radius:4px;min-width:80px;overflow:hidden">
+        ${todayLine}
+        <div style="position:absolute;height:100%;left:${left}%;width:${w}%;background:${col};opacity:${exact?0.9:0.5};border-radius:3px;display:flex;align-items:center;padding:0 5px;overflow:hidden;box-sizing:border-box"
+             title="${p.namn} · ${fh(b.timmar)} · ${dateStr}">
+          ${w>8?`<span style="font-size:10px;color:${b.status==='utkast'?'var(--t2)':'#fff'};white-space:nowrap;font-weight:600">${fh(b.timmar)}</span>`:''}
+        </div>
+      </div>
+      <div style="flex-shrink:0;width:150px;display:flex;align-items:center;gap:4px;padding-left:8px;flex-wrap:wrap">
+        <span style="font-size:13px;font-weight:700">${fh(b.timmar)}</span>
+        ${asgBadge(b.status)}
+        ${canApprove&&b.status==='begard'
+          ?`<button class="btn-approve" style="padding:3px 10px;font-size:11px" title="Godkänn" onclick="approveAsg(${b.id},true)">✓</button>
+             <button class="btn-reject" style="padding:3px 10px;font-size:11px" title="Neka" onclick="approveAsg(${b.id},false)">✗</button>`
+          :`<button class="btn-sm del" title="Ta bort" onclick="deleteAsg(${b.id})" style="margin-left:auto">✕</button>`}
+      </div>
+    </div>`;
+  }).join('');
+
+  const hasEstimates=bels.some(b=>!(b.belaggning_start&&b.belaggning_slut));
+
   return `<div class="detail-pad">
-    <div class="detail-title">${k.namn}</div>
-    <div class="detail-meta">${k.kod} · ${periodName(k.period_id)} · ${k.hp} hp${k.studenter?' · '+k.studenter+' stud.':''}</div>
-    ${statusBadge(kursStatus(k))}
-    <div style="height:8px;background:var(--bg3);border-radius:4px;overflow:hidden;margin:12px 0 4px;position:relative">
-      <div style="position:absolute;height:100%;width:${pct}%;background:var(--green);border-radius:4px"></div>
+    <!-- ── Kursrubrik ── -->
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:14px">
+      <div>
+        <div style="font-size:11px;font-weight:700;color:var(--blue);letter-spacing:.05em;text-transform:uppercase;margin-bottom:3px">${k.kod}${k.niva?' · '+k.niva:''}${k.amnesomrade?' · '+k.amnesomrade:''}</div>
+        <div style="font-size:17px;font-weight:800;line-height:1.2;margin-bottom:5px">${k.namn}</div>
+        <div style="font-size:11px;color:var(--t4);display:flex;gap:12px;flex-wrap:wrap">
+          ${per?`<span>📅 ${per.start_datum} – ${per.slut_datum}</span>`:''}
+          <span>📚 ${k.hp} hp</span>
+          ${k.studenter?`<span>👥 ${k.studenter} studenter</span>`:''}
+        </div>
+      </div>
+      ${statusBadge(kursStatus(k))}
+    </div>
+
+    <!-- ── Budget & bemanningsstatus ── -->
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:12px">
+      <div class="info-cell">
+        <div class="info-cell-label">Budget</div>
+        <div class="info-cell-value" style="font-size:20px">${budget?fh(budget):'—'}</div>
+        ${ttRows?`<div style="margin-top:6px;border-top:1px solid var(--bg3);padding-top:5px">${ttRows}</div>`:''}
+      </div>
+      <div class="info-cell">
+        <div class="info-cell-label">Godkänd</div>
+        <div class="info-cell-value" style="font-size:20px;color:${god>=budget&&budget>0?'var(--green)':god>0?'var(--t1)':'var(--t4)'">${fh(god)}</div>
+        <div style="font-size:10px;color:var(--t4);margin-top:4px">${pct}% av budget</div>
+      </div>
+      <div class="info-cell">
+        <div class="info-cell-label">Begärd</div>
+        <div class="info-cell-value" style="font-size:20px;color:${beg>0?'var(--amber)':'var(--t4)'">${fh(beg)}</div>
+        <div style="font-size:10px;color:var(--t4);margin-top:4px">väntar godkännande</div>
+      </div>
+      <div class="info-cell" style="${diff<0?'border:1px solid var(--red)':diff<budget*.15&&budget>0?'border:1px solid var(--amber)':''}">
+        <div class="info-cell-label">Diff (bud − god)</div>
+        <div class="info-cell-value" style="font-size:20px;color:${diff<0?'var(--red)':diff===0?'var(--green)':'var(--t1)'">${diff>0?'+':''}${fh(diff)}</div>
+        <div style="font-size:10px;color:var(--t4);margin-top:4px">${diff<0?'övertilldelad':diff===0?'exakt':'kvar att bemanna'}</div>
+      </div>
+    </div>
+    <div style="height:6px;background:var(--bg3);border-radius:3px;overflow:hidden;margin-bottom:16px;position:relative">
+      <div style="position:absolute;height:100%;width:${pct}%;background:var(--green)"></div>
       ${begPct>0?`<div style="position:absolute;height:100%;left:${pct}%;width:${begPct}%;background:var(--amber)"></div>`:''}
     </div>
-    <div style="font-size:11px;color:var(--t4)">${pct}% · ${fh(god)} godkänd${beg>0?' + '+fh(beg)+' begärd':''} / ${budget?fh(budget):'?h'}</div>
-    <div class="info-grid">
-      <div class="info-cell"><div class="info-cell-label">Budget</div><div class="info-cell-value">${budget?fh(budget):'—'}</div></div>
-      <div class="info-cell"><div class="info-cell-label">Godkänd</div><div class="info-cell-value" style="color:var(--green)">${fh(god)}</div></div>
+
+    <!-- ── Bemanning (Gantt) ── -->
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+      <div class="section-title" style="margin:0">Bemanning · Tidslinje</div>
+      ${canAssign?`<button class="btn-sm" onclick="openPicker(${k.id})" style="background:var(--blue);color:#fff">+ Lägg till person</button>`:''}
     </div>
-    ${godkanda.length?`<div class="section-title">✓ Godkända (${godkanda.length})</div>${godkanda.map(b=>bRow(b,canApprove)).join('')}`:''}
-    ${begarda.length?`<div class="section-title">⏳ Begärda (${begarda.length})</div>${begarda.map(b=>bRow(b,canApprove)).join('')}`:''}
-    ${utkast.length?`<div class="section-title">✏ Utkast (${utkast.length})</div>${utkast.map(b=>bRow(b,false)).join('')}`:''}
-    ${canAssign?`<button class="btn-add" onclick="openPicker(${k.id})">+ Tilldela lärare</button>`:''}
+    ${bels.length?`
+    <div style="background:var(--bg2);border:1px solid var(--bg3);border-radius:8px;padding:10px 12px;overflow-x:auto">
+      <!-- Gantt header: månadsmarkeringar -->
+      <div style="display:flex;align-items:flex-end;gap:0;padding-bottom:6px;border-bottom:1px solid var(--bg3);margin-bottom:2px">
+        <div style="width:${colW}px;flex-shrink:0;font-size:9px;color:var(--t4);font-weight:700;text-transform:uppercase;letter-spacing:.06em">Person</div>
+        <div style="flex:1;position:relative;height:14px;min-width:80px">${monthLabels}${todayVis?`<div style="position:absolute;top:0;bottom:0;left:${todayP}%;width:2px;background:var(--red);opacity:.7"></div>`:''}</div>
+        <div style="width:150px;padding-left:8px;font-size:9px;color:var(--t4);font-weight:700;text-transform:uppercase;letter-spacing:.06em">Timmar · Status</div>
+      </div>
+      ${ganttRows}
+      ${hasEstimates?`<div style="font-size:10px;color:var(--t4);margin-top:8px;padding-top:6px;border-top:1px solid var(--bg3)">
+        <span style="opacity:.5;margin-right:6px">▇</span>* Exakta datum ej satta — stapeln visar hela kursperioden. Redigera beläggningen för att ange lärarens faktiska period.
+      </div>`:''}
+    </div>`
+    :`<div class="empty-state"><div class="empty-icon">👥</div><div style="color:var(--t3);font-weight:600">Inga lärare tilldelade</div>
+       <div style="font-size:12px">${canAssign?'Klicka "+ Lägg till person" för att tilldela':'Kontakta STR för tilldelning'}</div></div>`}
   </div>`;
 }
 
