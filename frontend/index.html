@@ -1546,9 +1546,9 @@ function renderPicker() {
         </div>
         <div class="hours-row" style="margin-top:8px">
           <label style="font-size:12px;color:var(--t4)">Period för läraren (valfritt):</label>
-          <input type="date" lang="sv" id="pk-bs" class="hours-input" style="width:140px" value="${S.pickerBelStart||''}" oninput="S.pickerBelStart=this.value"/>
+          <input type="text" id="pk-bs" class="hours-input" style="width:130px" placeholder="ÅÅÅÅ-MM-DD" value="${S.pickerBelStart||''}" oninput="S.pickerBelStart=this.value"/>
           <span style="color:var(--t4)">–</span>
-          <input type="date" lang="sv" id="pk-be" class="hours-input" style="width:140px" value="${S.pickerBelSlut||''}" oninput="S.pickerBelSlut=this.value"/>
+          <input type="text" id="pk-be" class="hours-input" style="width:130px" placeholder="ÅÅÅÅ-MM-DD" value="${S.pickerBelSlut||''}" oninput="S.pickerBelSlut=this.value"/>
         </div>
         ${S.pickerValMsg?`<div class="val-msg ${S.pickerValMsg.typ==='fel'?'err':'warn'}">${S.pickerValMsg.meddelande}</div>`:''}
       </div>
@@ -1661,9 +1661,9 @@ function renderBemanningDialog() {
       </div>
       <div style="display:flex;align-items:center;gap:8px">
         <label style="font-size:11px;color:var(--t4);white-space:nowrap">Lärarens period (valfritt):</label>
-        <input type="date" lang="sv" class="hours-input" style="flex:1" value="${d.belStart||''}" oninput="S.bemanningDialog.belStart=this.value"/>
+        <input type="text" class="hours-input" style="flex:1" placeholder="ÅÅÅÅ-MM-DD" value="${d.belStart||''}" oninput="S.bemanningDialog.belStart=this.value"/>
         <span style="color:var(--t4)">–</span>
-        <input type="date" lang="sv" class="hours-input" style="flex:1" value="${d.belSlut||''}" oninput="S.bemanningDialog.belSlut=this.value"/>
+        <input type="text" class="hours-input" style="flex:1" placeholder="ÅÅÅÅ-MM-DD" value="${d.belSlut||''}" oninput="S.bemanningDialog.belSlut=this.value"/>
       </div>
     </div>` : '';
 
@@ -1721,10 +1721,10 @@ function renderBemanningDialog() {
       <div style="margin-bottom:8px">
         <label style="font-size:11px;color:var(--t4);display:block;margin-bottom:3px">Period (valfritt — lämna tomt för hela planeringsåret)</label>
         <div style="display:flex;align-items:center;gap:8px">
-          <input type="date" lang="sv" class="hours-input" style="flex:1" placeholder="Startdatum" value="${d.uppdragStart||''}"
+          <input type="text" class="hours-input" style="flex:1" placeholder="ÅÅÅÅ-MM-DD" value="${d.uppdragStart||''}"
             oninput="S.bemanningDialog.uppdragStart=this.value"/>
           <span style="color:var(--t4)">–</span>
-          <input type="date" lang="sv" class="hours-input" style="flex:1" placeholder="Slutdatum" value="${d.uppdragSlut||''}"
+          <input type="text" class="hours-input" style="flex:1" placeholder="ÅÅÅÅ-MM-DD" value="${d.uppdragSlut||''}"
             oninput="S.bemanningDialog.uppdragSlut=this.value"/>
         </div>
       </div>
@@ -2023,11 +2023,11 @@ function renderPersonEditForm() {
       </div>
       <div class="form-field">
         <label class="form-label">Giltig från</label>
-        <input class="form-input" type="date" lang="sv" value="${d.giltig_fran}" oninput="editField('giltig_fran',this.value)"/>
+        <input class="form-input" type="text" placeholder="ÅÅÅÅ-MM-DD" value="${d.giltig_fran}" oninput="editField('giltig_fran',this.value)"/>
       </div>
       <div class="form-field">
         <label class="form-label">Giltig till (tomt = tillsvidare)</label>
-        <input class="form-input" type="date" lang="sv" value="${d.giltig_till}" oninput="editField('giltig_till',this.value)"/>
+        <input class="form-input" type="text" placeholder="ÅÅÅÅ-MM-DD" value="${d.giltig_till}" oninput="editField('giltig_till',this.value)"/>
       </div>
     </div>` : '<div style="color:var(--t4);font-size:12px;margin:8px 0">Ingen anställningsrad — lägg till via backend.</div>'}
 
