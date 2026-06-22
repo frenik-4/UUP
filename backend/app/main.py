@@ -5,7 +5,7 @@ from sqlalchemy import text
 
 from app.database import Base, engine, SessionLocal
 from app.config import settings
-from app.routers import auth, personal, kurser, avdelningar, perioder
+from app.routers import auth, personal, kurser, avdelningar, perioder, installningar
 
 app = FastAPI(title="UUP — Universitetsbemanningssystem", version="0.1.0")
 
@@ -21,6 +21,7 @@ app.include_router(personal.router)
 app.include_router(kurser.router)
 app.include_router(avdelningar.router)
 app.include_router(perioder.router)
+app.include_router(installningar.router)
 
 
 @app.on_event("startup")

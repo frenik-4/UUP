@@ -4,8 +4,10 @@ from sqlalchemy import extract
 from sqlalchemy.orm import Session, selectinload
 
 from app.database import get_db
-from app.models.core import Person, PersonKategori, PersonKategoriTyp, Kursbelaggning, Kurs, Planeringsperiod
-from app.schemas.core import PersonListOut, PersonDetailOut, TidskontoDel, ValideringsResultat, KapacitetOut, PersonBelaggningOut
+from app.models.core import Person, PersonKategori, PersonKategoriTyp, Kursbelaggning, Kurs, Planeringsperiod, Anstallning
+from app.schemas.core import (PersonListOut, PersonDetailOut, TidskontoDel, ValideringsResultat,
+                               KapacitetOut, PersonBelaggningOut, PersonUpdate, AnstallningOut,
+                               AnstallningUpdate, AnstallningCreate)
 from app.services.calculations import berakna_tidskonto, validera_belaggning
 
 router = APIRouter(prefix="/personal", tags=["personal"])
@@ -80,6 +82,42 @@ def lista_personal(
 @router.get("/{person_id}", response_model=PersonDetailOut)
 def hamta_person(person_id: int, db: Session = Depends(get_db)):
     return PersonDetailOut.model_validate(_load_person(db, person_id))
+
+
+@router.patch("/{person_id}", response_model=PersonDetailOut)
+def uppdatera_person(person_id: int, body: PersonUpdate, db: Session = Depends(get_db)):
+    p = _load_person(db, person_id)
+    for field, value in body.model_dump(exclude_unset=True).items():
+        setattr(p, field, value)
+    db.commit()
+    return PersonDetailOut.model_validate(_load_person(db, person_id))
+
+
+@router.post("/{person_id}/anstallning", response_model=AnstallningOut, status_code=201)
+def skapa_anstallning(person_id: int, body: AnstallningCreate, db: Session = Depends(get_db)):
+    _load_person(db, person_id)
+    anst = Anstallning(person_id=person_id, **body.model_dump())
+    db.add(anst)
+    db.commit()
+    db.refresh(anst)
+    return AnstallningOut.model_validate(anst)
+
+
+@router.patch("/{person_id}/anstallning/{anst_id}", response_model=AnstallningOut)
+def uppdatera_anstallning(person_id: int, anst_id: int, body: AnstallningUpdate, db: Session = Depends(get_db)):
+    anst = db.query(Anstallning).filter(Anstallning.id == anst_id, Anstallning.person_id == person_id).first()
+    if not anst:
+        raise HTTPException(404, "Anställning finns inte")
+    data = body.model_dump(exclude_unset=True)
+    if data.pop("clear_fok_override", False):
+        anst.fok_pct_override = None
+    if data.pop("clear_kollegialt_override", False):
+        anst.kollegialt_pct_override = None
+    for field, value in data.items():
+        setattr(anst, field, value)
+    db.commit()
+    db.refresh(anst)
+    return AnstallningOut.model_validate(anst)
 
 
 @router.get("/{person_id}/tidskonto", response_model=TidskontoDel)

@@ -226,6 +226,38 @@ body{background:var(--bg0);color:var(--t1);font-family:system-ui,sans-serif;font
 .spinner{width:20px;height:20px;border:2px solid var(--bg3);border-top-color:var(--blue);border-radius:50%;animation:spin .7s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
 ::-webkit-scrollbar{width:6px}::-webkit-scrollbar-track{background:var(--bg0)}::-webkit-scrollbar-thumb{background:var(--bg3);border-radius:3px}
+
+/* Edit form */
+.edit-form{background:var(--bg1);border:1px solid var(--bg3);border-radius:10px;padding:20px}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.form-grid.wide{grid-template-columns:1fr}
+.form-field{display:flex;flex-direction:column;gap:5px}
+.form-label{font-size:11px;font-weight:700;color:var(--t4);text-transform:uppercase;letter-spacing:.05em}
+.form-input{background:var(--bg2);border:1px solid var(--bg3);border-radius:6px;padding:8px 11px;color:var(--t1);font-size:13px;outline:none;width:100%}
+.form-input:focus{border-color:var(--blue)}
+.form-select{background:var(--bg2);border:1px solid var(--bg3);border-radius:6px;padding:8px 11px;color:var(--t1);font-size:13px;outline:none;width:100%;cursor:pointer}
+.form-select:focus{border-color:var(--blue)}
+.form-section{margin:16px 0 8px;font-size:11px;font-weight:700;color:var(--t4);text-transform:uppercase;letter-spacing:.07em;padding-bottom:6px;border-bottom:1px solid var(--bg2)}
+.form-actions{display:flex;gap:8px;margin-top:16px;justify-content:flex-end}
+.btn-save{background:var(--blue);border:none;border-radius:6px;padding:8px 20px;color:#fff;font-size:13px;font-weight:600;cursor:pointer}
+.btn-save:hover{background:#2563eb}
+.btn-save:disabled{opacity:.4;cursor:not-allowed}
+.btn-edit{background:var(--bg2);border:1px solid var(--bg3);border-radius:6px;padding:6px 14px;color:var(--t3);font-size:12px;cursor:pointer}
+.btn-edit:hover{border-color:var(--blue);color:var(--blue)}
+.form-msg{font-size:12px;padding:8px 12px;border-radius:5px;margin-top:8px}
+.form-msg.ok{background:#064e3b;color:#6ee7b7;border:1px solid #065f46}
+.form-msg.err{background:#2d1515;color:#fca5a5;border:1px solid #7f1d1d}
+
+/* Settings page */
+.settings-section{background:var(--bg2);border:1px solid var(--bg3);border-radius:8px;padding:16px;margin-bottom:16px}
+.settings-row{display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--bg3)}
+.settings-row:last-child{border-bottom:none}
+.settings-key{flex:1}
+.settings-key-name{font-size:13px;font-weight:600}
+.settings-key-desc{font-size:11px;color:var(--t4);margin-top:2px}
+.settings-val{width:100px;text-align:right}
+.settings-input{width:90px;background:var(--bg1);border:1px solid var(--bg3);border-radius:5px;padding:5px 8px;color:var(--t1);font-size:14px;font-weight:700;text-align:right;outline:none}
+.settings-input:focus{border-color:var(--blue)}
 </style>
 </head>
 <body>
@@ -233,7 +265,7 @@ body{background:var(--bg0);color:var(--t1);font-family:system-ui,sans-serif;font
 <script>
 'use strict';
 const API = '/api';
-const VERSION = '0.2.2';
+const VERSION = '0.2.4';
 
 let S = {
   token: localStorage.getItem('uup_token'),
@@ -259,9 +291,12 @@ let S = {
   selectedKurs:null, kursDetail:null, bemanFilter:'all', bemanSearch:'',
   // person overlay
   personOverlay:null, personBelList:null,
+  personEditMode:false, personEditData:null,
   // picker
   pickerKursId:null, pickerPersonId:null, pickerTimmar:60,
   pickerStatus:'begard', pickerSearch:'', pickerValMsg:null,
+  // installningar
+  installningar:null, installSaving:false, installMsg:null,
   pendingCount:0, loginErr:'', loginLoading:false,
 };
 
@@ -304,6 +339,7 @@ function logout() {
   Object.assign(S,{token:null,user:null,view:'dashboard',avdelningar:null,perioder:null,
     personal:null,kurser:null,kapacitet:null,kursCache:{},kontoCache:{},belaggningsCache:{},
     selectedKurs:null,kursDetail:null,personOverlay:null,personBelList:null,
+    personEditMode:false,personEditData:null,installningar:null,installSaving:false,installMsg:null,
     pendingCount:0,loginErr:'',loginLoading:false,activePeriodId:null,year:2026,
     teamSearch:'',kapSearch:'',persSearch:'',bemanSearch:''});
   render();
@@ -447,7 +483,8 @@ function navItems() {
     {id:'kapacitet',icon:'📈', label:'Kapacitetskarta',   roles:['sysadmin','prefekt','avdc','str_roll']},
     {id:'rapporter',icon:'🔍', label:'Rapporter',         roles:['sysadmin','prefekt','avdc','hr','ekonom']},
     {id:'personal', icon:'🗂', label:'Personal',          roles:['sysadmin','prefekt','hr','avdc','str_roll']},
-    {id:'budget',   icon:'💰', label:'Budget & uppdrag',  roles:['sysadmin','ekonom','prefekt']},
+    {id:'budget',        icon:'💰', label:'Budget & uppdrag',  roles:['sysadmin','ekonom','prefekt']},
+    {id:'installningar', icon:'⚙',  label:'Inställningar',     roles:['sysadmin','prefekt']},
   ].filter(i=>!r||i.roles.includes(r));
 }
 
@@ -561,11 +598,18 @@ function renderPersonOverlay() {
   const pk=(S.kapacitet||[]).find(p=>p.person_id===personId);
   const pl=(S.personal||[]).find(p=>p.id===personId);
   const person=pk||pl;
+  if (S.personEditMode) return `<div class="person-overlay"><div class="person-overlay-inner">
+    <button class="back-btn" onclick="cancelPersonEdit()">← Tillbaka</button>
+    <div style="font-size:18px;font-weight:700;margin-bottom:16px">Redigera person</div>
+    ${renderPersonEditForm()}
+  </div></div>`;
+
   if (!konto||!bels) return `<div class="person-overlay"><div class="person-overlay-inner">
     <button class="back-btn" onclick="closePersonOverlay()">← Tillbaka</button>${loadingHtml()}
   </div></div>`;
 
   const r=role(), canApprove=['avdc','sysadmin','prefekt'].includes(r);
+  const canEdit=['avdc','sysadmin','prefekt'].includes(r);
   const avail=+(konto.tillganglig_undervisning)||0, god=+(konto.undervisning_godkand)||0, beg=+(konto.undervisning_begard)||0;
   const gPct=avail>0?Math.min(100,god/avail*100):0, bPct=avail>0?Math.min(100-gPct,beg/avail*100):0;
   const udRows=(konto.uppdrag_detaljer||[]).map(u=>
@@ -586,7 +630,10 @@ function renderPersonOverlay() {
 
   return `<div class="person-overlay">
     <div class="person-overlay-inner">
-      <button class="back-btn" onclick="closePersonOverlay()">← Tillbaka</button>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px">
+        <button class="back-btn" style="margin-bottom:0" onclick="closePersonOverlay()">← Tillbaka</button>
+        ${canEdit?`<button class="btn-edit" onclick="openPersonEdit()">✏ Redigera</button>`:''}
+      </div>
       <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px">
         ${av({person_id:personId,initialer:person?.initialer||'?'},44)}
         <div>
@@ -1136,6 +1183,94 @@ function renderRapporter() {
     </div>`;
 }
 
+// ── RENDER: INSTÄLLNINGAR ────────────────────────────────────────────────────
+function renderInstallningar() {
+  if (!S.installningar) return `<div class="page-title">Inställningar</div>${loadingHtml()}`;
+  const inst = S.installningar;
+  const val = key => inst.find(i=>i.key===key)?.value||'';
+  const desc = key => inst.find(i=>i.key===key)?.beskrivning||key;
+
+  const fokKeys = ['fok_pct_professor','fok_pct_docent','fok_pct_lektor','fok_pct_adjunkt'];
+  const tidsKeys = ['brutto_timmar_35d','brutto_timmar_31d','brutto_timmar_28d'];
+
+  return `<div class="page-title">Inställningar</div>
+    <div class="page-sub">Globala standardvärden · Individuella overrides görs på personen</div>
+    ${S.installMsg?`<div class="form-msg ${S.installMsg.ok?'ok':'err'}">${S.installMsg.text}</div>`:''}
+
+    <div class="section-title">FOK — Forskning, Omvärld, Kompetensutveckling</div>
+    <div class="settings-section">
+      ${fokKeys.map(k=>`<div class="settings-row">
+        <div class="settings-key">
+          <div class="settings-key-name">${desc(k)}</div>
+          <div class="settings-key-desc">${k}</div>
+        </div>
+        <div class="settings-val">
+          <input class="settings-input" type="number" min="0" max="100" step="1"
+            id="inst_${k}" value="${val(k)}" oninput="installChanged()"/> %
+        </div>
+      </div>`).join('')}
+    </div>
+
+    <div class="section-title">Kollegial tid</div>
+    <div class="settings-section">
+      <div class="settings-row">
+        <div class="settings-key">
+          <div class="settings-key-name">${desc('kollegialt_pct')}</div>
+          <div class="settings-key-desc">kollegialt_pct</div>
+        </div>
+        <div class="settings-val">
+          <input class="settings-input" type="number" min="0" max="100" step="1"
+            id="inst_kollegialt_pct" value="${val('kollegialt_pct')}" oninput="installChanged()"/> %
+        </div>
+      </div>
+    </div>
+
+    <div class="section-title">Arbetstid (bruttotimmar per semesterklass)</div>
+    <div class="settings-section">
+      ${tidsKeys.map(k=>`<div class="settings-row">
+        <div class="settings-key">
+          <div class="settings-key-name">${desc(k)}</div>
+          <div class="settings-key-desc">${k}</div>
+        </div>
+        <div class="settings-val">
+          <input class="settings-input" type="number" min="1000" max="2500" step="1"
+            id="inst_${k}" value="${val(k)}" oninput="installChanged()"/> h
+        </div>
+      </div>`).join('')}
+    </div>
+
+    <div class="form-actions">
+      <button class="btn-save" id="inst-save-btn" onclick="saveInstallningar()" ${S.installSaving?'disabled':''}>
+        ${S.installSaving?'Sparar…':'Spara inställningar'}
+      </button>
+    </div>`;
+}
+
+function installChanged() {
+  S.installMsg = null;
+  document.getElementById('inst-save-btn')?.removeAttribute('disabled');
+}
+
+async function saveInstallningar() {
+  const keys = ['fok_pct_professor','fok_pct_docent','fok_pct_lektor','fok_pct_adjunkt',
+                 'kollegialt_pct','brutto_timmar_35d','brutto_timmar_31d','brutto_timmar_28d'];
+  const updates = {};
+  for (const k of keys) {
+    const el = document.getElementById('inst_'+k);
+    if (el) updates[k] = el.value;
+  }
+  S.installSaving = true; rc();
+  try {
+    S.installningar = await api('/installningar', {method:'PUT', body:JSON.stringify({updates})});
+    S.installMsg = {ok:true, text:'Inställningar sparade.'};
+    // Clear tidskonto cache so recalculations pick up new values
+    S.kontoCache = {}; S.kapacitet = null;
+  } catch(e) {
+    S.installMsg = {ok:false, text:'Fel vid sparning: '+(e.detail||'okänt fel')};
+  }
+  S.installSaving = false; rc();
+}
+
 // ── PICKER ────────────────────────────────────────────────────────────────────
 function renderPicker() {
   const kurs=(S.kurser||[]).find(k=>k.id===S.pickerKursId); if (!kurs) return '';
@@ -1147,7 +1282,7 @@ function renderPicker() {
   return `<div class="modal-bg" onclick="if(event.target===this)closePicker()">
     <div class="modal" onclick="event.stopPropagation()">
       <div class="modal-header">
-        <div class="modal-title">Tilldela lärare — ${kurs.namn}</div>
+        <div class="modal-title">Tilldela person — ${kurs.namn}</div>
         <button class="modal-close" onclick="closePicker()">×</button>
       </div>
       <div class="modal-body">
@@ -1223,7 +1358,7 @@ async function openPersonOverlay(personId) {
   render();
 }
 
-function closePersonOverlay(){ S.personOverlay=null; S.personBelList=null; render(); }
+function closePersonOverlay(){ S.personOverlay=null; S.personBelList=null; S.personEditMode=false; S.personEditData=null; render(); }
 
 function closePersonOverlayGoKurs(kursId){
   S.personOverlay=null; S.personBelList=null; S.view='bemanning'; render();
@@ -1239,8 +1374,189 @@ async function approveAsgOverlay(id, godkand) {
   render();
 }
 
+// ── PERSON EDIT ───────────────────────────────────────────────────────────────
+async function openPersonEdit() {
+  const {personId} = S.personOverlay;
+  S.personEditMode = true; S.personEditData = null; rc();
+  const p = await api('/personal/'+personId);
+  const anst = (p.anstallningar||[])[0] || {};
+  S.personEditData = {
+    id: p.id,
+    namn: p.namn, initialer: p.initialer,
+    titel_typ: p.titel_typ||'', titel_display: p.titel_display||'',
+    amnesomrade: p.amnesomrade||'',
+    personalkategori: p.personalkategori, kategori_typ: p.kategori_typ,
+    fran_organisation: p.fran_organisation||'',
+    avdelning_id: p.avdelning_id||'',
+    aktiv: p.aktiv,
+    anst_id: anst.id||null,
+    tjanstgoringspct: anst.tjanstgoringspct||100,
+    brutto_timmar: anst.brutto_timmar||1975,
+    semester_timmar: anst.semester_timmar||275,
+    fok_pct_override: anst.fok_pct_override??'',
+    kollegialt_pct_override: anst.kollegialt_pct_override??'',
+    giltig_fran: anst.giltig_fran||'',
+    giltig_till: anst.giltig_till||'',
+    anv_epost: p.anvandare?.epost||'',
+    saveMsg: null, saving: false,
+  };
+  rc();
+}
+
+function cancelPersonEdit() { S.personEditMode=false; S.personEditData=null; rc(); }
+
+function editField(f, v) { if (S.personEditData) { S.personEditData[f]=v; S.personEditData.saveMsg=null; } }
+
+function renderPersonEditForm() {
+  const d = S.personEditData;
+  if (!d) return loadingHtml();
+  const avdOpts = (S.avdelningar||[]).map(a=>`<option value="${a.id}" ${d.avdelning_id==a.id?'selected':''}>${a.namn}</option>`).join('');
+  const titelTyper = ['','professor','docent','lektor','adjunkt','doktorand','forskare','forskarassistent','provutvecklare','annan'];
+  const titelOpts = titelTyper.map(t=>`<option value="${t}" ${d.titel_typ===t?'selected':''}>${t||'— ingen —'}</option>`).join('');
+  const katOpts = ['undervisande','administrativ','teknisk','extern'].map(k=>`<option value="${k}" ${d.personalkategori===k?'selected':''}>${k}</option>`).join('');
+  const katTypOpts = ['anstalld','inlanad','extern'].map(k=>`<option value="${k}" ${d.kategori_typ===k?'selected':''}>${k}</option>`).join('');
+
+  return `<div class="edit-form">
+    <div class="form-section">Grunduppgifter</div>
+    <div class="form-grid">
+      <div class="form-field">
+        <label class="form-label">Namn</label>
+        <input class="form-input" value="${d.namn}" oninput="editField('namn',this.value)"/>
+      </div>
+      <div class="form-field">
+        <label class="form-label">Initialer</label>
+        <input class="form-input" maxlength="5" value="${d.initialer}" oninput="editField('initialer',this.value)"/>
+      </div>
+      <div class="form-field">
+        <label class="form-label">Titeltyp</label>
+        <select class="form-select" onchange="editField('titel_typ',this.value)">${titelOpts}</select>
+      </div>
+      <div class="form-field">
+        <label class="form-label">Titeldisplay (fritext)</label>
+        <input class="form-input" value="${d.titel_display}" oninput="editField('titel_display',this.value)"/>
+      </div>
+      <div class="form-field">
+        <label class="form-label">Ämnesområde</label>
+        <input class="form-input" value="${d.amnesomrade}" oninput="editField('amnesomrade',this.value)"/>
+      </div>
+      <div class="form-field">
+        <label class="form-label">Avdelning</label>
+        <select class="form-select" onchange="editField('avdelning_id',+this.value||null)">
+          <option value="">— ingen —</option>${avdOpts}
+        </select>
+      </div>
+      <div class="form-field">
+        <label class="form-label">Personalkategori</label>
+        <select class="form-select" onchange="editField('personalkategori',this.value)">${katOpts}</select>
+      </div>
+      <div class="form-field">
+        <label class="form-label">Kategori typ</label>
+        <select class="form-select" onchange="editField('kategori_typ',this.value)">${katTypOpts}</select>
+      </div>
+      <div class="form-field">
+        <label class="form-label">Från organisation (extern/inlånad)</label>
+        <input class="form-input" value="${d.fran_organisation}" oninput="editField('fran_organisation',this.value)"/>
+      </div>
+      <div class="form-field" style="display:flex;align-items:center;gap:10px;padding-top:20px">
+        <input type="checkbox" id="aktiv-cb" ${d.aktiv?'checked':''} onchange="editField('aktiv',this.checked)" style="width:16px;height:16px;cursor:pointer"/>
+        <label for="aktiv-cb" class="form-label" style="margin:0;cursor:pointer">Aktiv</label>
+      </div>
+    </div>
+
+    ${d.anst_id ? `<div class="form-section">Anställning</div>
+    <div class="form-grid">
+      <div class="form-field">
+        <label class="form-label">Tjänstgöringsgrad %</label>
+        <input class="form-input" type="number" min="0" max="100" step="1" value="${d.tjanstgoringspct}" oninput="editField('tjanstgoringspct',+this.value)"/>
+      </div>
+      <div class="form-field">
+        <label class="form-label">Bruttotimmar</label>
+        <input class="form-input" type="number" min="0" value="${d.brutto_timmar}" oninput="editField('brutto_timmar',+this.value)"/>
+      </div>
+      <div class="form-field">
+        <label class="form-label">Semestertimmar</label>
+        <input class="form-input" type="number" min="0" value="${d.semester_timmar}" oninput="editField('semester_timmar',+this.value)"/>
+      </div>
+      <div class="form-field">
+        <label class="form-label">FOK% override (tomt = global)</label>
+        <input class="form-input" type="number" min="0" max="100" step="1" placeholder="Globalt default" value="${d.fok_pct_override}" oninput="editField('fok_pct_override',this.value)"/>
+      </div>
+      <div class="form-field">
+        <label class="form-label">Kollegialt% override (tomt = global)</label>
+        <input class="form-input" type="number" min="0" max="100" step="1" placeholder="Globalt default" value="${d.kollegialt_pct_override}" oninput="editField('kollegialt_pct_override',this.value)"/>
+      </div>
+      <div class="form-field">
+        <label class="form-label">Giltig från</label>
+        <input class="form-input" type="date" value="${d.giltig_fran}" oninput="editField('giltig_fran',this.value)"/>
+      </div>
+      <div class="form-field">
+        <label class="form-label">Giltig till (tomt = tillsvidare)</label>
+        <input class="form-input" type="date" value="${d.giltig_till}" oninput="editField('giltig_till',this.value)"/>
+      </div>
+    </div>` : '<div style="color:var(--t4);font-size:12px;margin:8px 0">Ingen anställningsrad — lägg till via backend.</div>'}
+
+    ${d.anv_epost ? `<div class="form-section">Inloggning</div>
+    <div class="form-grid">
+      <div class="form-field">
+        <label class="form-label">E-post (användarnamn)</label>
+        <input class="form-input" value="${d.anv_epost}" disabled style="opacity:.6" title="Ändras ej här ännu"/>
+      </div>
+    </div>` : ''}
+
+    ${d.saveMsg?`<div class="form-msg ${d.saveMsg.ok?'ok':'err'}">${d.saveMsg.text}</div>`:''}
+    <div class="form-actions">
+      <button class="btn-cancel" onclick="cancelPersonEdit()">Avbryt</button>
+      <button class="btn-save" onclick="savePersonEdit()" ${d.saving?'disabled':''}>
+        ${d.saving?'Sparar…':'Spara ändringar'}
+      </button>
+    </div>
+  </div>`;
+}
+
+async function savePersonEdit() {
+  const d = S.personEditData;
+  if (!d) return;
+  d.saving = true; d.saveMsg = null; rc();
+  try {
+    const personBody = {
+      namn: d.namn, initialer: d.initialer,
+      titel_typ: d.titel_typ||null, titel_display: d.titel_display||null,
+      amnesomrade: d.amnesomrade||null, personalkategori: d.personalkategori,
+      kategori_typ: d.kategori_typ, fran_organisation: d.fran_organisation||null,
+      avdelning_id: d.avdelning_id||null, aktiv: d.aktiv,
+    };
+    await api('/personal/'+d.id, {method:'PATCH', body:JSON.stringify(personBody)});
+
+    if (d.anst_id) {
+      const anstBody = {
+        tjanstgoringspct: d.tjanstgoringspct,
+        brutto_timmar: d.brutto_timmar,
+        semester_timmar: d.semester_timmar,
+        giltig_fran: d.giltig_fran||undefined,
+        giltig_till: d.giltig_till||null,
+        clear_fok_override: d.fok_pct_override==='',
+        clear_kollegialt_override: d.kollegialt_pct_override==='',
+      };
+      if (d.fok_pct_override!=='') anstBody.fok_pct_override = +d.fok_pct_override;
+      if (d.kollegialt_pct_override!=='') anstBody.kollegialt_pct_override = +d.kollegialt_pct_override;
+      await api('/personal/'+d.id+'/anstallning/'+d.anst_id, {method:'PATCH', body:JSON.stringify(anstBody)});
+    }
+
+    // Invalidate caches for this person
+    Object.keys(S.kontoCache).filter(k=>k.startsWith(d.id+'_')).forEach(k=>delete S.kontoCache[k]);
+    S.personal = null; S.kapacitet = null;
+    d.saving = false; d.saveMsg = {ok:true, text:'Ändringar sparade.'};
+    await loadBase();
+    rc();
+  } catch(e) {
+    d.saving = false;
+    d.saveMsg = {ok:false, text:'Fel: '+(e.detail||(Array.isArray(e)?e[0]?.msg:'okänt fel'))};
+    rc();
+  }
+}
+
 // ── EVENTS ─────────────────────────────────────────────────────────────────────
-function navigate(view){ S.view=view; S.selectedKurs=null; S.kursDetail=null; S.personOverlay=null; render(); }
+function navigate(view){ S.view=view; S.selectedKurs=null; S.kursDetail=null; S.personOverlay=null; S.personEditMode=false; render(); }
 
 async function selectKurs(id){ S.selectedKurs=id; S.kursDetail=null; rc(); await loadKurs(id); rc(); }
 
@@ -1267,9 +1583,10 @@ function currentView(){
     case 'bemanning': return renderBemanning();
     case 'kapacitet': return renderKapacitet();
     case 'personal':  return renderPersonal();
-    case 'budget':    return renderBudget();
-    case 'rapporter': return renderRapporter();
-    default:          return renderDashboard();
+    case 'budget':        return renderBudget();
+    case 'rapporter':     return renderRapporter();
+    case 'installningar': return renderInstallningar();
+    default:              return renderDashboard();
   }
 }
 
@@ -1284,6 +1601,10 @@ async function render(){
   if ((S.view==='mittteam'||S.view==='kapacitet'||S.view==='rapporter'||(S.view==='dashboard'&&dashNeedsKap))&&!S.kapacitet){
     app.innerHTML=renderShell(loadingHtml());
     await ensureKap();
+  }
+  if (S.view==='installningar'&&!S.installningar){
+    app.innerHTML=renderShell(loadingHtml());
+    try { S.installningar=await api('/installningar'); } catch(e){ console.error(e); }
   }
   app.innerHTML=renderShell(currentView());
 }

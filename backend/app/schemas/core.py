@@ -93,6 +93,7 @@ class PersonDetailOut(PersonListOut):
     anstallningar: list[AnstallningOut]
     uppdrag: list[UppdragOut]
     franvaro: list[FranvaroOut]
+    anvandare: "AnvandareOut | None" = None
 
 
 class KursListOut(BaseModel):
@@ -210,6 +211,52 @@ class AnvandareOut(BaseModel):
     person_id: int | None
     roller: list[AnvandarRollOut]
     model_config = {"from_attributes": True}
+
+
+class PersonUpdate(BaseModel):
+    namn: str | None = None
+    initialer: str | None = None
+    titel_typ: TitelTyp | None = None
+    titel_display: str | None = None
+    amnesomrade: str | None = None
+    personalkategori: PersonKategori | None = None
+    kategori_typ: PersonKategoriTyp | None = None
+    fran_organisation: str | None = None
+    avdelning_id: int | None = None
+    aktiv: bool | None = None
+
+
+class AnstallningUpdate(BaseModel):
+    tjanstgoringspct: Decimal | None = None
+    brutto_timmar: int | None = None
+    semester_timmar: int | None = None
+    fok_pct_override: Decimal | None = None
+    kollegialt_pct_override: Decimal | None = None
+    giltig_fran: date | None = None
+    giltig_till: date | None = None
+    clear_fok_override: bool = False
+    clear_kollegialt_override: bool = False
+
+
+class AnstallningCreate(BaseModel):
+    tjanstgoringspct: Decimal = Decimal("100")
+    brutto_timmar: int = 1975
+    semester_timmar: int = 275
+    fok_pct_override: Decimal | None = None
+    kollegialt_pct_override: Decimal | None = None
+    giltig_fran: date
+    giltig_till: date | None = None
+
+
+class InstallningOut(BaseModel):
+    key: str
+    value: str
+    beskrivning: str | None
+    model_config = {"from_attributes": True}
+
+
+class InstallningBatchUpdate(BaseModel):
+    updates: dict[str, str]
 
 
 class LoginIn(BaseModel):
