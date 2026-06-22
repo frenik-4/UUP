@@ -175,6 +175,7 @@ class Uppdrag(Base):
     planeringsår: Mapped[int] = mapped_column(Integer)
     start_datum: Mapped[date | None] = mapped_column(Date)  # null = hela planeringsåret
     slut_datum: Mapped[date | None] = mapped_column(Date)
+    godkand: Mapped[bool] = mapped_column(Boolean, default=True)
     notering: Mapped[str | None] = mapped_column(Text)
 
     person: Mapped["Person"] = relationship("Person", back_populates="uppdrag")

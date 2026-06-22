@@ -51,6 +51,7 @@ class UppdragOut(BaseModel):
     planeringsår: int
     start_datum: date | None = None
     slut_datum: date | None = None
+    godkand: bool = True
     notering: str | None
     model_config = {"from_attributes": True}
 
@@ -245,6 +246,7 @@ class UppdragCreate(BaseModel):
     planeringsår: int
     start_datum: date | None = None
     slut_datum: date | None = None
+    godkand: bool = True
     notering: str | None = None
 
 

@@ -529,23 +529,27 @@ function renderTimeline(bels, activePeriodId) {
   const todayPct = pct(Date.now());
   const todayVisible = todayPct>=0 && todayPct<=100;
 
-  const statusColor = {godkand:'var(--green)',begard:'var(--amber)',utkast:'var(--t4)',nekad:'var(--red)'};
-  const colW = 90; // px för kurskod-kolumn
+  const statusColor = {godkand:'var(--green)',begard:'var(--amber)',utkast:'var(--bg3)',nekad:'var(--red)'};
+  const colW = 90;
 
   const rows = datedBels.map(({b, d}) => {
     const bS = new Date(d.start).getTime(), bE = new Date(d.slut).getTime();
     const left = pct(bS), right = pct(bE);
     const w = Math.max(0.5, right - left);
     const col = statusColor[b.status]||'var(--t4)';
-    const opacity = d.exact ? 1 : 0.45;
+    const isPending = b.status==='begard'||b.status==='utkast';
+    const opacity = d.exact ? (isPending?0.75:1) : 0.4;
+    const borderStyle = isPending ? `border:2px dashed ${col};box-sizing:border-box;` : '';
+    const bgStyle = isPending ? `background:transparent;${borderStyle}` : `background:${col};`;
     const labelText = fh(b.timmar)+(d.exact?'':'*');
+    const statusIcon = b.status==='begard'?'⏳':b.status==='utkast'?'✏':'';
     return `<div class="tl-row">
       <div class="tl-label" style="width:${colW}px" onclick="closePersonOverlayGoKurs(${b.kurs.id})" title="${b.kurs.namn}">${b.kurs.kod}</div>
       <div class="tl-track">
         ${todayVisible?`<div class="tl-today" style="left:${todayPct}%"></div>`:''}
-        <div class="tl-bar" style="left:${left}%;width:${w}%;background:${col};opacity:${opacity}"
-             title="${b.kurs.namn} · ${fh(b.timmar)} · ${fd(d.start)}–${fd(d.slut)}${d.exact?'':' (perioden, exakt ej satt)'}">
-          ${w>6?`<span class="tl-bar-label">${labelText}</span>`:''}
+        <div class="tl-bar" style="left:${left}%;width:${w}%;${bgStyle}opacity:${opacity}"
+             title="${statusIcon} ${b.kurs.namn} · ${fh(b.timmar)} · ${fd(d.start)}–${fd(d.slut)}${d.exact?'':' (perioden, exakt ej satt)'}">
+          ${w>6?`<span class="tl-bar-label" style="color:${isPending?col:'inherit'}">${statusIcon}${labelText}</span>`:''}
         </div>
       </div>
     </div>`;
@@ -729,10 +733,10 @@ function renderPersonOverlay() {
   const avail=+(konto.tillganglig_undervisning)||0, god=+(konto.undervisning_godkand)||0, beg=+(konto.undervisning_begard)||0;
   const gPct=avail>0?Math.min(100,god/avail*100):0, bPct=avail>0?Math.min(100-gPct,beg/avail*100):0;
   const udRows=(konto.uppdrag_detaljer||[]).map(u=>
-    `<div class="tk-row">
-      <span class="tk-label" style="padding-left:10px">↳ ${u.namn}</span>
+    `<div class="tk-row" style="${!u.godkand?'opacity:.75':''}">
+      <span class="tk-label" style="padding-left:10px">${u.godkand?'↳':'⏳'} ${u.namn}${u.godkand?'':' <span style="font-size:10px;color:var(--amber)">(obekräftad)</span>'}</span>
       <span style="display:flex;align-items:center;gap:6px">
-        <span class="tk-val" style="color:var(--amber)">-${fh(u.timmar)}</span>
+        <span class="tk-val" style="color:${u.godkand?'var(--amber)':'var(--t4)'}">-${fh(u.timmar)}</span>
         ${canEdit?`<button class="btn-sm del" style="padding:0 5px;font-size:11px;line-height:18px" onclick="deleteUppdrag(${personId},${u.id})">✕</button>`:''}
       </span>
     </div>`
@@ -1728,10 +1732,19 @@ function renderBemanningDialog() {
             oninput="S.bemanningDialog.uppdragSlut=this.value"/>
         </div>
       </div>
-      <div>
-        <label style="font-size:11px;color:var(--t4);display:block;margin-bottom:3px">Notering (valfritt)</label>
-        <input class="hours-input" style="width:100%" placeholder="Fritext…" value="${d.notering||''}"
-          oninput="S.bemanningDialog.notering=this.value"/>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <div>
+          <label style="font-size:11px;color:var(--t4);display:block;margin-bottom:3px">Status</label>
+          <select class="sel" style="width:100%" onchange="S.bemanningDialog.uppdragGodkand=this.value==='1';refreshBemanningDialog()">
+            <option value="1" ${d.uppdragGodkand!==false?'selected':''}>Bekräftad</option>
+            <option value="0" ${d.uppdragGodkand===false?'selected':''}>Obekräftad (kräver godkännande)</option>
+          </select>
+        </div>
+        <div>
+          <label style="font-size:11px;color:var(--t4);display:block;margin-bottom:3px">Notering (valfritt)</label>
+          <input class="hours-input" style="width:100%" placeholder="Fritext…" value="${d.notering||''}"
+            oninput="S.bemanningDialog.notering=this.value"/>
+        </div>
       </div>
     </div>`;
 
@@ -1774,7 +1787,7 @@ function refreshBemanningDialog(){
 async function openBemanningDialog(personId) {
   S.bemanningDialog={personId, mode:'kurs', search:'', katalogUppdrag:[],
     selKursId:null, timmar:60, timtyp:'', status:'begard', belStart:'', belSlut:'',
-    selNamn:'', uppdragTyp:'pct_heltid', varde:'', uppdragStart:'', uppdragSlut:'', ar:S.year, notering:'', error:null};
+    selNamn:'', uppdragTyp:'pct_heltid', varde:'', uppdragStart:'', uppdragSlut:'', uppdragGodkand:true, ar:S.year, notering:'', error:null};
   document.getElementById('app').insertAdjacentHTML('beforeend', renderBemanningDialog());
   try {
     const katalog = await api('/personal/uppdrag/katalog');
@@ -1818,6 +1831,7 @@ async function confirmBemanning() {
         namn, typ:d.uppdragTyp, varde:parseFloat(d.varde),
         planeringsår:d.ar||S.year,
         start_datum:d.uppdragStart||null, slut_datum:d.uppdragSlut||null,
+        godkand:d.uppdragGodkand!==false,
         notering:d.notering||null,
       })});
       closeBemanningDialog(); await loadKonto(d.personId); render();

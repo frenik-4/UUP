@@ -125,10 +125,11 @@ def berakna_tidskonto(
         konto.kollegialt_pct = global_kollegialt_pct or DEFAULT_KOLLEGIALT_PCT
     konto.kollegialt_timmar = (konto.netto_bemanningsbar * konto.kollegialt_pct / 100).quantize(Decimal("0.01"))
 
-    # Uppdrag
-    uppdrag_list = [u for u in person.uppdrag if u.planeringsår == planeringsår]
+    # Uppdrag — beräkna för alla, men dra bara av godkända från tillgänglig tid
+    from datetime import date as _date
+    alle_uppdrag = [u for u in person.uppdrag if u.planeringsår == planeringsår]
     totalt_uppdrag = Decimal("0")
-    for u in uppdrag_list:
+    for u in alle_uppdrag:
         v = Decimal(str(u.varde))
         if u.typ == UppdragTyp.pct_heltid:
             timmar = (konto.justerad_heltidsbas * v / 100).quantize(Decimal("0.01"))
@@ -136,9 +137,7 @@ def berakna_tidskonto(
             timmar = (konto.netto_bemanningsbar * v / 100).quantize(Decimal("0.01"))
         else:  # fasta_timmar
             timmar = v
-        # Prorate pct-typer om exakta datum är satta
         if u.start_datum and u.slut_datum and u.typ != UppdragTyp.fasta_timmar:
-            from datetime import date as _date
             year_start = _date(planeringsår, 1, 1)
             year_end = _date(planeringsår, 12, 31)
             eff_start = max(u.start_datum, year_start)
@@ -150,9 +149,11 @@ def berakna_tidskonto(
             else:
                 timmar = Decimal("0")
         konto.uppdrag_detaljer.append({"id": u.id, "namn": u.namn, "typ": u.typ, "timmar": timmar,
+                                        "godkand": u.godkand,
                                         "start_datum": str(u.start_datum) if u.start_datum else None,
                                         "slut_datum": str(u.slut_datum) if u.slut_datum else None})
-        totalt_uppdrag += timmar
+        if u.godkand:
+            totalt_uppdrag += timmar
     konto.uppdrag_timmar_totalt = totalt_uppdrag
 
     konto.tillganglig_undervisning = max(
