@@ -289,7 +289,7 @@ async function doLogin() {
     S.token=res.access_token; S.user=res.anvandare;
     localStorage.setItem('uup_token',S.token); localStorage.setItem('uup_user',JSON.stringify(S.user));
     S.loginLoading=false;
-    S.view=['avdc','str_roll'].includes(role())?'mittteam':'dashboard';
+    S.view='dashboard';
     await loadBase(); render();
   } catch(e) {
     S.loginErr=typeof e.detail==='string'?e.detail:'Inloggning misslyckades';
@@ -405,7 +405,13 @@ function onPeriodChange(val) {
 function filteredKurser() {
   const ks=S.kurser||[];
   if (!S.activePeriodId) return ks;
-  return ks.filter(k=>k.period_id===S.activePeriodId);
+  const sel=(S.perioder||[]).find(p=>p.id===S.activePeriodId);
+  if (!sel) return ks;
+  // Include courses from any period that overlaps with the selected period
+  const overlap=new Set((S.perioder||[])
+    .filter(p=>p.start_datum<=sel.slut_datum && p.slut_datum>=sel.start_datum)
+    .map(p=>p.id));
+  return ks.filter(k=>overlap.has(k.period_id));
 }
 
 // ── RENDER HELPERS ────────────────────────────────────────────────────────────
@@ -435,12 +441,12 @@ function roleName(r){ return {sysadmin:'Sysadmin',prefekt:'Prefekt',avdc:'Avdeln
 function navItems() {
   const r=role();
   return [
-    {id:'mittteam', icon:'👥', label:'Mitt team',        roles:['avdc','str_roll','prefekt','sysadmin']},
     {id:'dashboard',icon:'📊', label:'Dashboard',        roles:['sysadmin','prefekt','avdc','str_roll','ekonom','larare','hr']},
+    {id:'mittteam', icon:'👥', label:'Mitt team',        roles:['avdc','prefekt','sysadmin']},
     {id:'bemanning',icon:'📋', label:'Bemanning',         roles:['sysadmin','prefekt','avdc','str_roll']},
     {id:'kapacitet',icon:'📈', label:'Kapacitetskarta',   roles:['sysadmin','prefekt','avdc','str_roll']},
     {id:'rapporter',icon:'🔍', label:'Rapporter',         roles:['sysadmin','prefekt','avdc','hr','ekonom']},
-    {id:'personal', icon:'🗂', label:'Personal',          roles:['sysadmin','prefekt','hr','avdc']},
+    {id:'personal', icon:'🗂', label:'Personal',          roles:['sysadmin','prefekt','hr','avdc','str_roll']},
     {id:'budget',   icon:'💰', label:'Budget & uppdrag',  roles:['sysadmin','ekonom','prefekt']},
   ].filter(i=>!r||i.roles.includes(r));
 }
@@ -481,13 +487,19 @@ function renderShell(content) {
       <span>${i.icon}</span><span>${i.label}</span>${badge}
     </div>`;
   }).join('');
+  const selPer=(S.perioder||[]).find(p=>p.id===S.activePeriodId);
+  const perLabel=selPer?selPer.namn:'Alla perioder';
   return `<div class="topbar">
     <div class="topbar-left">
       <div class="app-title">UUP <span>BEMANNING</span></div>
-      <select class="period-select" onchange="onPeriodChange(this.value)">
-        <option value="all" ${!S.activePeriodId?'selected':''}>Alla perioder</option>
-        ${perioder}
-      </select>
+      <div style="display:flex;align-items:center;gap:6px">
+        <span style="font-size:10px;font-weight:700;color:var(--t4);text-transform:uppercase;letter-spacing:.06em">Period</span>
+        <select class="period-select" onchange="onPeriodChange(this.value)">
+          <option value="all" ${!S.activePeriodId?'selected':''}>Alla perioder</option>
+          ${perioder}
+        </select>
+        ${selPer?`<span style="font-size:11px;font-weight:700;color:var(--blue);background:#0f1e3a;border:1px solid #1e3a6e;border-radius:4px;padding:2px 7px">${perLabel}</span>`:''}
+      </div>
     </div>
     <div class="topbar-right">
       <div class="user-pill">
@@ -705,38 +717,189 @@ function renderMittteam() {
     </div>`;
 }
 
-// ── RENDER: DASHBOARD ─────────────────────────────────────────────────────────
+// ── RENDER: DASHBOARD (router) ────────────────────────────────────────────────
 function renderDashboard() {
-  const ks=filteredKurser(), ps=S.personal||[];
-  const full=ks.filter(k=>kursStatus(k)==='full').length, ej=ks.filter(k=>kursStatus(k)==='unstaffed').length;
-  const del=ks.filter(k=>kursStatus(k)==='partial').length, pend=ks.filter(k=>+(k.bemannat_begard)>0).length;
-  const und=ps.filter(p=>p.personalkategori==='undervisande'&&p.kategori_typ==='anstalld').length;
+  const r=role();
+  if (r==='avdc')     return renderDashAvdc();
+  if (r==='str_roll') return renderDashStr();
+  if (r==='prefekt')  return renderDashPrefekt();
+  if (r==='sysadmin') return renderDashAdmin();
+  return renderDashGeneric();
+}
+
+function _dashAlerts(ks, team) {
   const alerts=[];
-  if (ej>0)   alerts.push({c:'red',  i:'✗',t:`${ej} kurs${ej>1?'er':''} saknar lärare`,b:ks.filter(k=>kursStatus(k)==='unstaffed').map(k=>k.namn).slice(0,6).join(' · ')});
-  if (del>0)  alerts.push({c:'amber',i:'△',t:`${del} kurs${del>1?'er':''} delvis bemannad${del>1?'e':''}`,b:ks.filter(k=>kursStatus(k)==='partial').map(k=>k.namn).slice(0,6).join(' · ')});
-  if (pend>0) alerts.push({c:'blue', i:'⏳',t:`${pend} begäran väntar på godkännande`,b:'Gå till Mitt team eller Bemanning för att granska.'});
-  const rows=ks.slice(0,8).map(k=>`<tr class="clickable-row" onclick="navigate('bemanning');setTimeout(()=>selectKurs(${k.id}),80)">
+  const ej=ks.filter(k=>kursStatus(k)==='unstaffed');
+  const del=ks.filter(k=>kursStatus(k)==='partial');
+  const pend=ks.filter(k=>+(k.bemannat_begard)>0);
+  if (team) {
+    const over=team.filter(p=>+(p.undervisning_godkand)>+(p.tillganglig_undervisning));
+    const tPend=team.filter(p=>+(p.undervisning_begard)>0);
+    if (over.length>0) alerts.push({c:'red',i:'⚠',t:`${over.length} person${over.length>1?'er':''} övertilldelad${over.length>1?'e':''}`,b:over.map(p=>p.namn).join(' · ')});
+    if (tPend.length>0) alerts.push({c:'amber',i:'⏳',t:`${tPend.length} person${tPend.length>1?'er':''} med begärda timmar`,b:'Gå till Mitt team för att granska.'});
+  }
+  if (ej.length>0) alerts.push({c:'red',i:'✗',t:`${ej.length} kurs${ej.length>1?'er':''} saknar lärare`,b:ej.map(k=>k.namn).slice(0,5).join(' · ')});
+  if (del.length>0) alerts.push({c:'amber',i:'△',t:`${del.length} kurs${del.length>1?'er':''} delvis bemannad${del.length>1?'e':''}`,b:del.map(k=>k.namn).slice(0,5).join(' · ')});
+  if (!team&&pend.length>0) alerts.push({c:'blue',i:'⏳',t:`${pend.length} kurs${pend.length>1?'er':''} med begärd bemanning`,b:'Gå till Bemanning för att granska.'});
+  return alerts.map(a=>`<div class="alert ${a.c}"><div class="alert-icon">${a.i}</div><div><div class="alert-title">${a.t}</div><div class="alert-body">${a.b}</div></div></div>`).join('');
+}
+
+function _kursTable(ks, limit) {
+  const rows=(limit?ks.slice(0,limit):ks).map(k=>`<tr class="clickable-row" onclick="navigate('bemanning');setTimeout(()=>selectKurs(${k.id}),80)">
     <td><span class="badge gray" style="font-size:10px">${periodName(k.period_id)}</span></td>
-    <td style="font-weight:600">${k.namn}</td><td>${statusBadge(kursStatus(k))}</td>
+    <td style="font-weight:600">${k.namn}</td>
+    <td style="color:var(--t4)">${k.hp} hp</td>
+    <td>${statusBadge(kursStatus(k))}</td>
     <td style="color:var(--t3)">${fh(k.bemannat_godkand)} / ${+(k.budget_timmar)?fh(k.budget_timmar):'?h'}</td>
   </tr>`).join('');
+  return `<div class="data-table-wrap"><table class="data-table">
+    <thead><tr><th>Period</th><th>Kurs</th><th>Poäng</th><th>Status</th><th>Timmar</th></tr></thead>
+    <tbody>${rows}</tbody>
+  </table></div>
+  ${limit&&ks.length>limit?`<div style="text-align:center;margin-top:8px"><span style="color:var(--blue);font-size:12px;cursor:pointer" onclick="navigate('bemanning')">Visa alla ${ks.length} kurser →</span></div>`:''}`;
+}
+
+// AvdC: personal-fokus — team-status + åtgärdslista
+function renderDashAvdc() {
+  if (!S.kapacitet) return `<div class="page-title">Dashboard</div>${loadingHtml()}`;
+  const myAvdId=avdId();
+  const team=S.kapacitet.filter(p=>p.personalkategori==='undervisande'&&(!myAvdId||p.avdelning_id===myAvdId));
+  const ks=filteredKurser();
+  const over=team.filter(p=>+(p.undervisning_godkand)>+(p.tillganglig_undervisning));
+  const pending=team.filter(p=>+(p.undervisning_begard)>0);
+  const ksEj=ks.filter(k=>kursStatus(k)==='unstaffed').length;
+  const avdNamn=(S.avdelningar||[]).find(a=>a.id===myAvdId)?.namn||'Mitt team';
+  const perLabel=(S.perioder||[]).find(p=>p.id===S.activePeriodId)?.namn||S.year;
+
+  // Priority people: over-allocated or has pending, sorted by belagd% desc
+  const prio=[...new Set([...over,...pending,...team.filter(p=>+(p.belaggningspct)>90)])]
+    .sort((a,b)=>+(b.belaggningspct)-+(a.belaggningspct)).slice(0,8);
+
   return `<div class="page-title">Dashboard</div>
-    <div class="page-sub">Institutionen för pedagogik och specialpedagogik · ${S.year}</div>
+    <div class="page-sub">${avdNamn} · ${perLabel}</div>
     <div class="stat-grid">
-      <div class="stat-card"><div class="stat-label">Personal</div><div class="stat-value">${ps.length}</div><div class="stat-sub">${und} undervisande anst.</div></div>
+      <div class="stat-card"><div class="stat-label">Personal i teamet</div><div class="stat-value">${team.length}</div><div class="stat-sub">undervisande</div></div>
+      <div class="stat-card ${pending.length>0?'amber':''}"><div class="stat-label">Väntar godkännande</div><div class="stat-value">${pending.length}</div><div class="stat-sub">person${pending.length!==1?'er':''} med begärda timmar</div></div>
+      <div class="stat-card ${over.length>0?'red':''}"><div class="stat-label">Övertilldelad</div><div class="stat-value">${over.length}</div><div class="stat-sub">person${over.length!==1?'er':''}</div></div>
+      <div class="stat-card ${ksEj>0?'red':''}"><div class="stat-label">Kurser utan lärare</div><div class="stat-value">${ksEj}</div><div class="stat-sub">av ${ks.length} kurser</div></div>
+    </div>
+    ${_dashAlerts(ks, team)}
+    ${prio.length?`<div class="section-title" style="margin-top:16px">Kräver uppmärksamhet</div>
+    <div class="data-table-wrap"><table class="data-table">
+      <thead><tr><th>Namn</th><th>Belagd%</th><th>Återstår</th><th>Status</th></tr></thead>
+      <tbody>${prio.map(p=>{
+        const isOver=+(p.undervisning_godkand)>+(p.tillganglig_undervisning);
+        const isPend=+(p.undervisning_begard)>0;
+        return `<tr onclick="openPersonOverlay(${p.person_id})">
+          <td><div style="display:flex;align-items:center;gap:8px">${av(p,24)}<div style="font-weight:600">${p.namn}</div></div></td>
+          <td style="font-weight:700;color:${isOver?'var(--red)':+(p.belaggningspct)>90?'var(--amber)':'var(--t1)'}">${fp(p.belaggningspct)}</td>
+          <td style="color:${+(p.aterstaar_inkl_begard)<0?'var(--red)':'var(--t3)'}">${fh(p.aterstaar_inkl_begard)}</td>
+          <td>${isOver?'<span class="badge red">⚠ Övertid</span>':''}${isPend?'<span class="badge amber">⏳ Begärd</span>':''}</td>
+        </tr>`;}).join('')}
+      </tbody>
+    </table></div>`:''}
+    <div class="section-title" style="margin-top:${prio.length?'8':'16'}px">Kursstatus</div>
+    ${_kursTable(ks, 6)}`;
+}
+
+// STR: kurs-fokus — bemanningsstatus på kurser
+function renderDashStr() {
+  const ks=filteredKurser();
+  const full=ks.filter(k=>kursStatus(k)==='full').length;
+  const ej=ks.filter(k=>kursStatus(k)==='unstaffed').length;
+  const del=ks.filter(k=>kursStatus(k)==='partial').length;
+  const pend=ks.filter(k=>+(k.bemannat_begard)>0).length;
+  const perLabel=(S.perioder||[]).find(p=>p.id===S.activePeriodId)?.namn||S.year;
+  const sorted=[...ks].sort((a,b)=>{
+    const ord={unstaffed:0,partial:1,begard:2,full:3,okand:4};
+    return (ord[kursStatus(a)]||9)-(ord[kursStatus(b)]||9)||a.namn.localeCompare(b.namn,'sv');
+  });
+  return `<div class="page-title">Dashboard</div>
+    <div class="page-sub">Kursöversikt · ${perLabel}</div>
+    <div class="stat-grid">
+      <div class="stat-card"><div class="stat-label">Kurser</div><div class="stat-value">${ks.length}</div></div>
+      <div class="stat-card green"><div class="stat-label">Fullt bemannade</div><div class="stat-value">${full}</div></div>
+      <div class="stat-card ${ej>0?'red':''}"><div class="stat-label">Ej bemannade</div><div class="stat-value">${ej}</div><div class="stat-sub">${del} delvis bemannade</div></div>
+      <div class="stat-card ${pend>0?'amber':''}"><div class="stat-label">Begärda</div><div class="stat-value">${pend}</div><div class="stat-sub">väntar godkännande</div></div>
+    </div>
+    ${_dashAlerts(ks, null)}
+    <div class="section-title" style="margin-top:16px">Alla kurser — prioriterat efter bemanningsstatus</div>
+    ${_kursTable(sorted, null)}`;
+}
+
+// Prefekt: generell sammanfattning
+function renderDashPrefekt() {
+  if (!S.kapacitet) return `<div class="page-title">Dashboard</div>${loadingHtml()}`;
+  const ks=filteredKurser(), ps=S.personal||[];
+  const kap=S.kapacitet.filter(p=>p.personalkategori==='undervisande');
+  const full=ks.filter(k=>kursStatus(k)==='full').length;
+  const ej=ks.filter(k=>kursStatus(k)==='unstaffed').length;
+  const del=ks.filter(k=>kursStatus(k)==='partial').length;
+  const over=kap.filter(p=>+(p.undervisning_godkand)>+(p.tillganglig_undervisning));
+  const pending=kap.filter(p=>+(p.undervisning_begard)>0);
+  const perLabel=(S.perioder||[]).find(p=>p.id===S.activePeriodId)?.namn||S.year;
+  return `<div class="page-title">Dashboard</div>
+    <div class="page-sub">Institutionsöversikt · ${perLabel}</div>
+    <div class="stat-grid">
+      <div class="stat-card"><div class="stat-label">Undervisande personal</div><div class="stat-value">${kap.length}</div><div class="stat-sub">${ps.length} totalt registrerade</div></div>
       <div class="stat-card"><div class="stat-label">Kurser</div><div class="stat-value">${ks.length}</div><div class="stat-sub">${full} fullt bemannade</div></div>
-      <div class="stat-card red"><div class="stat-label">Ej bemannade</div><div class="stat-value">${ej}</div><div class="stat-sub">${del} delvis bemannade</div></div>
-      <div class="stat-card ${pend>0?'amber':''}"><div class="stat-label">Väntar godkännande</div><div class="stat-value">${pend}</div><div class="stat-sub">begärda timmar</div></div>
+      <div class="stat-card ${ej>0?'red':''}"><div class="stat-label">Ej bemannade</div><div class="stat-value">${ej}</div><div class="stat-sub">${del} delvis bemannade</div></div>
+      <div class="stat-card ${over.length>0||pending.length>0?'amber':''}"><div class="stat-label">Avvikelser</div><div class="stat-value">${over.length+pending.length}</div><div class="stat-sub">${over.length} övertid · ${pending.length} begärda</div></div>
     </div>
-    ${alerts.map(a=>`<div class="alert ${a.c}"><div class="alert-icon">${a.i}</div><div><div class="alert-title">${a.t}</div><div class="alert-body">${a.b}</div></div></div>`).join('')}
+    ${_dashAlerts(ks, kap)}
     <div class="section-title" style="margin-top:16px">Kursöversikt</div>
-    <div class="data-table-wrap">
-      <table class="data-table">
-        <thead><tr><th>Period</th><th>Kurs</th><th>Status</th><th>Timmar</th></tr></thead>
-        <tbody>${rows}</tbody>
-      </table>
+    ${_kursTable(ks, 10)}`;
+}
+
+// Admin: avvikelsefokus
+function renderDashAdmin() {
+  if (!S.kapacitet) return `<div class="page-title">Dashboard</div>${loadingHtml()}`;
+  const ks=filteredKurser(), kap=S.kapacitet.filter(p=>p.personalkategori==='undervisande');
+  const over=kap.filter(p=>+(p.undervisning_godkand)>+(p.tillganglig_undervisning));
+  const pending=kap.filter(p=>+(p.undervisning_begard)>0);
+  const utan=ks.filter(k=>kursStatus(k)==='unstaffed');
+  const ingenBudget=ks.filter(k=>!+(k.budget_timmar));
+  const perLabel=(S.perioder||[]).find(p=>p.id===S.activePeriodId)?.namn||S.year;
+  return `<div class="page-title">Dashboard</div>
+    <div class="page-sub">Systemöversikt · Avvikelser · ${perLabel}</div>
+    <div class="stat-grid">
+      <div class="stat-card ${over.length>0?'red':'green'}"><div class="stat-label">Övertilldelad personal</div><div class="stat-value">${over.length}</div></div>
+      <div class="stat-card ${pending.length>0?'amber':''}"><div class="stat-label">Väntande godkännanden</div><div class="stat-value">${pending.length}</div></div>
+      <div class="stat-card ${utan.length>0?'red':'green'}"><div class="stat-label">Kurser utan lärare</div><div class="stat-value">${utan.length}</div></div>
+      <div class="stat-card ${ingenBudget.length>0?'amber':''}"><div class="stat-label">Kurser utan budget</div><div class="stat-value">${ingenBudget.length}</div></div>
     </div>
-    ${ks.length>8?`<div style="text-align:center;margin-top:10px"><span style="color:var(--blue);font-size:12px;cursor:pointer" onclick="navigate('bemanning')">Visa alla ${ks.length} kurser →</span></div>`:''}`;
+    ${_dashAlerts(ks, kap)}
+    ${over.length>0?`<div class="section-title" style="margin-top:16px">Övertilldelad personal</div>
+    <div class="data-table-wrap"><table class="data-table">
+      <thead><tr><th>Namn</th><th>Avdelning</th><th>Tillgänglig</th><th>Godkänd</th><th>Belagd%</th></tr></thead>
+      <tbody>${over.map(p=>`<tr onclick="openPersonOverlay(${p.person_id})">
+        <td style="font-weight:600">${p.namn}</td>
+        <td style="color:var(--t4)">${p.avdelning_namn||'—'}</td>
+        <td style="text-align:right">${fh(p.tillganglig_undervisning)}</td>
+        <td style="color:var(--red);text-align:right">${fh(p.undervisning_godkand)}</td>
+        <td style="color:var(--red);font-weight:700;text-align:right">${fp(p.belaggningspct)}</td>
+      </tr>`).join('')}
+      </tbody>
+    </table></div>`:''}
+    ${utan.length>0?`<div class="section-title" style="margin-top:16px">Kurser utan lärare</div>
+    ${_kursTable(utan, null)}`:''}`;
+}
+
+// Generisk (ekonom, lärare, hr)
+function renderDashGeneric() {
+  const ks=filteredKurser(), ps=S.personal||[];
+  const full=ks.filter(k=>kursStatus(k)==='full').length, ej=ks.filter(k=>kursStatus(k)==='unstaffed').length;
+  const perLabel=(S.perioder||[]).find(p=>p.id===S.activePeriodId)?.namn||S.year;
+  return `<div class="page-title">Dashboard</div>
+    <div class="page-sub">Institutionen för pedagogik och specialpedagogik · ${perLabel}</div>
+    <div class="stat-grid">
+      <div class="stat-card"><div class="stat-label">Personal</div><div class="stat-value">${ps.length}</div></div>
+      <div class="stat-card"><div class="stat-label">Kurser</div><div class="stat-value">${ks.length}</div><div class="stat-sub">${full} fullt bemannade</div></div>
+      <div class="stat-card ${ej>0?'red':''}"><div class="stat-label">Ej bemannade</div><div class="stat-value">${ej}</div></div>
+    </div>
+    ${_dashAlerts(ks, null)}
+    <div class="section-title" style="margin-top:16px">Kursöversikt</div>
+    ${_kursTable(ks, 8)}`;
 }
 
 // ── RENDER: BEMANNING ─────────────────────────────────────────────────────────
@@ -1117,7 +1280,8 @@ async function render(){
     app.innerHTML=renderShell(loadingHtml());
     try{ await loadBase(); }catch(e){ console.error(e); }
   }
-  if ((S.view==='mittteam'||S.view==='kapacitet'||S.view==='rapporter')&&!S.kapacitet){
+  const dashNeedsKap=['avdc','prefekt','sysadmin'].includes(role());
+  if ((S.view==='mittteam'||S.view==='kapacitet'||S.view==='rapporter'||(S.view==='dashboard'&&dashNeedsKap))&&!S.kapacitet){
     app.innerHTML=renderShell(loadingHtml());
     await ensureKap();
   }
