@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.8.0 — 2026-06-23
+
+### Nytt
+- Tidslinje visar nu ALLA aktiviteter: frånvaro, FOK, kollegial tid, forskning/uppdrag och undervisning — hela kalenderåret
+- Tidskontot under Netto har fyra klickbara rader: FOK, Kollegialt, Forskning och Undervisning
+- Klick på rad filtrerar höger panel: forskning visar alla projekt, undervisning visar beläggningar, FOK/kollegialt visar beräkningsdetaljer
+- Tidslinjens kategorier tonas ned (dim) när en kategori är vald — aktiv kategori framhävs
+- "✕ Visa allt"-knapp återställer urvalet
+- Semester visas i tidslinje (orange) separat från övrig frånvaro (röd)
+
 ## 0.7.0 — 2026-06-23
 
 ### Nytt
