@@ -595,6 +595,22 @@ function renderTimeline(bels, konto, franvaro=[], highlightCat=null) {
   const todayMark = todayVisible ? `<div class="tl-today" style="left:${todayPct}%"></div>` : '';
 
   const dim = (cat) => highlightCat && highlightCat!==cat ? 'opacity:0.18;' : '';
+  const yearMs = yearEnd - yearStart;
+
+  // Hours within the visible range, proportional to overlap
+  function overlapH(totalH, itemStart, itemEnd) {
+    const ms = Math.max(0, Math.min(itemEnd, rangeEnd) - Math.max(itemStart, rangeStart));
+    const span = Math.max(1, itemEnd - itemStart);
+    return Math.round(totalH * ms / span);
+  }
+
+  // Bar label: bold period hours + dim total in parens when they differ
+  function tlLabel(periodH, totalH, w, minW=6, icon='') {
+    if (w < minW) return '';
+    if (!selPer || periodH === totalH)
+      return `<span class="tl-bar-label">${icon}${fh(totalH)}</span>`;
+    return `<span class="tl-bar-label">${icon}${fh(periodH)} <span style="opacity:.5;font-size:9px">(${fh(totalH)})</span></span>`;
+  }
 
   function sectionHdr(label) {
     return `<div style="display:flex;align-items:center;margin:5px 0 2px">
@@ -612,12 +628,14 @@ function renderTimeline(bels, konto, franvaro=[], highlightCat=null) {
     const FRLABELS={sjukdom:'Sjukdom',foraldraledighet:'Föräldraled.',tjanstledighet:'Tjänstled.',vab:'VAB',konferens:'Konferens',ovrigt:'Övrigt',semester:'Semester'};
     const typLabel=FRLABELS[f.typ]||f.typ;
     const color=f.typ==='semester'?'var(--amber)':'var(--red)';
+    const pH=f.timmar?overlapH(+(f.timmar),fS,fE):0;
+    const tH=+(f.timmar)||0;
     return `<div class="tl-row" style="${dim('franvaro')}">
       <div class="tl-label" style="width:${colW}px;color:${color};font-size:10px">${typLabel}</div>
       <div class="tl-track">${todayMark}
         <div class="tl-bar" style="left:${left}%;width:${w}%;background:${color};opacity:0.6"
-             title="${typLabel}${f.timmar?' · '+fh(f.timmar):''}${f.start_datum?' · '+fd(f.start_datum)+'–'+fd(f.slut_datum):''}${f.notering?' · '+f.notering:''}">
-          ${w>8?`<span class="tl-bar-label">${f.timmar?fh(f.timmar):''}</span>`:''}
+             title="${typLabel}${tH?' · '+fh(tH):''}${f.start_datum?' · '+fd(f.start_datum)+'–'+fd(f.slut_datum):''}${f.notering?' · '+f.notering:''}">
+          ${tlLabel(pH,tH,w,8)}
         </div>
       </div>
     </div>`;
@@ -625,45 +643,49 @@ function renderTimeline(bels, konto, franvaro=[], highlightCat=null) {
 
   // ── FOK ──────────────────────────────────────────────────────────────────
   const fokTimmar=+(konto?.fok_timmar)||0, fokPct=+(konto?.fok_pct)||0;
+  const fokPH=overlapH(fokTimmar,yearStart,yearEnd);
   const fokRow = fokTimmar>0 ? `<div class="tl-row" style="${dim('fok')}">
     <div class="tl-label" style="width:${colW}px;color:var(--purple);font-size:10px">FOK (${fokPct}%)</div>
     <div class="tl-track">${todayMark}
       <div class="tl-bar" style="left:0%;width:100%;background:var(--purple);opacity:0.45"
-           title="FOK · ${fokPct}% · ${fh(fokTimmar)}">
-        <span class="tl-bar-label">${fh(fokTimmar)}</span>
+           title="FOK · ${fokPct}% · ${fh(fokPH)}${selPer?' i perioden':''} (${fh(fokTimmar)} totalt)">
+        ${tlLabel(fokPH,fokTimmar,100)}
       </div>
     </div>
   </div>` : '';
 
   // ── Kollegialt ───────────────────────────────────────────────────────────
   const kolTimmar=+(konto?.kollegialt_timmar)||0, kolPct=+(konto?.kollegialt_pct)||0;
+  const kolPH=overlapH(kolTimmar,yearStart,yearEnd);
   const kolRow = kolTimmar>0 ? `<div class="tl-row" style="${dim('kollegialt')}">
     <div class="tl-label" style="width:${colW}px;color:var(--blue);font-size:10px">Kollegialt (${kolPct}%)</div>
     <div class="tl-track">${todayMark}
       <div class="tl-bar" style="left:0%;width:100%;background:var(--blue);opacity:0.4"
-           title="Kollegial tid · ${kolPct}% · ${fh(kolTimmar)}">
-        <span class="tl-bar-label">${fh(kolTimmar)}</span>
+           title="Kollegial tid · ${kolPct}% · ${fh(kolPH)}${selPer?' i perioden':''} (${fh(kolTimmar)} totalt)">
+        ${tlLabel(kolPH,kolTimmar,100)}
       </div>
     </div>
   </div>` : '';
 
   // ── Forskning / Uppdrag ──────────────────────────────────────────────────
   const uppdragRows = (konto?.uppdrag_detaljer||[]).map(u => {
-    let left, w;
+    let left, w, uSms, uEms;
     if (u.start_datum && u.slut_datum) {
-      const uS=new Date(u.start_datum).getTime(), uE=new Date(u.slut_datum).getTime();
-      if (uE<rangeStart||uS>rangeEnd) return '';
-      left=pct(Math.max(uS,rangeStart));
-      w=Math.max(0.5, pct(Math.min(uE,rangeEnd))-left);
-    } else { left=0; w=100; }
+      uSms=new Date(u.start_datum).getTime(); uEms=new Date(u.slut_datum).getTime();
+      if (uEms<rangeStart||uSms>rangeEnd) return '';
+      left=pct(Math.max(uSms,rangeStart));
+      w=Math.max(0.5, pct(Math.min(uEms,rangeEnd))-left);
+    } else { left=0; w=100; uSms=yearStart; uEms=yearEnd; }
     const col=u.godkand?'var(--amber)':'var(--t4)';
     const shortNamn=u.namn.length>13?u.namn.slice(0,12)+'…':u.namn;
+    const pH=overlapH(+(u.timmar),uSms,uEms);
+    const tH=+(u.timmar);
     return `<div class="tl-row" style="${dim('forskning')}">
       <div class="tl-label" style="width:${colW}px;font-size:10px;color:${col}" title="${u.namn}">${shortNamn}</div>
       <div class="tl-track">${todayMark}
         <div class="tl-bar" style="left:${left}%;width:${w}%;background:${col};opacity:${u.godkand?0.7:0.35}"
-             title="${u.namn} · ${fh(u.timmar)}${u.start_datum?' · '+fd(u.start_datum)+'–'+fd(u.slut_datum):''}${u.godkand?'':' (obekräftad)'}">
-          ${w>8?`<span class="tl-bar-label">${fh(u.timmar)}</span>`:''}
+             title="${u.namn} · ${fh(pH)}${selPer?' i perioden':''} (${fh(tH)} totalt)${u.start_datum?' · '+fd(u.start_datum)+'–'+fd(u.slut_datum):''}${u.godkand?'':' (obekräftad)'}">
+          ${tlLabel(pH,tH,w,8)}
         </div>
       </div>
     </div>`;
@@ -681,14 +703,16 @@ function renderTimeline(bels, konto, franvaro=[], highlightCat=null) {
     const isPending=b.status==='begard'||b.status==='utkast';
     const fillOpacity=isPending?0.35:1;
     const borderStyle=isPending?`outline:2px dashed ${col};outline-offset:-2px;`:'';
-    const labelText=fh(b.timmar)+(d.exact?'':'*');
-    const statusIcon=b.status==='begard'?'⏳':b.status==='utkast'?'✏':'';
+    const icon=b.status==='begard'?'⏳':b.status==='utkast'?'✏':'';
+    const pH=overlapH(+(b.timmar),bS,bE);
+    const tH=+(b.timmar);
+    const exactMark=d.exact?'':'*';
     return `<div class="tl-row" style="${dim('undervisning')}">
       <div class="tl-label" style="width:${colW}px;font-size:10px;cursor:pointer" onclick="closePersonOverlayGoKurs(${b.kurs.id})" title="${b.kurs.namn}">${b.kurs.kod}</div>
       <div class="tl-track">${todayMark}
         <div class="tl-bar" style="left:${left}%;width:${w}%;background:${col};opacity:${fillOpacity.toFixed(2)};${borderStyle}"
-             title="${statusIcon} ${b.kurs.namn} · ${fh(b.timmar)} · ${fd(d.start)}–${fd(d.slut)}${d.exact?'':' (perioden)'}">
-          ${w>6?`<span class="tl-bar-label">${statusIcon}${labelText}</span>`:''}
+             title="${icon} ${b.kurs.namn} · ${fh(pH)}${selPer?' i perioden':''} (${fh(tH)} totalt) · ${fd(d.start)}–${fd(d.slut)}${d.exact?'':' (perioden)'}">
+          ${tlLabel(pH,tH,w,6,icon+exactMark)}
         </div>
       </div>
     </div>`;
