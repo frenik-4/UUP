@@ -8,6 +8,8 @@ from app.database import get_db
 from app.config import settings
 from app.models.core import Anvandare
 from app.schemas.core import LoginIn, TokenOut, AnvandareOut
+from sqlalchemy.orm import selectinload
+from app.models.core import AnvandarRoll, Avdelning
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -52,3 +54,14 @@ def login(body: LoginIn, db: Session = Depends(get_db)):
 def me(token: str, db: Session = Depends(get_db)):
     user = get_current_user(token, db)
     return AnvandareOut.model_validate(user)
+
+
+@router.get("/users", response_model=list[AnvandareOut])
+def lista_anvandare(db: Session = Depends(get_db)):
+    """Returnerar alla aktiva användare med roller (för dropdowns i edit-formulär)."""
+    users = (db.query(Anvandare)
+             .options(selectinload(Anvandare.roller).selectinload(AnvandarRoll.avdelning))
+             .filter(Anvandare.aktiv == True)
+             .order_by(Anvandare.namn)
+             .all())
+    return [AnvandareOut.model_validate(u) for u in users]

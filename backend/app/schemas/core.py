@@ -130,6 +130,12 @@ class PersonDetailOut(PersonListOut):
     anvandare: "AnvandareOut | None" = None
 
 
+class StrMiniOut(BaseModel):
+    id: int
+    namn: str
+    model_config = {"from_attributes": True}
+
+
 class KursListOut(BaseModel):
     id: int
     kod: str
@@ -139,7 +145,12 @@ class KursListOut(BaseModel):
     amnesomrade: str | None
     period_id: int
     studenter: int | None
+    hst: Decimal | None = None
+    hpr: Decimal | None = None
     budget_timmar: Decimal | None
+    ekonom_person_id: int | None = None
+    primary_str_id: int | None = None
+    notering: str | None = None
     bemannat_godkand: Decimal = Decimal("0")
     bemannat_begard: Decimal = Decimal("0")
     model_config = {"from_attributes": True}
@@ -192,6 +203,8 @@ class BelaggningOut(BaseModel):
 class KursDetailOut(KursListOut):
     timtyper: list[KurstimTypOut]
     belaggningar: list[BelaggningOut]
+    str_info: StrMiniOut | None = None
+    ekonom_info: EkonomMiniOut | None = None
 
 
 class BelaggningCreate(BaseModel):
@@ -350,6 +363,24 @@ class ReduktionsRegelUpdate(BaseModel):
     effekt_varde: Decimal | None = None
     aktiv: bool | None = None
     beskrivning: str | None = None
+
+
+class KursUpdate(BaseModel):
+    namn: str | None = None
+    kod: str | None = None
+    hp: Decimal | None = None
+    niva: str | None = None
+    amnesomrade: str | None = None
+    period_id: int | None = None
+    studenter: int | None = None
+    hst: Decimal | None = None
+    hpr: Decimal | None = None
+    budget_timmar: Decimal | None = None
+    primary_str_id: int | None = None
+    ekonom_person_id: int | None = None
+    notering: str | None = None
+    clear_str: bool = False
+    clear_ekonom: bool = False
 
 
 class LoginIn(BaseModel):

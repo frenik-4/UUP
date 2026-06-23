@@ -283,7 +283,7 @@ body{background:var(--bg0);color:var(--t1);font-family:system-ui,sans-serif;font
 <script>
 'use strict';
 const API = '/api';
-const VERSION = '0.5.0';
+const VERSION = '0.6.0';
 
 let S = {
   token: localStorage.getItem('uup_token'),
@@ -295,12 +295,14 @@ let S = {
   avdelningar: null, perioder: null, personal: null, kurser: null, kapacitet: null,
   kursCache: {}, kontoCache: {}, belaggningsCache: {},
   // sort state: {k: fieldKey, d: 'asc'|'desc'}
-  sortTeam: {k:'belaggningspct', d:'desc'},
-  sortKap:  {k:'belaggningspct', d:'desc'},
-  sortPers: {k:'namn', d:'asc'},
-  sortRapt: {k:'belaggningspct', d:'desc'},
-  sortBudg: {k:'namn', d:'asc'},
-  sortBem:  {k:'namn', d:'asc'},
+  sortTeam:     {k:'belaggningspct', d:'desc'},
+  sortKap:      {k:'belaggningspct', d:'desc'},
+  sortPers:     {k:'namn', d:'asc'},
+  sortRapt:     {k:'belaggningspct', d:'desc'},
+  sortBudg:     {k:'namn', d:'asc'},
+  sortBem:      {k:'namn', d:'asc'},
+  sortFranvaro: {k:'start_datum', d:'desc'},
+  sortProjekt:  {k:'person_namn', d:'asc'},
   // filter/search state
   teamSearch:'', teamAvdFilter:null, teamKatFilter:'all',
   kapSearch:'', kapAvdFilter:null,
@@ -326,6 +328,10 @@ let S = {
   franvaroVyAr:2026, franvaroVyTyp:'all', franvaroVySearch:'', _franvaroVyData:null,
   // schablonsemester
   schablonAr:2026, schablonStart:'', schablonMsg:null, schablonLoading:false,
+  // kurs-redigering
+  kursEditMode:false, kursEditData:null, kursEditSaving:false, kursEditMsg:null,
+  // kursdata extra
+  anvandare:null,
   // projekt
   projektSearch:'', projektKat:'all', projektEkonom:'all', _projektData:null, projektEditDialog:null,
   pendingCount:0, loginErr:'', loginLoading:false,
@@ -392,6 +398,7 @@ function logout() {
     personEditMode:false,personEditData:null,franvaroDialog:null,installningar:null,installSaving:false,installMsg:null,
     regler:null,reglerLaddade:false,regelDialog:null,_franvaroVyData:null,_projektData:null,projektEditDialog:null,
     schablonAr:2026,schablonStart:'',schablonMsg:null,schablonLoading:false,
+    kursEditMode:false,kursEditData:null,kursEditSaving:false,kursEditMsg:null,anvandare:null,
     pendingCount:0,loginErr:'',loginLoading:false,activePeriodId:null,year:2026,
     teamSearch:'',kapSearch:'',persSearch:'',bemanSearch:''});
   render();
@@ -402,10 +409,10 @@ function avdId() { return S.user?.roller.find(r=>r.avdelning)?.avdelning?.id||nu
 
 // ── DATA ─────────────────────────────────────────────────────────────────────
 async function loadBase() {
-  const [avd,per,pers,kurs] = await Promise.all([
-    api('/avdelningar'), api('/perioder'), api('/personal'), api('/kurser')
+  const [avd,per,pers,kurs,anvandare] = await Promise.all([
+    api('/avdelningar'), api('/perioder'), api('/personal'), api('/kurser'), api('/auth/users')
   ]);
-  S.avdelningar=avd; S.perioder=per; S.personal=pers; S.kurser=kurs;
+  S.avdelningar=avd; S.perioder=per; S.personal=pers; S.kurser=kurs; S.anvandare=anvandare;
   if (!S.activePeriodId && per.length) {
     const fy=per.filter(p=>p.typ==='kalenderar').sort((a,b)=>b.start_datum.localeCompare(a.start_datum))[0];
     if (fy) { S.activePeriodId=fy.id; S.year=parseInt(fy.start_datum.substring(0,4)); }
@@ -1342,20 +1349,30 @@ function renderKursDetail(k) {
 
   const hasEstimates=bels.some(b=>!(b.belaggning_start&&b.belaggning_slut));
 
+  const canEditKurs=['sysadmin','prefekt','avdc','ekonom','controller'].includes(r);
+
   return `<div class="detail-pad">
     <!-- ── Kursrubrik ── -->
     <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:14px">
-      <div>
+      <div style="flex:1;min-width:0">
         <div style="font-size:11px;font-weight:700;color:var(--blue);letter-spacing:.05em;text-transform:uppercase;margin-bottom:3px">${k.kod}${k.niva?' · '+k.niva:''}${k.amnesomrade?' · '+k.amnesomrade:''}</div>
         <div style="font-size:17px;font-weight:800;line-height:1.2;margin-bottom:5px">${k.namn}</div>
         <div style="font-size:11px;color:var(--t4);display:flex;gap:12px;flex-wrap:wrap">
           ${per?`<span>📅 ${fd(per.start_datum)} – ${fd(per.slut_datum)}</span>`:''}
           <span>📚 ${k.hp} hp</span>
           ${k.studenter?`<span>👥 ${k.studenter} studenter</span>`:''}
+          ${k.hst!=null?`<span>HST ${(+k.hst).toFixed(1)}</span>`:''}
+          ${k.hpr!=null?`<span>HPR ${(+k.hpr).toFixed(1)}</span>`:''}
+          ${k.str_info?`<span>STR: ${k.str_info.namn}</span>`:''}
+          ${k.ekonom_info?`<span>Ek: ${k.ekonom_info.namn}</span>`:''}
         </div>
       </div>
-      ${statusBadge(kursStatus(k))}
+      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex-shrink:0">
+        ${statusBadge(kursStatus(k))}
+        ${canEditKurs?`<button class="btn-sm" style="font-size:11px;background:var(--bg3)" onclick="${S.kursEditMode?'closeKursEdit()':'openKursEdit(S.kursDetail)'}">${S.kursEditMode?'✕ Stäng':'✏ Redigera'}</button>`:''}
+      </div>
     </div>
+    ${S.kursEditMode&&S.kursEditData?.id===k.id?renderKursEditPanel(k):''}
 
     <!-- ── Budget & bemanningsstatus ── -->
     <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:12px">
@@ -1841,9 +1858,15 @@ function renderFranvaroVy() {
     </div>
     <table class="data-table">
       <thead><tr>
-        <th>Person</th><th>Avd</th><th>Typ</th><th>Start</th><th>Slut</th><th>Timmar</th><th>%</th><th>Notering</th>${kanRedigera?'<th></th>':''}
+        ${th('Person','person_namn','sortFranvaro')}
+        ${th('Avd','avdelning_namn','sortFranvaro')}
+        ${th('Typ','typ','sortFranvaro')}
+        ${th('Start','start_datum','sortFranvaro')}
+        ${th('Slut','slut_datum','sortFranvaro')}
+        ${th('Timmar','timmar','sortFranvaro')}
+        <th>%</th><th>Notering</th>${kanRedigera?'<th></th>':''}
       </tr></thead>
-      <tbody>${rows.map(f=>`<tr>
+      <tbody>${srt(rows,S.sortFranvaro.k,S.sortFranvaro.d).map(f=>`<tr>
         <td><span style="cursor:pointer;color:var(--blue)" onclick="openPersonOverlay(${f.person_id})">${f.person_namn}</span></td>
         <td style="color:var(--t3);font-size:11px">${f.avdelning_namn||'—'}</td>
         <td>
@@ -1932,9 +1955,16 @@ function renderProjekt() {
     </div>
     <table class="data-table">
       <thead><tr>
-        <th>Projekt</th><th>Kategori</th><th>Person</th><th>Avd</th><th>Timmar/år</th><th>År</th><th>Ekonom</th>${canEdit?'<th>Redigera</th>':''}
+        ${th('Projekt','namn','sortProjekt')}
+        ${th('Kategori','projekt_kategori','sortProjekt')}
+        ${th('Person','person_namn','sortProjekt')}
+        ${th('Avd','avdelning_namn','sortProjekt')}
+        ${th('Timmar/år','varde','sortProjekt')}
+        ${th('År','planeringsår','sortProjekt')}
+        ${th('Ekonom','ekonom_namn','sortProjekt')}
+        ${canEdit?'<th></th>':''}
       </tr></thead>
-      <tbody>${rows.map(p=>`<tr>
+      <tbody>${srt(rows,S.sortProjekt.k,S.sortProjekt.d).map(p=>`<tr>
         <td style="font-weight:600">${p.namn}</td>
         <td style="font-size:11px;color:var(--t3)">${PROJ_KAT_LABEL[p.projekt_kategori]||p.projekt_kategori}</td>
         <td><span style="cursor:pointer;color:var(--blue)" onclick="openPersonOverlay(${p.person_id})">${p.person_namn}</span></td>
@@ -2289,6 +2319,143 @@ async function openBemanningDialog(personId) {
 }
 
 function closeBemanningDialog(){ document.querySelector('.modal-bg')?.remove(); S.bemanningDialog=null; }
+
+// ── KURS REDIGERING ──────────────────────────────────────────────────────────
+function openKursEdit(k) {
+  S.kursEditData={
+    id:k.id, namn:k.namn, kod:k.kod, hp:k.hp, niva:k.niva||'',
+    amnesomrade:k.amnesomrade||'', period_id:k.period_id,
+    studenter:k.studenter||'', hst:k.hst||'', hpr:k.hpr||'',
+    budget_timmar:k.budget_timmar||'',
+    primary_str_id:k.primary_str_id||'', str_namn:k.str_info?.namn||'',
+    ekonom_person_id:k.ekonom_person_id||'', ekonom_namn:k.ekonom_info?.namn||'',
+    notering:k.notering||''
+  };
+  S.kursEditMode=true; S.kursEditMsg=null; rc();
+}
+function closeKursEdit() { S.kursEditMode=false; S.kursEditData=null; S.kursEditMsg=null; rc(); }
+
+async function saveKursEdit() {
+  const d=S.kursEditData; if(!d||S.kursEditSaving) return;
+  S.kursEditSaving=true; S.kursEditMsg=null; rc();
+  try {
+    const body={};
+    if(d.namn) body.namn=d.namn;
+    if(d.kod) body.kod=d.kod;
+    if(d.hp!=='') body.hp=parseFloat(d.hp)||0;
+    if(d.niva!==undefined) body.niva=d.niva||null;
+    if(d.amnesomrade!==undefined) body.amnesomrade=d.amnesomrade||null;
+    if(d.period_id) body.period_id=+d.period_id;
+    body.studenter=d.studenter!==''?+d.studenter||null:null;
+    body.hst=d.hst!==''?parseFloat(d.hst)||null:null;
+    body.hpr=d.hpr!==''?parseFloat(d.hpr)||null:null;
+    body.budget_timmar=d.budget_timmar!==''?parseFloat(d.budget_timmar)||null:null;
+    body.primary_str_id=d.primary_str_id!==''?+d.primary_str_id||null:null;
+    body.ekonom_person_id=d.ekonom_person_id!==''?+d.ekonom_person_id||null:null;
+    body.notering=d.notering||null;
+    const updated=await api('/kurser/'+d.id,{method:'PATCH',body:JSON.stringify(body)});
+    S.kursCache[d.id]=updated; S.kursDetail=updated;
+    // Uppdatera kurslistan
+    const idx=S.kurser.findIndex(k=>k.id===d.id);
+    if(idx>=0) { Object.assign(S.kurser[idx], {namn:updated.namn,kod:updated.kod,hp:updated.hp,niva:updated.niva,amnesomrade:updated.amnesomrade,budget_timmar:updated.budget_timmar}); }
+    S.kursEditMode=false; S.kursEditData=null; S.kursEditMsg=null;
+  } catch(e) {
+    S.kursEditMsg={ok:false, text:e.detail||'Kunde inte spara.'};
+  }
+  S.kursEditSaving=false; rc();
+}
+
+function renderKursEditPanel(k) {
+  const d=S.kursEditData; if(!d) return '';
+  const r=role();
+  const isAdmin=r==='sysadmin'||r==='prefekt';
+  const isAvdc=r==='avdc';
+  const isEkonom=r==='ekonom'||r==='controller';
+  // STR-dropdown: användare med str_roll
+  const strUsers=(S.anvandare||[]).filter(u=>u.roller.some(rol=>rol.roll==='str_roll'));
+  // Ekonom-dropdown: personer med ekonom-roll
+  const ekonomPersoner=(S.anvandare||[]).filter(u=>u.roller.some(rol=>rol.roll==='ekonom'||rol.roll==='controller')).map(u=>({id:u.person_id,namn:u.namn})).filter(u=>u.id);
+  const perioder=S.perioder||[];
+
+  return `<div style="background:var(--bg2);border:1px solid var(--blue);border-radius:8px;padding:14px;margin-bottom:16px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+      <div style="font-size:12px;font-weight:700;color:var(--blue);text-transform:uppercase;letter-spacing:.06em">Redigera kurs</div>
+      <button class="btn-sm" style="font-size:11px" onclick="closeKursEdit()">✕ Avbryt</button>
+    </div>
+    ${S.kursEditMsg?`<div class="form-msg ${S.kursEditMsg.ok?'ok':'err'}" style="margin-bottom:10px">${S.kursEditMsg.text}</div>`:''}
+
+    ${isAdmin?`
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
+      <div><label class="form-label">Kursnamn</label>
+        <input type="text" class="form-input" value="${d.namn}" oninput="S.kursEditData.namn=this.value"/>
+      </div>
+      <div><label class="form-label">Kurskod</label>
+        <input type="text" class="form-input" value="${d.kod}" oninput="S.kursEditData.kod=this.value"/>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:10px">
+      <div><label class="form-label">Poäng (HP)</label>
+        <input type="number" class="form-input" step="0.5" value="${d.hp}" oninput="S.kursEditData.hp=this.value"/>
+      </div>
+      <div><label class="form-label">Nivå</label>
+        <select class="sel" style="width:100%" onchange="S.kursEditData.niva=this.value">
+          <option value="">—</option>
+          ${['Grundnivå','Avancerad nivå','Forskarnivå'].map(n=>`<option value="${n}" ${d.niva===n?'selected':''}>${n}</option>`).join('')}
+        </select>
+      </div>
+      <div><label class="form-label">Ämnesområde</label>
+        <input type="text" class="form-input" value="${d.amnesomrade}" oninput="S.kursEditData.amnesomrade=this.value"/>
+      </div>
+    </div>
+    <div style="margin-bottom:10px"><label class="form-label">Period</label>
+      <select class="sel" style="width:100%" onchange="S.kursEditData.period_id=+this.value">
+        ${perioder.map(p=>`<option value="${p.id}" ${d.period_id===p.id?'selected':''}>${p.namn}</option>`).join('')}
+      </select>
+    </div>`:''}
+
+    ${isAdmin||isEkonom?`
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:10px;margin-bottom:10px">
+      <div><label class="form-label">Studenter</label>
+        <input type="number" class="form-input" value="${d.studenter}" oninput="S.kursEditData.studenter=this.value"/>
+      </div>
+      <div><label class="form-label">HST</label>
+        <input type="number" class="form-input" step="0.1" value="${d.hst}" oninput="S.kursEditData.hst=this.value"/>
+      </div>
+      <div><label class="form-label">HPR</label>
+        <input type="number" class="form-input" step="0.1" value="${d.hpr}" oninput="S.kursEditData.hpr=this.value"/>
+      </div>
+      <div><label class="form-label">Budget (h)</label>
+        <input type="number" class="form-input" step="1" value="${d.budget_timmar}" oninput="S.kursEditData.budget_timmar=this.value"/>
+      </div>
+    </div>
+    <div style="margin-bottom:10px"><label class="form-label">Ansvarig ekonom</label>
+      <select class="sel" style="width:100%" onchange="S.kursEditData.ekonom_person_id=this.value">
+        <option value="">— Ingen —</option>
+        ${ekonomPersoner.map(e=>`<option value="${e.id}" ${d.ekonom_person_id==e.id?'selected':''}>${e.namn}</option>`).join('')}
+      </select>
+    </div>`:''}
+
+    ${isAdmin||isAvdc?`
+    <div style="margin-bottom:10px"><label class="form-label">Ansvarig STR</label>
+      <select class="sel" style="width:100%" onchange="S.kursEditData.primary_str_id=this.value">
+        <option value="">— Ingen —</option>
+        ${strUsers.map(u=>`<option value="${u.id}" ${d.primary_str_id==u.id?'selected':''}>${u.namn}</option>`).join('')}
+      </select>
+    </div>`:''}
+
+    ${isAdmin?`
+    <div style="margin-bottom:10px"><label class="form-label">Notering</label>
+      <input type="text" class="form-input" value="${d.notering}" oninput="S.kursEditData.notering=this.value"/>
+    </div>`:''}
+
+    <div style="display:flex;gap:8px;justify-content:flex-end">
+      <button class="btn-cancel" onclick="closeKursEdit()">Avbryt</button>
+      <button class="btn-save" onclick="saveKursEdit()" ${S.kursEditSaving?'disabled':''}>
+        ${S.kursEditSaving?'Sparar…':'Spara ändringar'}
+      </button>
+    </div>
+  </div>`;
+}
 
 // ── FRÅNVARO DIALOG ─────────────────────────────────────────────────────────
 function openFranvaroDialog(personId) {
@@ -2736,13 +2903,14 @@ async function savePersonEdit() {
 // ── EVENTS ─────────────────────────────────────────────────────────────────────
 function navigate(view){
   S.view=view; S.selectedKurs=null; S.kursDetail=null; S.personOverlay=null; S.personEditMode=false;
+  S.kursEditMode=false; S.kursEditData=null; S.kursEditMsg=null;
   if (view==='installningar') { loadRegler(); }
   if (view==='franvaro') { S._franvaroVyData=null; }
   if (view==='projekt') { S._projektData=null; }
   render();
 }
 
-async function selectKurs(id){ S.selectedKurs=id; S.kursDetail=null; rc(); await loadKurs(id); rc(); }
+async function selectKurs(id){ S.selectedKurs=id; S.kursDetail=null; S.kursEditMode=false; S.kursEditData=null; S.kursEditMsg=null; rc(); await loadKurs(id); rc(); }
 
 async function approveAsg(id, godkand){
   await api('/kurser/belaggningar/'+id+'/status',{method:'PATCH',body:JSON.stringify({status:godkand?'godkand':'nekad'})});

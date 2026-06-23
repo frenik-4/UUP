@@ -5,8 +5,9 @@ from sqlalchemy import func
 from sqlalchemy.orm import Session, selectinload
 
 from app.database import get_db
-from app.models.core import Kurs, Kursbelaggning, Person, AssignmentStatus
-from app.schemas.core import KursListOut, KursDetailOut, BelaggningCreate, BelaggningOut, BelaggningGranska
+from app.models.core import Kurs, Kursbelaggning, Person, Anvandare, AssignmentStatus
+from app.schemas.core import (KursListOut, KursDetailOut, BelaggningCreate, BelaggningOut,
+                               BelaggningGranska, KursUpdate, StrMiniOut, EkonomMiniOut)
 from app.routers.auth import get_current_user
 from app.services.calculations import validera_belaggning
 
@@ -35,6 +36,8 @@ def _load_kurs(db: Session, kurs_id: int) -> Kurs:
     k = (db.query(Kurs)
          .options(
              selectinload(Kurs.timtyper),
+             selectinload(Kurs.primary_str),
+             selectinload(Kurs.ekonom),
              selectinload(Kurs.belaggningar).selectinload(Kursbelaggning.person).selectinload(Person.avdelning),
          )
          .filter(Kurs.id == kurs_id)
@@ -42,6 +45,15 @@ def _load_kurs(db: Session, kurs_id: int) -> Kurs:
     if not k:
         raise HTTPException(404, "Kurs finns inte")
     return k
+
+
+def _kurs_to_detail(k: Kurs) -> KursDetailOut:
+    out = KursDetailOut.model_validate(k)
+    if k.primary_str:
+        out.str_info = StrMiniOut(id=k.primary_str.id, namn=k.primary_str.namn)
+    if k.ekonom:
+        out.ekonom_info = EkonomMiniOut(id=k.ekonom.id, namn=k.ekonom.namn, initialer=k.ekonom.initialer)
+    return out
 
 
 @router.get("", response_model=list[KursListOut])
@@ -62,7 +74,23 @@ def lista_kurser(period_id: int | None = None, db: Session = Depends(get_db)):
 
 @router.get("/{kurs_id}", response_model=KursDetailOut)
 def hamta_kurs(kurs_id: int, db: Session = Depends(get_db)):
-    return KursDetailOut.model_validate(_load_kurs(db, kurs_id))
+    return _kurs_to_detail(_load_kurs(db, kurs_id))
+
+
+@router.patch("/{kurs_id}", response_model=KursDetailOut)
+def uppdatera_kurs(kurs_id: int, body: KursUpdate, db: Session = Depends(get_db)):
+    k = db.get(Kurs, kurs_id)
+    if not k:
+        raise HTTPException(404, "Kurs finns inte")
+    data = body.model_dump(exclude_unset=True)
+    if data.pop("clear_str", False):
+        k.primary_str_id = None
+    if data.pop("clear_ekonom", False):
+        k.ekonom_person_id = None
+    for field, value in data.items():
+        setattr(k, field, value)
+    db.commit()
+    return _kurs_to_detail(_load_kurs(db, kurs_id))
 
 
 @router.post("/belaggningar", response_model=BelaggningOut, status_code=201)

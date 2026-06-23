@@ -239,12 +239,16 @@ class Kurs(Base):
     amnesomrade: Mapped[str | None] = mapped_column(String(200))
     period_id: Mapped[int] = mapped_column(ForeignKey("planeringsperioder.id"))
     studenter: Mapped[int | None] = mapped_column(Integer)
+    hst: Mapped[Decimal | None] = mapped_column(Numeric(8, 2))  # Helårsstudenter
+    hpr: Mapped[Decimal | None] = mapped_column(Numeric(8, 2))  # Helårsprestationer
     budget_timmar: Mapped[Decimal | None] = mapped_column(Numeric(8, 2))
     primary_str_id: Mapped[int | None] = mapped_column(ForeignKey("anvandare.id"))
+    ekonom_person_id: Mapped[int | None] = mapped_column(ForeignKey("personer.id"))
     notering: Mapped[str | None] = mapped_column(Text)
 
     period: Mapped["Planeringsperiod"] = relationship("Planeringsperiod", back_populates="kurser")
     primary_str: Mapped["Anvandare | None"] = relationship("Anvandare", foreign_keys=[primary_str_id])
+    ekonom: Mapped["Person | None"] = relationship("Person", foreign_keys=[ekonom_person_id])
     timtyper: Mapped[list["KursTidfordelning"]] = relationship("KursTidfordelning", back_populates="kurs", cascade="all, delete-orphan")
     belaggningar: Mapped[list["Kursbelaggning"]] = relationship("Kursbelaggning", back_populates="kurs")
 

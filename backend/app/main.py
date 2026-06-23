@@ -49,6 +49,10 @@ def _migrate(engine):
         "ALTER TABLE uppdrag ADD COLUMN IF NOT EXISTS ekonom_person_id INTEGER REFERENCES personer(id)",
         # Notering-fält på frånvaro (för äldre DB utan kolumnen)
         "ALTER TABLE franvaro ADD COLUMN IF NOT EXISTS notering TEXT",
+        # Nya kolumner på kurser (HST, HPR, ekonom)
+        "ALTER TABLE kurser ADD COLUMN IF NOT EXISTS hst NUMERIC(8,2)",
+        "ALTER TABLE kurser ADD COLUMN IF NOT EXISTS hpr NUMERIC(8,2)",
+        "ALTER TABLE kurser ADD COLUMN IF NOT EXISTS ekonom_person_id INTEGER REFERENCES personer(id)",
         # Semester-typ i frånvaro-enum
         "ALTER TYPE franvarotyp ADD VALUE IF NOT EXISTS 'semester'",
         # Procent- och schablon-fält på frånvaro
