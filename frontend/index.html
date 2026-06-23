@@ -563,20 +563,29 @@ function getBelaggningDates(b) {
   return null;
 }
 
-// Render Gantt-tidslinje — alla aktiviteter för ett helt planeringsår
+// Render Gantt-tidslinje — alla aktiviteter, range = vald period eller hela året
 function renderTimeline(bels, konto, franvaro=[], highlightCat=null) {
   const year = S.year;
-  const rangeStart = new Date(year, 0, 1).getTime();
-  const rangeEnd   = new Date(year, 11, 31, 23, 59, 59).getTime();
+  const yearStart = new Date(year, 0, 1).getTime();
+  const yearEnd   = new Date(year, 11, 31, 23, 59, 59).getTime();
+
+  // Bestäm synligt intervall från vald period, annars hela året
+  const cp = activeCustomPeriod();
+  const selPer = cp || (S.perioder||[]).find(p=>p.id===S.activePeriodId);
+  const rangeStart = selPer ? new Date(selPer.start_datum).getTime() : yearStart;
+  const rangeEnd   = selPer ? new Date(selPer.slut_datum).getTime()  : yearEnd;
   const totalMs    = rangeEnd - rangeStart;
+  if (totalMs <= 0) return '';
+
   const pct = (ms) => Math.max(0, Math.min(100, (ms - rangeStart) / totalMs * 100));
   const colW = 90;
 
   // Månadsmarkeringar
   const months = [];
-  for (let mo = 0; mo < 12; mo++) {
-    const d = new Date(year, mo, 1);
-    months.push({label: d.toLocaleDateString('sv',{month:'short'}), p: pct(d.getTime())});
+  let m = new Date(new Date(rangeStart).getFullYear(), new Date(rangeStart).getMonth(), 1);
+  while (m.getTime() <= rangeEnd) {
+    months.push({label: m.toLocaleDateString('sv',{month:'short'}), p: pct(m.getTime())});
+    m = new Date(m.getFullYear(), m.getMonth()+1, 1);
   }
   const monthLabels = months.map(({label,p})=>`<div class="tl-month" style="left:${p}%">${label}</div>`).join('');
 
