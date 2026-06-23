@@ -3,7 +3,8 @@ from decimal import Decimal
 from pydantic import BaseModel
 from app.models.core import (
     PersonKategori, PersonKategoriTyp, TitelTyp, UppdragTyp,
-    AssignmentStatus, KurstimTyp, UserRoll, FranvaroTyp
+    AssignmentStatus, KurstimTyp, UserRoll, FranvaroTyp,
+    ReduktionsTriggerTyp, ReduktionsEffektTyp
 )
 
 
@@ -43,6 +44,13 @@ class PersonListOut(BaseModel):
     model_config = {"from_attributes": True}
 
 
+class EkonomMiniOut(BaseModel):
+    id: int
+    namn: str
+    initialer: str
+    model_config = {"from_attributes": True}
+
+
 class UppdragOut(BaseModel):
     id: int
     namn: str
@@ -52,7 +60,10 @@ class UppdragOut(BaseModel):
     start_datum: date | None = None
     slut_datum: date | None = None
     godkand: bool = True
-    notering: str | None
+    notering: str | None = None
+    projekt_kategori: str | None = None
+    ekonom_person_id: int | None = None
+    ekonom: EkonomMiniOut | None = None
     model_config = {"from_attributes": True}
 
 
@@ -291,6 +302,45 @@ class InstallningOut(BaseModel):
 
 class InstallningBatchUpdate(BaseModel):
     updates: dict[str, str]
+
+
+class UppdragUpdate(BaseModel):
+    namn: str | None = None
+    projekt_kategori: str | None = None
+    ekonom_person_id: int | None = None
+    clear_ekonom: bool = False
+
+
+class ReduktionsRegelOut(BaseModel):
+    id: int
+    namn: str
+    trigger_typ: ReduktionsTriggerTyp
+    trigger_varde: str
+    effekt_typ: ReduktionsEffektTyp
+    effekt_varde: Decimal
+    aktiv: bool
+    beskrivning: str | None = None
+    model_config = {"from_attributes": True}
+
+
+class ReduktionsRegelCreate(BaseModel):
+    namn: str
+    trigger_typ: ReduktionsTriggerTyp
+    trigger_varde: str
+    effekt_typ: ReduktionsEffektTyp
+    effekt_varde: Decimal
+    aktiv: bool = True
+    beskrivning: str | None = None
+
+
+class ReduktionsRegelUpdate(BaseModel):
+    namn: str | None = None
+    trigger_typ: ReduktionsTriggerTyp | None = None
+    trigger_varde: str | None = None
+    effekt_typ: ReduktionsEffektTyp | None = None
+    effekt_varde: Decimal | None = None
+    aktiv: bool | None = None
+    beskrivning: str | None = None
 
 
 class LoginIn(BaseModel):

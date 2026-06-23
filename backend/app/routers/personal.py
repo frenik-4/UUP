@@ -8,7 +8,7 @@ from app.models.core import Person, PersonKategori, PersonKategoriTyp, Kursbelag
 from app.schemas.core import (PersonListOut, PersonDetailOut, TidskontoDel, ValideringsResultat,
                                KapacitetOut, PersonBelaggningOut, PersonUpdate, AnstallningOut,
                                AnstallningUpdate, AnstallningCreate, UppdragOut, UppdragCreate,
-                               FranvaroOut, FranvaroCreate)
+                               FranvaroOut, FranvaroCreate, UppdragUpdate)
 from app.services.calculations import berakna_tidskonto, validera_belaggning
 
 router = APIRouter(prefix="/personal", tags=["personal"])
@@ -171,6 +171,61 @@ def person_belaggningar(person_id: int, ar: int | None = None, db: Session = Dep
     return q.order_by(Kursbelaggning.status).all()
 
 
+@router.get("/franvaro/alla")
+def alla_franvaro(ar: int | None = None, db: Session = Depends(get_db)):
+    """Returnerar alla frånvaroposter med person-info, valfritt filtrerat på år."""
+    q = db.query(Franvaro).options(
+        selectinload(Franvaro.person).selectinload(Person.avdelning)
+    )
+    if ar:
+        q = q.filter(Franvaro.planeringsår == ar)
+    rows = q.order_by(Franvaro.start_datum.desc()).all()
+    return [{
+        "id": f.id,
+        "person_id": f.person_id,
+        "person_namn": f.person.namn if f.person else "",
+        "person_initialer": f.person.initialer if f.person else "",
+        "avdelning_namn": f.person.avdelning.kortnamn if f.person and f.person.avdelning else None,
+        "typ": f.typ,
+        "timmar": float(f.timmar),
+        "start_datum": str(f.start_datum),
+        "slut_datum": str(f.slut_datum),
+        "planeringsår": f.planeringsår,
+        "notering": f.notering,
+    } for f in rows]
+
+
+@router.get("/uppdrag/projekt")
+def lista_projekt(ar: int | None = None, kategori: str | None = None, db: Session = Depends(get_db)):
+    """Returnerar uppdrag som har projekt_kategori satt (forskningsprojekt m.m.)."""
+    q = db.query(Uppdrag).options(
+        selectinload(Uppdrag.person).selectinload(Person.avdelning),
+        selectinload(Uppdrag.ekonom),
+    ).filter(Uppdrag.projekt_kategori != None)
+    if ar:
+        q = q.filter(Uppdrag.planeringsår == ar)
+    if kategori:
+        q = q.filter(Uppdrag.projekt_kategori == kategori)
+    rows = q.order_by(Uppdrag.namn).all()
+    return [{
+        "id": u.id,
+        "namn": u.namn,
+        "projekt_kategori": u.projekt_kategori,
+        "typ": u.typ,
+        "varde": float(u.varde),
+        "planeringsår": u.planeringsår,
+        "godkand": u.godkand,
+        "notering": u.notering,
+        "person_id": u.person_id,
+        "person_namn": u.person.namn if u.person else "",
+        "person_initialer": u.person.initialer if u.person else "",
+        "avdelning_namn": u.person.avdelning.kortnamn if u.person and u.person.avdelning else None,
+        "ekonom_person_id": u.ekonom_person_id,
+        "ekonom_namn": u.ekonom.namn if u.ekonom else None,
+        "ekonom_initialer": u.ekonom.initialer if u.ekonom else None,
+    } for u in rows]
+
+
 @router.get("/uppdrag/katalog")
 def lista_uppdrag_katalog(db: Session = Depends(get_db)):
     """Returnerar alla unika uppdragsnamn + vanligaste typ (för autocomplete)."""
@@ -187,6 +242,21 @@ def skapa_uppdrag(person_id: int, body: UppdragCreate, db: Session = Depends(get
     _load_person(db, person_id)
     u = Uppdrag(person_id=person_id, **body.model_dump())
     db.add(u)
+    db.commit()
+    db.refresh(u)
+    return UppdragOut.model_validate(u)
+
+
+@router.patch("/{person_id}/uppdrag/{uppdrag_id}", response_model=UppdragOut)
+def uppdatera_uppdrag(person_id: int, uppdrag_id: int, body: UppdragUpdate, db: Session = Depends(get_db)):
+    u = db.query(Uppdrag).filter(Uppdrag.id == uppdrag_id, Uppdrag.person_id == person_id).first()
+    if not u:
+        raise HTTPException(404, "Uppdrag finns inte")
+    data = body.model_dump(exclude_unset=True)
+    if data.pop("clear_ekonom", False):
+        u.ekonom_person_id = None
+    for field, value in data.items():
+        setattr(u, field, value)
     db.commit()
     db.refresh(u)
     return UppdragOut.model_validate(u)

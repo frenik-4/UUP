@@ -283,7 +283,7 @@ body{background:var(--bg0);color:var(--t1);font-family:system-ui,sans-serif;font
 <script>
 'use strict';
 const API = '/api';
-const VERSION = '0.3.1';
+const VERSION = '0.4.0';
 
 let S = {
   token: localStorage.getItem('uup_token'),
@@ -320,6 +320,12 @@ let S = {
   pickerBelStart:'', pickerBelSlut:'',
   // installningar
   installningar:null, installSaving:false, installMsg:null,
+  // reduktionsregler
+  regler:null, reglerLaddade:false, regelDialog:null,
+  // frånvaroVy
+  franvaroVyAr:2026, franvaroVyTyp:'all', franvaroVySearch:'', _franvaroVyData:null,
+  // projekt
+  projektSearch:'', projektKat:'all', projektEkonom:'all', _projektData:null, projektEditDialog:null,
   pendingCount:0, loginErr:'', loginLoading:false,
 };
 
@@ -382,6 +388,7 @@ function logout() {
     personal:null,kurser:null,kapacitet:null,kursCache:{},kontoCache:{},belaggningsCache:{},
     selectedKurs:null,kursDetail:null,personOverlay:null,personBelList:null,personFranvaro:null,
     personEditMode:false,personEditData:null,franvaroDialog:null,installningar:null,installSaving:false,installMsg:null,
+    regler:null,reglerLaddade:false,regelDialog:null,_franvaroVyData:null,_projektData:null,projektEditDialog:null,
     pendingCount:0,loginErr:'',loginLoading:false,activePeriodId:null,year:2026,
     teamSearch:'',kapSearch:'',persSearch:'',bemanSearch:''});
   render();
@@ -659,14 +666,16 @@ function roleName(r){ return {sysadmin:'Sysadmin',prefekt:'Prefekt',avdc:'Avdeln
 function navItems() {
   const r=role();
   return [
-    {id:'dashboard',icon:'📊', label:'Dashboard',        roles:['sysadmin','prefekt','avdc','str_roll','ekonom','larare','hr']},
-    {id:'mittteam', icon:'👥', label:'Mitt team',        roles:['avdc','prefekt','sysadmin']},
-    {id:'bemanning',icon:'📋', label:'Bemanning',         roles:['sysadmin','prefekt','avdc','str_roll']},
-    {id:'kapacitet',icon:'📈', label:'Kapacitetskarta',   roles:['sysadmin','prefekt','avdc','str_roll']},
-    {id:'rapporter',icon:'🔍', label:'Rapporter',         roles:['sysadmin','prefekt','avdc','hr','ekonom']},
-    {id:'personal', icon:'🗂', label:'Personal',          roles:['sysadmin','prefekt','hr','avdc','str_roll']},
-    {id:'budget',        icon:'💰', label:'Budget & uppdrag',  roles:['sysadmin','ekonom','prefekt']},
-    {id:'installningar', icon:'⚙',  label:'Inställningar',     roles:['sysadmin','prefekt']},
+    {id:'dashboard',    icon:'📊', label:'Dashboard',         roles:['sysadmin','prefekt','avdc','str_roll','ekonom','controller','larare','hr']},
+    {id:'mittteam',     icon:'👥', label:'Mitt team',          roles:['avdc','prefekt','sysadmin']},
+    {id:'bemanning',    icon:'📋', label:'Bemanning',          roles:['sysadmin','prefekt','avdc','str_roll']},
+    {id:'kapacitet',    icon:'📈', label:'Kapacitetskarta',    roles:['sysadmin','prefekt','avdc','str_roll']},
+    {id:'franvaro',     icon:'🏥', label:'Frånvaro',           roles:['sysadmin','prefekt','avdc','str_roll','hr']},
+    {id:'rapporter',    icon:'🔍', label:'Rapporter',          roles:['sysadmin','prefekt','avdc','hr','ekonom','controller']},
+    {id:'personal',     icon:'🗂', label:'Personal',           roles:['sysadmin','prefekt','hr','avdc','str_roll']},
+    {id:'projekt',      icon:'🔬', label:'Forskningsprojekt',  roles:['sysadmin','prefekt','ekonom','controller','avdc']},
+    {id:'budget',       icon:'💰', label:'Budget & uppdrag',   roles:['sysadmin','ekonom','controller','prefekt']},
+    {id:'installningar',icon:'⚙',  label:'Inställningar',      roles:['sysadmin','prefekt']},
   ].filter(i=>!r||i.roles.includes(r));
 }
 
@@ -686,7 +695,8 @@ function renderLogin() {
     <div class="demo-accounts">
       <p>Demokonton (lösenord: <code style="color:var(--t3)">demo1234</code>)</p>
       ${[['Prefekt','prefekt@uup.se'],['AVDC Ped','avdc.ped@uup.se'],['AVDC Spe','avdc.spe@uup.se'],['AVDC Spr','avdc.spr@uup.se'],['AVDC Utb','avdc.utb@uup.se'],
-         ['STR Ped','str.ped@uup.se'],['STR Spe','str.spe@uup.se'],['Admin','admin@uup.se']]
+         ['STR Ped','str.ped@uup.se'],['STR Spe','str.spe@uup.se'],
+         ['Ekonom','ekonom.malin@uup.se'],['Controller','controller@uup.se'],['Admin','admin@uup.se']]
         .map(([l,e])=>`<span class="demo-btn" onclick="fillDemo('${e}')">${l}</span>`).join('')}
     </div>
   </div></div>`;
@@ -1611,7 +1621,30 @@ function renderInstallningar() {
       <button class="btn-save" id="inst-save-btn" onclick="saveInstallningar()" ${S.installSaving?'disabled':''}>
         ${S.installSaving?'Sparar…':'Spara inställningar'}
       </button>
-    </div>`;
+    </div>
+
+    <div class="section-title" style="margin-top:24px">Reduktionsregler — FOK & Kollegialt</div>
+    <div class="page-sub" style="margin-bottom:12px">Regler tillämpas automatiskt vid beräkning. Uppdragsnamn matchas skiftlägesoberoende.</div>
+    ${(S.regler||[]).length?`
+    <table class="data-table" style="margin-bottom:12px">
+      <thead><tr>
+        <th>Namn</th><th>Trigger</th><th>Värde</th><th>Effekt</th><th>%</th><th>Aktiv</th><th></th>
+      </tr></thead>
+      <tbody>${(S.regler||[]).map(r=>`<tr>
+        <td>${r.namn}</td>
+        <td style="font-size:11px;color:var(--t3)">${{uppdrag_namn_innehaller:'Uppdrag innehåller',uppdrag_namn_exact:'Uppdrag exact',kurs_kod_prefix:'Kurskod prefix'}[r.trigger_typ]||r.trigger_typ}</td>
+        <td><code style="background:var(--bg3);padding:2px 5px;border-radius:3px;font-size:11px">${r.trigger_varde}</code></td>
+        <td style="font-size:11px;color:var(--t3)">${{fok_reduktion_pct:'FOK -X% av timmar',kollegialt_pct_multiplikator:'Kollegialt × (1-uppdrag%)'}[r.effekt_typ]||r.effekt_typ}</td>
+        <td>${r.effekt_varde}%</td>
+        <td><span style="color:${r.aktiv?'var(--green)':'var(--t4)'}">${r.aktiv?'Ja':'Nej'}</span></td>
+        <td style="white-space:nowrap">
+          <button class="btn-sm" onclick="toggleRegel(${r.id},${!r.aktiv})" style="font-size:10px">${r.aktiv?'Inaktivera':'Aktivera'}</button>
+          <button class="btn-sm del" onclick="deleteRegel(${r.id})" style="font-size:10px;margin-left:4px">✕</button>
+        </td>
+      </tr>`).join('')}
+      </tbody>
+    </table>`:'<div style="color:var(--t4);font-size:12px;margin-bottom:12px">Inga regler definierade ännu.</div>'}
+    <button class="btn-sm" style="background:var(--blue);color:#fff;padding:6px 14px" onclick="openRegelDialog()">+ Lägg till regel</button>`;
 }
 
 function installChanged() {
@@ -1637,6 +1670,276 @@ async function saveInstallningar() {
     S.installMsg = {ok:false, text:'Fel vid sparning: '+(e.detail||'okänt fel')};
   }
   S.installSaving = false; rc();
+}
+
+// ── REDUKTIONSREGLER ─────────────────────────────────────────────────────────
+async function loadRegler() {
+  if (!S.reglerLaddade) { S.regler=await api('/regler'); S.reglerLaddade=true; rc(); }
+}
+
+async function toggleRegel(id, aktiv) {
+  await api('/regler/'+id, {method:'PATCH', body:JSON.stringify({aktiv})});
+  S.regler=await api('/regler'); S.kontoCache={}; S.kapacitet=null; rc();
+}
+
+async function deleteRegel(id) {
+  if (!confirm('Ta bort regeln?')) return;
+  await api('/regler/'+id, {method:'DELETE'});
+  S.regler=await api('/regler'); S.kontoCache={}; S.kapacitet=null; rc();
+}
+
+function openRegelDialog() {
+  S.regelDialog={namn:'', trigger_typ:'uppdrag_namn_innehaller', trigger_varde:'', effekt_typ:'fok_reduktion_pct', effekt_varde:'', beskrivning:'', saving:false, error:null};
+  document.getElementById('app').insertAdjacentHTML('beforeend', renderRegelDialog());
+}
+
+function closeRegelDialog(){ document.querySelector('.regel-modal')?.remove(); S.regelDialog=null; }
+
+function renderRegelDialog() {
+  const d=S.regelDialog; if(!d) return '';
+  const ttyper=[
+    ['uppdrag_namn_innehaller','Uppdrag innehåller text'],
+    ['uppdrag_namn_exact','Uppdrag exakt matchning'],
+    ['kurs_kod_prefix','Kurskod börjar med'],
+  ];
+  const etyper=[
+    ['fok_reduktion_pct','FOK minskas med X% av triggens timmar'],
+    ['kollegialt_pct_multiplikator','Kollegialt% × (1 − uppdragets% / 100 × X/100)'],
+  ];
+  const exempelText = {
+    fok_reduktion_pct: 'Exempel: trigger=25, värde=20 → projekt med kod "25xxx" reducerar FOK med 20% av projektets timmar.',
+    kollegialt_pct_multiplikator: 'Exempel: trigger="Vice prefekt", värde=100 → Vice prefekt 50% → kollegialt% × (1−0.50) = halveras.'
+  }[d.effekt_typ]||'';
+  return `<div class="modal-bg regel-modal" onclick="if(event.target===this)closeRegelDialog()" style="z-index:200">
+    <div class="modal-card" style="max-width:520px">
+      <div class="modal-title">Ny reduktionsregel</div>
+      ${d.error?`<div style="background:#2d1515;border:1px solid #7f1d1d;border-radius:5px;padding:8px 10px;font-size:12px;color:#fca5a5;margin-bottom:10px">${d.error}</div>`:''}
+      <div class="form-group">
+        <label class="form-label">Namn</label>
+        <input type="text" class="form-input" placeholder="T.ex. Vice prefekt reducerar kollegialt" value="${d.namn}" oninput="S.regelDialog.namn=this.value"/>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <div class="form-group">
+          <label class="form-label">Trigger-typ</label>
+          <select class="sel" style="width:100%" onchange="S.regelDialog.trigger_typ=this.value;refreshRegelDialog()">
+            ${ttyper.map(([v,l])=>`<option value="${v}" ${d.trigger_typ===v?'selected':''}>${l}</option>`).join('')}
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Trigger-värde</label>
+          <input type="text" class="form-input" placeholder="${d.trigger_typ==='kurs_kod_prefix'?'t.ex. 25':'t.ex. Vice prefekt'}" value="${d.trigger_varde}" oninput="S.regelDialog.trigger_varde=this.value"/>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <div class="form-group">
+          <label class="form-label">Effekt-typ</label>
+          <select class="sel" style="width:100%" onchange="S.regelDialog.effekt_typ=this.value;refreshRegelDialog()">
+            ${etyper.map(([v,l])=>`<option value="${v}" ${d.effekt_typ===v?'selected':''}>${l}</option>`).join('')}
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Effekt-värde (%)</label>
+          <input type="number" class="form-input" min="0" max="100" step="0.1" placeholder="t.ex. 20" value="${d.effekt_varde}" oninput="S.regelDialog.effekt_varde=this.value"/>
+        </div>
+      </div>
+      ${exempelText?`<div style="background:var(--bg3);border-radius:5px;padding:8px 10px;font-size:11px;color:var(--t3);margin-bottom:10px">${exempelText}</div>`:''}
+      <div class="form-group">
+        <label class="form-label">Beskrivning (valfritt)</label>
+        <input type="text" class="form-input" placeholder="Förklaring av regeln…" value="${d.beskrivning}" oninput="S.regelDialog.beskrivning=this.value"/>
+      </div>
+      <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px">
+        <button class="btn-cancel" onclick="closeRegelDialog()">Avbryt</button>
+        <button class="btn-save" onclick="saveRegel()" ${d.saving?'disabled':''}>
+          ${d.saving?'Sparar…':'Spara regel'}
+        </button>
+      </div>
+    </div>
+  </div>`;
+}
+
+function refreshRegelDialog(){
+  const e=document.querySelector('.regel-modal'); if(!e) return;
+  const t=document.createElement('div'); t.innerHTML=renderRegelDialog(); e.replaceWith(t.firstChild);
+}
+
+async function saveRegel() {
+  const d=S.regelDialog; if(!d||d.saving) return;
+  if (!d.namn||!d.trigger_varde||!d.effekt_varde) { d.error='Fyll i alla obligatoriska fält.'; refreshRegelDialog(); return; }
+  d.saving=true; d.error=null; refreshRegelDialog();
+  try {
+    await api('/regler',{method:'POST',body:JSON.stringify({
+      namn:d.namn, trigger_typ:d.trigger_typ, trigger_varde:d.trigger_varde,
+      effekt_typ:d.effekt_typ, effekt_varde:parseFloat(d.effekt_varde),
+      beskrivning:d.beskrivning||null, aktiv:true
+    })});
+    S.regler=await api('/regler');
+    S.kontoCache={}; S.kapacitet=null;
+    closeRegelDialog(); rc();
+  } catch(e){ d.saving=false; d.error=e.detail||'Fel vid sparning.'; refreshRegelDialog(); }
+}
+
+// ── FRÅNVARO-VY ─────────────────────────────────────────────────────────────
+async function ensureFranvaroVy() {
+  if (!S._franvaroVyData) {
+    S._franvaroVyData=null;
+    S._franvaroVyData=await api('/personal/franvaro/alla?ar='+S.franvaroVyAr);
+    rc();
+  }
+}
+
+function renderFranvaroVy() {
+  const r=role();
+  if (!S._franvaroVyData) { ensureFranvaroVy(); return `<div class="page-title">Frånvaro</div>${loadingHtml()}`; }
+  let rows=S._franvaroVyData;
+  if (S.franvaroVyTyp!=='all') rows=rows.filter(f=>f.typ===S.franvaroVyTyp);
+  if (S.franvaroVySearch){const q=S.franvaroVySearch.toLowerCase();rows=rows.filter(f=>f.person_namn.toLowerCase().includes(q));}
+  const typNamn={sjukdom:'Sjukdom',foraldraledighet:'Föräldraled.',tjanstledighet:'Tjänstled.',vab:'VAB',konferens:'Konferens',ovrigt:'Övrigt'};
+  const typer=['sjukdom','foraldraledighet','tjanstledighet','vab','konferens','ovrigt'];
+  const totalt=rows.reduce((s,f)=>s+f.timmar,0);
+  return `<div class="page-title">Frånvaro</div>
+    <div class="page-sub">${rows.length} poster · ${Math.round(totalt)}h totalt</div>
+    <div class="table-toolbar" style="margin-bottom:8px">
+      <div class="search-wrap"><input class="toolbar-search" placeholder="Sök person…" value="${S.franvaroVySearch}" oninput="S.franvaroVySearch=this.value;rc()"/></div>
+      <select class="period-select" onchange="S.franvaroVyAr=+this.value;S._franvaroVyData=null;rc()">
+        ${[2024,2025,2026].map(y=>`<option value="${y}" ${S.franvaroVyAr===y?'selected':''}>${y}</option>`).join('')}
+      </select>
+      <span class="filter-chip ${S.franvaroVyTyp==='all'?'active':''}" onclick="S.franvaroVyTyp='all';rc()">Alla</span>
+      ${typer.map(t=>`<span class="filter-chip ${S.franvaroVyTyp===t?'active':''}" onclick="S.franvaroVyTyp='${t}';rc()">${typNamn[t]}</span>`).join('')}
+    </div>
+    <table class="data-table">
+      <thead><tr>
+        <th>Person</th><th>Avd</th><th>Typ</th><th>Start</th><th>Slut</th><th>Timmar</th><th>Notering</th>${r==='sysadmin'||r==='prefekt'||r==='avdc'?'<th></th>':''}
+      </tr></thead>
+      <tbody>${rows.map(f=>`<tr>
+        <td><span style="cursor:pointer;color:var(--blue)" onclick="openPersonOverlay(${f.person_id})">${f.person_namn}</span></td>
+        <td style="color:var(--t3);font-size:11px">${f.avdelning_namn||'—'}</td>
+        <td>${typNamn[f.typ]||f.typ}</td>
+        <td>${fd(f.start_datum)}</td>
+        <td>${fd(f.slut_datum)}</td>
+        <td>${f.timmar?fh(f.timmar):'—'}</td>
+        <td style="font-size:11px;color:var(--t3)">${f.notering||''}</td>
+        ${r==='sysadmin'||r==='prefekt'||r==='avdc'?`<td><button class="btn-sm del" style="font-size:10px;padding:0 5px" onclick="deleteFranvaroVy(${f.person_id},${f.id})">✕</button></td>`:''}
+      </tr>`).join('')}
+      </tbody>
+    </table>`;
+}
+
+async function deleteFranvaroVy(personId, franvaroId) {
+  if (!confirm('Ta bort frånvaro?')) return;
+  await api('/personal/'+personId+'/franvaro/'+franvaroId,{method:'DELETE'});
+  S._franvaroVyData=null; S.kontoCache={}; rc();
+}
+
+// ── PROJEKT-VY ───────────────────────────────────────────────────────────────
+async function ensureProjekt() {
+  if (!S._projektData) {
+    S._projektData=await api('/personal/uppdrag/projekt');
+    rc();
+  }
+}
+
+const PROJEKT_KATEGORIER=['forskning_25','forskning_ub','forskning_guf','forskning_extern','uppdragsutbildning','ovrig_forskning'];
+const PROJ_KAT_LABEL={'forskning_25':'Forskning 25-projekt','forskning_ub':'Forskning UB','forskning_guf':'Forskning GUF','forskning_extern':'Extern forskning','uppdragsutbildning':'Uppdragsutbildning','ovrig_forskning':'Övrig forskning'};
+
+function renderProjekt() {
+  const myEkonomId=S.user?.person_id;
+  const r=role();
+  if (!S._projektData) { ensureProjekt(); return `<div class="page-title">Forskningsprojekt</div>${loadingHtml()}`; }
+  let rows=S._projektData;
+  if (r==='ekonom' && myEkonomId) rows=rows.filter(p=>p.ekonom_person_id===myEkonomId);
+  if (S.projektKat!=='all') rows=rows.filter(p=>p.projekt_kategori===S.projektKat);
+  if (S.projektEkonom!=='all') rows=rows.filter(p=>p.ekonom_person_id===+S.projektEkonom);
+  if (S.projektSearch){const q=S.projektSearch.toLowerCase();rows=rows.filter(p=>p.namn.toLowerCase().includes(q)||p.person_namn.toLowerCase().includes(q));}
+  const ekonomer=[...new Map((S._projektData||[]).filter(p=>p.ekonom_person_id).map(p=>[p.ekonom_person_id,{id:p.ekonom_person_id,namn:p.ekonom_namn}])).values()];
+  const canEdit=r==='sysadmin'||r==='prefekt'||r==='avdc';
+  return `<div class="page-title">Forskningsprojekt</div>
+    <div class="page-sub">${rows.length} projekt</div>
+    <div class="table-toolbar" style="margin-bottom:8px">
+      <div class="search-wrap"><input class="toolbar-search" placeholder="Sök projekt, person…" value="${S.projektSearch}" oninput="S.projektSearch=this.value;rc()"/></div>
+      <select class="period-select" onchange="S.projektKat=this.value;rc()">
+        <option value="all">Alla kategorier</option>
+        ${PROJEKT_KATEGORIER.map(k=>`<option value="${k}" ${S.projektKat===k?'selected':''}>${PROJ_KAT_LABEL[k]||k}</option>`).join('')}
+      </select>
+      ${r!=='ekonom'?`<select class="period-select" onchange="S.projektEkonom=this.value;rc()">
+        <option value="all">Alla ekonomer</option>
+        ${ekonomer.map(e=>`<option value="${e.id}" ${S.projektEkonom==e.id?'selected':''}>${e.namn}</option>`).join('')}
+      </select>`:''}
+    </div>
+    <table class="data-table">
+      <thead><tr>
+        <th>Projekt</th><th>Kategori</th><th>Person</th><th>Avd</th><th>Timmar/år</th><th>År</th><th>Ekonom</th>${canEdit?'<th>Redigera</th>':''}
+      </tr></thead>
+      <tbody>${rows.map(p=>`<tr>
+        <td style="font-weight:600">${p.namn}</td>
+        <td style="font-size:11px;color:var(--t3)">${PROJ_KAT_LABEL[p.projekt_kategori]||p.projekt_kategori}</td>
+        <td><span style="cursor:pointer;color:var(--blue)" onclick="openPersonOverlay(${p.person_id})">${p.person_namn}</span></td>
+        <td style="font-size:11px;color:var(--t3)">${p.avdelning_namn||'—'}</td>
+        <td>${p.typ==='fasta_timmar'?fh(p.varde):p.varde+'%'}</td>
+        <td>${p.planeringsår}</td>
+        <td style="font-size:11px">${p.ekonom_namn||'<span style="color:var(--t4)">—</span>'}</td>
+        ${canEdit?`<td><button class="btn-sm" style="font-size:10px" onclick="openProjektEdit(${p.person_id},${p.id})">Redigera</button></td>`:''}
+      </tr>`).join('')}
+      </tbody>
+    </table>`;
+}
+
+function openProjektEdit(personId, uppdragId) {
+  const proj=(S._projektData||[]).find(p=>p.id===uppdragId); if(!proj) return;
+  S.projektEditDialog={personId, uppdragId, namn:proj.namn, kategori:proj.projekt_kategori||'', ekonom_person_id:proj.ekonom_person_id||'', saving:false, error:null};
+  document.getElementById('app').insertAdjacentHTML('beforeend', renderProjektEditDialog());
+}
+
+function closeProjektEditDialog(){ document.querySelector('.projektedit-modal')?.remove(); S.projektEditDialog=null; }
+
+function renderProjektEditDialog() {
+  const d=S.projektEditDialog; if(!d) return '';
+  const ekonomer=(S.personal||[]).filter(p=>p.titel_display&&(p.titel_display.toLowerCase().includes('ekonom')||p.titel_display.toLowerCase().includes('controller')));
+  return `<div class="modal-bg projektedit-modal" onclick="if(event.target===this)closeProjektEditDialog()" style="z-index:200">
+    <div class="modal-card" style="max-width:440px">
+      <div class="modal-title">Redigera projekt</div>
+      ${d.error?`<div style="color:#fca5a5;font-size:12px;margin-bottom:8px">${d.error}</div>`:''}
+      <div class="form-group">
+        <label class="form-label">Namn</label>
+        <input type="text" class="form-input" value="${d.namn}" oninput="S.projektEditDialog.namn=this.value"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Kategori</label>
+        <select class="sel" style="width:100%" onchange="S.projektEditDialog.kategori=this.value">
+          <option value="">— Välj kategori —</option>
+          ${PROJEKT_KATEGORIER.map(k=>`<option value="${k}" ${d.kategori===k?'selected':''}>${PROJ_KAT_LABEL[k]||k}</option>`).join('')}
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Ansvarig ekonom</label>
+        <select class="sel" style="width:100%" onchange="S.projektEditDialog.ekonom_person_id=this.value">
+          <option value="">— Ingen —</option>
+          ${ekonomer.map(e=>`<option value="${e.id}" ${d.ekonom_person_id==e.id?'selected':''}>${e.namn} (${e.titel_display})</option>`).join('')}
+          ${(S.personal||[]).filter(p=>p.titel_display&&(p.titel_display.toLowerCase().includes('ekonom')||p.titel_display.toLowerCase().includes('controller'))).length===0?(S.personal||[]).filter(p=>p.personalkategori==='administrativ').map(e=>`<option value="${e.id}" ${d.ekonom_person_id==e.id?'selected':''}>${e.namn}</option>`).join(''):''}
+        </select>
+      </div>
+      <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px">
+        <button class="btn-cancel" onclick="closeProjektEditDialog()">Avbryt</button>
+        <button class="btn-save" onclick="saveProjektEdit()" ${d.saving?'disabled':''}>${d.saving?'Sparar…':'Spara'}</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+async function saveProjektEdit() {
+  const d=S.projektEditDialog; if(!d||d.saving) return;
+  d.saving=true; d.error=null;
+  const e=document.querySelector('.projektedit-modal'); if(e){const t=document.createElement('div');t.innerHTML=renderProjektEditDialog();e.replaceWith(t.firstChild);}
+  try {
+    await api('/personal/'+d.personId+'/uppdrag/'+d.uppdragId,{method:'PATCH',body:JSON.stringify({
+      namn:d.namn,
+      projekt_kategori:d.kategori||null,
+      ekonom_person_id:d.ekonom_person_id?+d.ekonom_person_id:null,
+      clear_ekonom:!d.ekonom_person_id
+    })});
+    S._projektData=null;
+    closeProjektEditDialog();
+    await ensureProjekt();
+  } catch(e){ d.saving=false; d.error=e.detail||'Fel.'; const el=document.querySelector('.projektedit-modal');if(el){const t=document.createElement('div');t.innerHTML=renderProjektEditDialog();el.replaceWith(t.firstChild);} }
 }
 
 // ── PICKER ────────────────────────────────────────────────────────────────────
@@ -2345,7 +2648,13 @@ async function savePersonEdit() {
 }
 
 // ── EVENTS ─────────────────────────────────────────────────────────────────────
-function navigate(view){ S.view=view; S.selectedKurs=null; S.kursDetail=null; S.personOverlay=null; S.personEditMode=false; render(); }
+function navigate(view){
+  S.view=view; S.selectedKurs=null; S.kursDetail=null; S.personOverlay=null; S.personEditMode=false;
+  if (view==='installningar') { loadRegler(); }
+  if (view==='franvaro') { S._franvaroVyData=null; }
+  if (view==='projekt') { S._projektData=null; }
+  render();
+}
 
 async function selectKurs(id){ S.selectedKurs=id; S.kursDetail=null; rc(); await loadKurs(id); rc(); }
 
@@ -2382,6 +2691,8 @@ function currentView(){
     case 'personal':  return renderPersonal();
     case 'budget':        return renderBudget();
     case 'rapporter':     return renderRapporter();
+    case 'franvaro':      return renderFranvaroVy();
+    case 'projekt':       return renderProjekt();
     case 'installningar': return renderInstallningar();
     default:              return renderDashboard();
   }

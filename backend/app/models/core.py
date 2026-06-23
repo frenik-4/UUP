@@ -72,6 +72,7 @@ class UserRoll(str, enum.Enum):
     avdc = "avdc"
     str_roll = "str_roll"
     ekonom = "ekonom"
+    controller = "controller"
     larare = "larare"
     hr = "hr"
 
@@ -126,7 +127,7 @@ class Person(Base):
     ansvarig_chef: Mapped["Anvandare | None"] = relationship("Anvandare", foreign_keys=[ansvarig_chef_id])
     anstallningar: Mapped[list["Anstallning"]] = relationship("Anstallning", back_populates="person", order_by="Anstallning.giltig_fran.desc()")
     franvaro: Mapped[list["Franvaro"]] = relationship("Franvaro", back_populates="person")
-    uppdrag: Mapped[list["Uppdrag"]] = relationship("Uppdrag", back_populates="person")
+    uppdrag: Mapped[list["Uppdrag"]] = relationship("Uppdrag", back_populates="person", foreign_keys="Uppdrag.person_id")
     kursbelaggningar: Mapped[list["Kursbelaggning"]] = relationship("Kursbelaggning", back_populates="person")
     anvandare: Mapped["Anvandare | None"] = relationship("Anvandare", back_populates="person", foreign_keys="Anvandare.person_id")
 
@@ -173,12 +174,40 @@ class Uppdrag(Base):
     typ: Mapped[UppdragTyp] = mapped_column(SAEnum(UppdragTyp))
     varde: Mapped[Decimal] = mapped_column(Numeric(8, 2))  # % eller timmar beroende på typ
     planeringsår: Mapped[int] = mapped_column(Integer)
-    start_datum: Mapped[date | None] = mapped_column(Date)  # null = hela planeringsåret
+    start_datum: Mapped[date | None] = mapped_column(Date)
     slut_datum: Mapped[date | None] = mapped_column(Date)
     godkand: Mapped[bool] = mapped_column(Boolean, default=True)
     notering: Mapped[str | None] = mapped_column(Text)
+    projekt_kategori: Mapped[str | None] = mapped_column(String(100))  # t.ex. "forskning_25", "forskning_ub", "uppdrag"
+    ekonom_person_id: Mapped[int | None] = mapped_column(ForeignKey("personer.id"))
 
-    person: Mapped["Person"] = relationship("Person", back_populates="uppdrag")
+    person: Mapped["Person"] = relationship("Person", back_populates="uppdrag", foreign_keys="Uppdrag.person_id")
+    ekonom: Mapped["Person | None"] = relationship("Person", foreign_keys="Uppdrag.ekonom_person_id")
+
+
+# ── Reduktionsregler ─────────────────────────────────────────────────────────
+
+class ReduktionsTriggerTyp(str, enum.Enum):
+    uppdrag_namn_innehaller = "uppdrag_namn_innehaller"  # uppdragsnamn innehåller sträng
+    uppdrag_namn_exact = "uppdrag_namn_exact"            # uppdragsnamn exakt match
+    kurs_kod_prefix = "kurs_kod_prefix"                  # kurskod börjar med
+
+class ReduktionsEffektTyp(str, enum.Enum):
+    fok_reduktion_pct = "fok_reduktion_pct"                      # FOK minskas med X% av uppdragets timmar
+    kollegialt_pct_multiplikator = "kollegialt_pct_multiplikator" # Kollegialt% × (1 - uppdragets_varde/100 × X/100)
+
+class ReduktionsRegel(Base):
+    """Regel för hur uppdrag/kurser reducerar FOK eller Kollegialt."""
+    __tablename__ = "reduktions_regler"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    namn: Mapped[str] = mapped_column(String(300))
+    trigger_typ: Mapped[ReduktionsTriggerTyp] = mapped_column(SAEnum(ReduktionsTriggerTyp))
+    trigger_varde: Mapped[str] = mapped_column(String(200))  # vad som matchas (prefix, substr, exact)
+    effekt_typ: Mapped[ReduktionsEffektTyp] = mapped_column(SAEnum(ReduktionsEffektTyp))
+    effekt_varde: Mapped[Decimal] = mapped_column(Numeric(8, 4))  # %, t.ex. 20.0 = 20%
+    aktiv: Mapped[bool] = mapped_column(Boolean, default=True)
+    beskrivning: Mapped[str | None] = mapped_column(Text)
 
 
 # ── Kurser ───────────────────────────────────────────────────────────────────

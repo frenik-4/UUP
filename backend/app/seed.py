@@ -2222,5 +2222,13 @@ def seed(db: Session):
     anv("str.ped@uup.se", "Lena Lindgren (STR)", [(UserRoll.str_roll, avd_pd, "Pedagogik")], person=p_lena_lindgren)
     anv("str.spr@uup.se", "David Hansson (STR)", [(UserRoll.str_roll, avd_sb, "Språkpedagogik")], person=p_david_hansson)
     anv("str.utb@uup.se", "Johan Andersson (STR)", [(UserRoll.str_roll, avd_ul, "Utbildningsledarskap")], person=p_johan_andersson)
+    # Ekonomer (5 st)
+    anv("ekonom.malin@uup.se", "Malin Bergström (Ekonom)", [(UserRoll.ekonom, None)], person=p_malin_bergström)
+    anv("ekonom.anna@uup.se", "Anna Strömberg (Ekonom)", [(UserRoll.ekonom, None)], person=p_anna_strömberg)
+    anv("ekonom.kristina@uup.se", "Kristina Ekström (Ekonom)", [(UserRoll.ekonom, None)], person=p_kristina_ekström)
+    anv("ekonom.eva@uup.se", "Eva Svensson (Ekonom)", [(UserRoll.ekonom, None)], person=p_eva_svensson)
+    anv("ekonom.sandra@uup.se", "Sandra Larsson (Ekonom)", [(UserRoll.ekonom, None)], person=p_sandra_larsson)
+    # Controller (1 st)
+    anv("controller@uup.se", "Karin Persson (Controller)", [(UserRoll.controller, None)], person=p_karin_persson)
 
     db.commit()

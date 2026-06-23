@@ -23,7 +23,8 @@ from sqlalchemy.orm import Session
 
 from app.models.core import (
     Person, Anstallning, Franvaro, Uppdrag, Kursbelaggning,
-    UppdragTyp, AssignmentStatus, TitelTyp
+    UppdragTyp, AssignmentStatus, TitelTyp, ReduktionsRegel,
+    ReduktionsTriggerTyp, ReduktionsEffektTyp
 )
 
 
@@ -110,7 +111,10 @@ def berakna_tidskonto(
     konto.franvaro_timmar = sum(Decimal(str(f.timmar)) for f in franvaro)
     konto.netto_bemanningsbar = max(Decimal("0"), konto.justerad_heltidsbas - konto.franvaro_timmar)
 
-    # FOK
+    # Ladda aktiva reduktionsregler
+    regler = db.query(ReduktionsRegel).filter(ReduktionsRegel.aktiv == True).all()
+
+    # FOK (basvärde)
     if anst.fok_pct_override is not None:
         konto.fok_pct = Decimal(str(anst.fok_pct_override))
     elif global_fok_overrides and person.titel_typ in global_fok_overrides:
@@ -119,7 +123,7 @@ def berakna_tidskonto(
         konto.fok_pct = DEFAULT_FOK_PCT.get(person.titel_typ, Decimal("0"))
     konto.fok_timmar = (konto.netto_bemanningsbar * konto.fok_pct / 100).quantize(Decimal("0.01"))
 
-    # Kollegialt
+    # Kollegialt (basvärde)
     if anst.kollegialt_pct_override is not None:
         konto.kollegialt_pct = Decimal(str(anst.kollegialt_pct_override))
     else:
@@ -155,6 +159,43 @@ def berakna_tidskonto(
         if u.godkand:
             totalt_uppdrag += timmar
     konto.uppdrag_timmar_totalt = totalt_uppdrag
+
+    # Tillämpa reduktionsregler på FOK och Kollegialt
+    for regel in regler:
+        tv = regel.trigger_varde.lower()
+        matched_timmar = Decimal("0")
+        matched_pct = Decimal("0")
+        for u in alle_uppdrag:
+            if not u.godkand:
+                continue
+            namn = u.namn.lower()
+            match = False
+            if regel.trigger_typ == ReduktionsTriggerTyp.uppdrag_namn_innehaller and tv in namn:
+                match = True
+            elif regel.trigger_typ == ReduktionsTriggerTyp.uppdrag_namn_exact and namn == tv:
+                match = True
+            if match:
+                # Ta fram timmar och %-värde för detta uppdrag
+                for ud in konto.uppdrag_detaljer:
+                    if ud["id"] == u.id:
+                        matched_timmar += ud["timmar"]
+                        matched_pct += Decimal(str(u.varde))
+                        break
+        # Kursbeläggnings-prefix (FOK-reduktion per kurs)
+        if regel.trigger_typ == ReduktionsTriggerTyp.kurs_kod_prefix:
+            for kb in person.kursbelaggningar:
+                if kb.kurs and kb.kurs.kod.lower().startswith(tv):
+                    per = kb.kurs.period if kb.kurs else None
+                    if per and per.start_datum.year == planeringsår:
+                        matched_timmar += Decimal(str(kb.timmar))
+
+        if regel.effekt_typ == ReduktionsEffektTyp.fok_reduktion_pct and matched_timmar > 0:
+            reduktion = (matched_timmar * regel.effekt_varde / 100).quantize(Decimal("0.01"))
+            konto.fok_timmar = max(Decimal("0"), konto.fok_timmar - reduktion)
+        elif regel.effekt_typ == ReduktionsEffektTyp.kollegialt_pct_multiplikator and matched_pct > 0:
+            faktor = max(Decimal("0"), Decimal("1") - matched_pct / 100)
+            konto.kollegialt_pct = (konto.kollegialt_pct * faktor).quantize(Decimal("0.01"))
+            konto.kollegialt_timmar = (konto.netto_bemanningsbar * konto.kollegialt_pct / 100).quantize(Decimal("0.01"))
 
     konto.tillganglig_undervisning = max(
         Decimal("0"),

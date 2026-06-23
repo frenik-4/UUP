@@ -5,7 +5,7 @@ from sqlalchemy import text
 
 from app.database import Base, engine, SessionLocal
 from app.config import settings
-from app.routers import auth, personal, kurser, avdelningar, perioder, installningar
+from app.routers import auth, personal, kurser, avdelningar, perioder, installningar, regler
 
 app = FastAPI(title="UUP — Universitetsbemanningssystem", version="0.1.0")
 
@@ -22,6 +22,7 @@ app.include_router(kurser.router)
 app.include_router(avdelningar.router)
 app.include_router(perioder.router)
 app.include_router(installningar.router)
+app.include_router(regler.router)
 
 
 def _migrate(engine):
@@ -41,6 +42,13 @@ def _migrate(engine):
             JOIN anvandare u ON u.person_id = p.id
             WHERE u.id = ar.anvandare_id
         ) WHERE ar.roll = 'str_roll' AND ar.amnesomrade IS NULL""",
+        # Ny enum-värden
+        "ALTER TYPE userroll ADD VALUE IF NOT EXISTS 'controller'",
+        # Nya kolumner på uppdrag
+        "ALTER TABLE uppdrag ADD COLUMN IF NOT EXISTS projekt_kategori VARCHAR(100)",
+        "ALTER TABLE uppdrag ADD COLUMN IF NOT EXISTS ekonom_person_id INTEGER REFERENCES personer(id)",
+        # Notering-fält på frånvaro (för äldre DB utan kolumnen)
+        "ALTER TABLE franvaro ADD COLUMN IF NOT EXISTS notering TEXT",
     ]
     with engine.connect() as conn:
         for s in stmts:
