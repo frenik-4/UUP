@@ -1,15 +1,19 @@
+from datetime import date as _date
 from decimal import Decimal
 from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy import extract
 from sqlalchemy.orm import Session, selectinload
 
 from app.database import get_db
-from app.models.core import Person, PersonKategori, PersonKategoriTyp, Kursbelaggning, Kurs, Planeringsperiod, Anstallning, Uppdrag, Franvaro
+from app.models.core import (Person, PersonKategori, PersonKategoriTyp, Kursbelaggning,
+                              Kurs, Planeringsperiod, Anstallning, Uppdrag, Franvaro, FranvaroTyp)
 from app.schemas.core import (PersonListOut, PersonDetailOut, TidskontoDel, ValideringsResultat,
                                KapacitetOut, PersonBelaggningOut, PersonUpdate, AnstallningOut,
                                AnstallningUpdate, AnstallningCreate, UppdragOut, UppdragCreate,
-                               FranvaroOut, FranvaroCreate, UppdragUpdate)
+                               FranvaroOut, FranvaroCreate, UppdragUpdate, SchablonsemesterIn)
 from app.services.calculations import berakna_tidskonto, validera_belaggning
+from app.utils.holidays import (svenska_rodadagar, count_working_days,
+                                 semesterdagar_for_alder, berakna_slutdatum,
+                                 fodelsear_fran_personnummer)
 
 router = APIRouter(prefix="/personal", tags=["personal"])
 
@@ -188,11 +192,71 @@ def alla_franvaro(ar: int | None = None, db: Session = Depends(get_db)):
         "avdelning_namn": f.person.avdelning.kortnamn if f.person and f.person.avdelning else None,
         "typ": f.typ,
         "timmar": float(f.timmar),
+        "pct_av_heltid": f.pct_av_heltid,
+        "is_schablonsemester": f.is_schablonsemester,
         "start_datum": str(f.start_datum),
         "slut_datum": str(f.slut_datum),
         "planeringsår": f.planeringsår,
         "notering": f.notering,
     } for f in rows]
+
+
+@router.post("/franvaro/schablonsemester", status_code=201)
+def rulla_ut_schablonsemester(body: SchablonsemesterIn, db: Session = Depends(get_db)):
+    """Skapar schablonsemesterposter för all aktiv personal baserat på ålder och Villkorsavtalet-T."""
+    rodadagar = svenska_rodadagar(body.start_datum.year)
+    # Lägg till röda dagar från eventuellt angränsande år om slut faller i nästa år
+    rodadagar |= svenska_rodadagar(body.start_datum.year + 1)
+
+    personal = (db.query(Person)
+                .options(selectinload(Person.anstallningar))
+                .filter(Person.aktiv == True)
+                .all())
+
+    skapade = 0
+    for person in personal:
+        # Hitta gällande anstallning (obligatorisk)
+        anst = _hitta_anstallning(person, body.planeringsår)
+        if not anst:
+            continue
+
+        # Födelseår från personnummer — fallback 31 dagar om det inte kan parsas
+        fodelsear = fodelsear_fran_personnummer(person.personnummer)
+        dagar = semesterdagar_for_alder(fodelsear, body.planeringsår) if fodelsear else 31
+        slut = berakna_slutdatum(body.start_datum, dagar, rodadagar)
+        timmar_per_dag = Decimal(str(anst.brutto_timmar)) / Decimal("260")
+        timmar = (Decimal(str(dagar)) * timmar_per_dag).quantize(Decimal("0.01"))
+
+        f = Franvaro(
+            person_id=person.id,
+            typ=FranvaroTyp.semester,
+            timmar=timmar,
+            pct_av_heltid=100,
+            start_datum=body.start_datum,
+            slut_datum=slut,
+            planeringsår=body.planeringsår,
+            notering=f"Schablonsemester {body.planeringsår} ({dagar} dagar)",
+            is_schablonsemester=True,
+        )
+        db.add(f)
+        skapade += 1
+
+    db.commit()
+    return {"skapade": skapade}
+
+
+@router.delete("/franvaro/schablonsemester/{ar}", status_code=200)
+def aterta_schablonsemester(ar: int, db: Session = Depends(get_db)):
+    """Tar bort alla schablonsemesterposter för ett år (individuella justeringar rörs ej)."""
+    rows = db.query(Franvaro).filter(
+        Franvaro.planeringsår == ar,
+        Franvaro.is_schablonsemester == True,
+    ).all()
+    antal = len(rows)
+    for f in rows:
+        db.delete(f)
+    db.commit()
+    return {"borttagna": antal}
 
 
 @router.get("/uppdrag/projekt")
@@ -271,10 +335,30 @@ def ta_bort_uppdrag(person_id: int, uppdrag_id: int, db: Session = Depends(get_d
     db.commit()
 
 
+def _hitta_anstallning(person: Person, ar: int) -> Anstallning | None:
+    target = _date(ar, 7, 1)
+    giltiga = [a for a in person.anstallningar
+               if a.giltig_fran <= target and (a.giltig_till is None or a.giltig_till >= target)]
+    return giltiga[0] if giltiga else (person.anstallningar[0] if person.anstallningar else None)
+
+
 @router.post("/{person_id}/franvaro", response_model=FranvaroOut, status_code=201)
 def skapa_franvaro(person_id: int, body: FranvaroCreate, db: Session = Depends(get_db)):
-    _load_person(db, person_id)
-    f = Franvaro(person_id=person_id, **body.model_dump())
+    p = _load_person(db, person_id)
+    data = body.model_dump()
+
+    # Beräkna timmar från pct_av_heltid eller semester (alltid 100%)
+    pct = body.pct_av_heltid or (100 if body.typ == FranvaroTyp.semester else None)
+    if pct and (body.timmar == 0 or body.timmar is None):
+        anst = _hitta_anstallning(p, body.planeringsår)
+        if anst:
+            rodadagar = svenska_rodadagar(body.start_datum.year)
+            arbets_dagar = count_working_days(body.start_datum, body.slut_datum, rodadagar)
+            timmar_per_dag = Decimal(str(anst.brutto_timmar)) / Decimal("260")
+            data["timmar"] = (Decimal(str(arbets_dagar)) * timmar_per_dag * Decimal(str(pct)) / 100).quantize(Decimal("0.01"))
+        data["pct_av_heltid"] = pct
+
+    f = Franvaro(person_id=person_id, **data)
     db.add(f)
     db.commit()
     db.refresh(f)

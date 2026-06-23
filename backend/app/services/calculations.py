@@ -106,8 +106,9 @@ def berakna_tidskonto(
     konto.heltidsbas = konto.brutto_timmar - konto.semester_timmar
     konto.justerad_heltidsbas = (konto.heltidsbas * konto.tjanstgoringspct / 100).quantize(Decimal("0.01"))
 
-    # Frånvaro
-    franvaro = [f for f in person.franvaro if f.planeringsår == planeringsår]
+    # Frånvaro (semester-typ ingår redan i semester_timmar-avdrag, räknas ej här)
+    franvaro = [f for f in person.franvaro
+                if f.planeringsår == planeringsår and f.typ != "semester"]
     konto.franvaro_timmar = sum(Decimal(str(f.timmar)) for f in franvaro)
     konto.netto_bemanningsbar = max(Decimal("0"), konto.justerad_heltidsbas - konto.franvaro_timmar)
 

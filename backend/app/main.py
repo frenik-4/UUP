@@ -49,6 +49,11 @@ def _migrate(engine):
         "ALTER TABLE uppdrag ADD COLUMN IF NOT EXISTS ekonom_person_id INTEGER REFERENCES personer(id)",
         # Notering-fält på frånvaro (för äldre DB utan kolumnen)
         "ALTER TABLE franvaro ADD COLUMN IF NOT EXISTS notering TEXT",
+        # Semester-typ i frånvaro-enum
+        "ALTER TYPE franvarotyp ADD VALUE IF NOT EXISTS 'semester'",
+        # Procent- och schablon-fält på frånvaro
+        "ALTER TABLE franvaro ADD COLUMN IF NOT EXISTS pct_av_heltid INTEGER",
+        "ALTER TABLE franvaro ADD COLUMN IF NOT EXISTS is_schablonsemester BOOLEAN NOT NULL DEFAULT FALSE",
     ]
     with engine.connect() as conn:
         for s in stmts:

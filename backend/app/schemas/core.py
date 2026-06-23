@@ -71,20 +71,29 @@ class FranvaroOut(BaseModel):
     id: int
     typ: FranvaroTyp
     timmar: Decimal
+    pct_av_heltid: int | None = None
     start_datum: date
     slut_datum: date
     planeringsår: int
     notering: str | None = None
+    is_schablonsemester: bool = False
     model_config = {"from_attributes": True}
 
 
 class FranvaroCreate(BaseModel):
     typ: FranvaroTyp
-    timmar: Decimal
+    timmar: Decimal = Decimal("0")
+    pct_av_heltid: int | None = None
     start_datum: date
     slut_datum: date
     planeringsår: int
     notering: str | None = None
+    is_schablonsemester: bool = False
+
+
+class SchablonsemesterIn(BaseModel):
+    planeringsår: int
+    start_datum: date
 
 
 class TidskontoDel(BaseModel):

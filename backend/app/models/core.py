@@ -59,6 +59,7 @@ class AssignmentStatus(str, enum.Enum):
     nekad = "nekad"         # AVDC har nekat
 
 class FranvaroTyp(str, enum.Enum):
+    semester = "semester"
     sjukdom = "sjukdom"
     foraldraledighet = "foraldraledighet"
     tjanstledighet = "tjanstledighet"
@@ -156,10 +157,12 @@ class Franvaro(Base):
     person_id: Mapped[int] = mapped_column(ForeignKey("personer.id"))
     typ: Mapped[FranvaroTyp] = mapped_column(SAEnum(FranvaroTyp))
     timmar: Mapped[Decimal] = mapped_column(Numeric(8, 2))
+    pct_av_heltid: Mapped[int | None] = mapped_column(Integer)    # procent om angiven istf timmar
     start_datum: Mapped[date] = mapped_column(Date)
     slut_datum: Mapped[date] = mapped_column(Date)
     planeringsår: Mapped[int] = mapped_column(Integer)
     notering: Mapped[str | None] = mapped_column(Text)
+    is_schablonsemester: Mapped[bool] = mapped_column(Boolean, default=False)
 
     person: Mapped["Person"] = relationship("Person", back_populates="franvaro")
 
