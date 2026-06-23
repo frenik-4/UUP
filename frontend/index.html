@@ -184,6 +184,9 @@ body{background:var(--bg0);color:var(--t1);font-family:system-ui,sans-serif;font
 .person-overlay-inner{padding:20px 32px}
 .back-btn{display:inline-flex;align-items:center;gap:6px;background:none;border:1px solid var(--bg3);border-radius:6px;padding:6px 12px;color:var(--t4);font-size:12px;cursor:pointer;margin-bottom:16px}
 .back-btn:hover{color:var(--t1);border-color:var(--t4)}
+.nav-hist-btn{background:var(--bg2);border:1px solid var(--bg3);border-radius:5px;width:28px;height:28px;display:flex;align-items:center;justify-content:center;color:var(--t2);font-size:16px;cursor:pointer;line-height:1;transition:background .15s}
+.nav-hist-btn:hover:not(:disabled){background:var(--bg3);color:var(--t1)}
+.nav-hist-btn:disabled{opacity:.3;cursor:default;pointer-events:none}
 .person-overlay-grid{display:grid;grid-template-columns:255px 1fr;gap:20px;align-items:start}
 .pov-left{position:sticky;top:20px}
 .pending-item{background:var(--bg2);border:1px solid var(--bg3);border-radius:6px;padding:10px 12px;margin-bottom:8px}
@@ -315,6 +318,8 @@ let S = {
   // person overlay
   personOverlay:null, personBelList:null, personFranvaro:null,
   personEditMode:false, personEditData:null, personTab:null,
+  // nav history
+  navHistory:[{view:'dashboard',selectedKurs:null,personId:null}], navIdx:0, _navRestoring:false,
   // frånvaro dialog
   franvaroDialog:null,
   // custom period
@@ -403,7 +408,8 @@ function logout() {
     schablonAr:2026,schablonStart:'',schablonMsg:null,schablonLoading:false,
     kursEditMode:false,kursEditData:null,kursEditSaving:false,kursEditMsg:null,anvandare:null,
     pendingCount:0,loginErr:'',loginLoading:false,activePeriodId:null,year:2026,
-    teamSearch:'',kapSearch:'',persSearch:'',bemanSearch:''});
+    teamSearch:'',kapSearch:'',persSearch:'',bemanSearch:'',
+    navHistory:[{view:'dashboard',selectedKurs:null,personId:null}],navIdx:0,_navRestoring:false});
   render();
 }
 
@@ -511,6 +517,38 @@ function onPeriodChange(val) {
     rc();
   }
 }
+
+// ── NAVIGATION HISTORY ───────────────────────────────────────────────────────
+function navPush() {
+  if (S._navRestoring) return;
+  const st={view:S.view, selectedKurs:S.selectedKurs||null, personId:S.personOverlay?.personId||null};
+  const cur=S.navHistory[S.navIdx];
+  if (cur&&cur.view===st.view&&cur.selectedKurs===st.selectedKurs&&cur.personId===st.personId) return;
+  S.navHistory=S.navHistory.slice(0,S.navIdx+1);
+  S.navHistory.push(st);
+  S.navIdx=S.navHistory.length-1;
+}
+async function applyNavEntry(st) {
+  S._navRestoring=true;
+  S.personOverlay=null; S.personBelList=null; S.personFranvaro=null;
+  S.personEditMode=false; S.personEditData=null; S.personTab=null;
+  S.kursEditMode=false; S.kursEditData=null; S.kursEditMsg=null;
+  S.view=st.view; S.selectedKurs=st.selectedKurs||null; S.kursDetail=null;
+  if (st.personId) {
+    S.personOverlay={personId:st.personId,fromView:st.view};
+    render();
+    const [,bels,detail]=await Promise.all([loadKonto(st.personId),loadPersonBel(st.personId),api('/personal/'+st.personId)]);
+    S.personBelList=bels;
+    S.personFranvaro=(detail?.franvaro||[]).filter(f=>f.start_datum&&f.slut_datum);
+    if (!S.kapacitet) await ensureKap();
+  } else if (st.selectedKurs) {
+    rc(); await loadKurs(st.selectedKurs);
+  }
+  render();
+  S._navRestoring=false;
+}
+async function navBack() { if (S.navIdx<=0) return; S.navIdx--; await applyNavEntry(S.navHistory[S.navIdx]); }
+async function navForward() { if (S.navIdx>=S.navHistory.length-1) return; S.navIdx++; await applyNavEntry(S.navHistory[S.navIdx]); }
 
 function activeCustomPeriod() {
   if (S.activePeriodId!=='custom') return null;
@@ -837,6 +875,10 @@ function renderShell(content) {
   return `<div class="topbar">
     <div class="topbar-left">
       <div class="app-title">UUP <span>BEMANNING</span></div>
+      <div style="display:flex;align-items:center;gap:4px">
+        <button class="nav-hist-btn" onclick="navBack()" ${S.navIdx<=0?'disabled':''} title="Bakåt">&#8592;</button>
+        <button class="nav-hist-btn" onclick="navForward()" ${S.navIdx>=S.navHistory.length-1?'disabled':''} title="Framåt">&#8594;</button>
+      </div>
       <div style="display:flex;align-items:center;gap:6px">
         <span style="font-size:10px;font-weight:700;color:var(--t4);text-transform:uppercase;letter-spacing:.06em">Period</span>
         <select class="period-select" onchange="onPeriodChange(this.value)">
@@ -2753,7 +2795,7 @@ async function deleteUppdrag(personId, uppdragId) {
 
 // ── PERSON OVERLAY ────────────────────────────────────────────────────────────
 async function openPersonOverlay(personId) {
-  S.personOverlay={personId,fromView:S.view}; S.personBelList=null; S.personFranvaro=null; S.personTab=null; render();
+  navPush(); S.personOverlay={personId,fromView:S.view}; S.personBelList=null; S.personFranvaro=null; S.personTab=null; render();
   const [,bels,detail]=await Promise.all([loadKonto(personId),loadPersonBel(personId),api('/personal/'+personId)]);
   S.personBelList=bels;
   S.personFranvaro=(detail?.franvaro||[]).filter(f=>f.start_datum&&f.slut_datum);
@@ -3041,6 +3083,7 @@ async function savePersonEdit() {
 
 // ── EVENTS ─────────────────────────────────────────────────────────────────────
 function navigate(view){
+  navPush();
   S.view=view; S.selectedKurs=null; S.kursDetail=null; S.personOverlay=null; S.personEditMode=false;
   S.kursEditMode=false; S.kursEditData=null; S.kursEditMsg=null;
   if (view==='installningar') { loadRegler(); }
@@ -3049,7 +3092,7 @@ function navigate(view){
   render();
 }
 
-async function selectKurs(id){ S.selectedKurs=id; S.kursDetail=null; S.kursEditMode=false; S.kursEditData=null; S.kursEditMsg=null; rc(); await loadKurs(id); rc(); }
+async function selectKurs(id){ navPush(); S.selectedKurs=id; S.kursDetail=null; S.kursEditMode=false; S.kursEditData=null; S.kursEditMsg=null; rc(); await loadKurs(id); rc(); }
 
 async function approveAsg(id, godkand){
   await api('/kurser/belaggningar/'+id+'/status',{method:'PATCH',body:JSON.stringify({status:godkand?'godkand':'nekad'})});
