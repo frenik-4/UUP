@@ -138,9 +138,12 @@ body{background:var(--bg0);color:var(--t1);font-family:system-ui,sans-serif;font
 .tk-val{font-size:13px;font-weight:600}
 
 /* Bemanning */
-.bem-layout{display:grid;grid-template-columns:270px 1fr;gap:12px;height:calc(100vh - 148px)}
-.bem-list{overflow-y:auto;background:var(--bg2);border:1px solid var(--bg3);border-radius:var(--rad)}
-.bem-detail{overflow-y:auto;background:var(--bg2);border:1px solid var(--bg3);border-radius:var(--rad)}
+.bem-layout{display:flex;gap:0;height:calc(100vh - 148px)}
+.bem-list{overflow-y:auto;background:var(--bg2);border:1px solid var(--bg3);border-radius:var(--rad);flex-shrink:0;min-width:180px;max-width:700px}
+.bem-resize-handle{width:6px;flex-shrink:0;cursor:col-resize;background:transparent;position:relative;z-index:1}
+.bem-resize-handle::after{content:'';position:absolute;top:0;bottom:0;left:2px;width:2px;background:var(--bg3);border-radius:1px;transition:background 0.15s}
+.bem-resize-handle:hover::after,.bem-resize-handle.dragging::after{background:var(--blue)}
+.bem-detail{overflow-y:auto;background:var(--bg2);border:1px solid var(--bg3);border-radius:var(--rad);flex:1;min-width:0}
 .course-row{display:flex;align-items:flex-start;gap:8px;padding:8px 12px;border-bottom:1px solid var(--bg3);cursor:pointer}
 .course-row:hover{background:var(--bg3)}
 .course-row.selected{background:#1e3050;border-left:3px solid var(--blue);padding-left:9px}
@@ -175,7 +178,7 @@ body{background:var(--bg0);color:var(--t1);font-family:system-ui,sans-serif;font
 
 /* Person detail overlay */
 .person-overlay{position:fixed;inset:0;background:var(--bg0);z-index:50;overflow-y:auto}
-.person-overlay-inner{max-width:1020px;margin:0 auto;padding:20px 24px}
+.person-overlay-inner{padding:20px 32px}
 .back-btn{display:inline-flex;align-items:center;gap:6px;background:none;border:1px solid var(--bg3);border-radius:6px;padding:6px 12px;color:var(--t4);font-size:12px;cursor:pointer;margin-bottom:16px}
 .back-btn:hover{color:var(--t1);border-color:var(--t4)}
 .person-overlay-grid{display:grid;grid-template-columns:255px 1fr;gap:20px;align-items:start}
@@ -232,7 +235,8 @@ body{background:var(--bg0);color:var(--t1);font-family:system-ui,sans-serif;font
 .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 .form-grid.wide{grid-template-columns:1fr}
 .form-field{display:flex;flex-direction:column;gap:5px}
-.form-label{font-size:11px;font-weight:700;color:var(--t4);text-transform:uppercase;letter-spacing:.05em}
+.form-group{margin-bottom:12px}
+.form-label{font-size:11px;font-weight:700;color:var(--t4);text-transform:uppercase;letter-spacing:.05em;display:block;margin-bottom:5px}
 .form-input{background:var(--bg2);border:1px solid var(--bg3);border-radius:6px;padding:8px 11px;color:var(--t1);font-size:13px;outline:none;width:100%}
 .form-input:focus{border-color:var(--blue)}
 .form-select{background:var(--bg2);border:1px solid var(--bg3);border-radius:6px;padding:8px 11px;color:var(--t1);font-size:13px;outline:none;width:100%;cursor:pointer}
@@ -304,8 +308,12 @@ let S = {
   // bemanning
   selectedKurs:null, kursDetail:null, bemanFilter:'all', bemanSearch:'',
   // person overlay
-  personOverlay:null, personBelList:null,
+  personOverlay:null, personBelList:null, personFranvaro:null,
   personEditMode:false, personEditData:null,
+  // frånvaro dialog
+  franvaroDialog:null,
+  // custom period
+  customPeriod:{start:'',slut:''},
   // picker
   pickerKursId:null, pickerPersonId:null, pickerTimmar:60,
   pickerStatus:'begard', pickerSearch:'', pickerValMsg:null,
@@ -349,12 +357,31 @@ async function doLogin() {
 
 function fillDemo(e){ document.getElementById('l-e').value=e; document.getElementById('l-p').value='demo1234'; }
 
+function startBemResize(e) {
+  e.preventDefault();
+  const startX = e.clientX, startW = S.bemListWidth || 380;
+  const handle = e.currentTarget;
+  handle.classList.add('dragging');
+  function onMove(ev) {
+    S.bemListWidth = Math.max(180, Math.min(700, startW + ev.clientX - startX));
+    const el = document.querySelector('.bem-list');
+    if (el) el.style.width = S.bemListWidth + 'px';
+  }
+  function onUp() {
+    handle.classList.remove('dragging');
+    document.removeEventListener('mousemove', onMove);
+    document.removeEventListener('mouseup', onUp);
+  }
+  document.addEventListener('mousemove', onMove);
+  document.addEventListener('mouseup', onUp);
+}
+
 function logout() {
   localStorage.removeItem('uup_token'); localStorage.removeItem('uup_user');
   Object.assign(S,{token:null,user:null,view:'dashboard',avdelningar:null,perioder:null,
     personal:null,kurser:null,kapacitet:null,kursCache:{},kontoCache:{},belaggningsCache:{},
-    selectedKurs:null,kursDetail:null,personOverlay:null,personBelList:null,
-    personEditMode:false,personEditData:null,installningar:null,installSaving:false,installMsg:null,
+    selectedKurs:null,kursDetail:null,personOverlay:null,personBelList:null,personFranvaro:null,
+    personEditMode:false,personEditData:null,franvaroDialog:null,installningar:null,installSaving:false,installMsg:null,
     pendingCount:0,loginErr:'',loginLoading:false,activePeriodId:null,year:2026,
     teamSearch:'',kapSearch:'',persSearch:'',bemanSearch:''});
   render();
@@ -442,6 +469,7 @@ function miniBar(god, beg, avail) {
 // Period change
 function onPeriodChange(val) {
   if (val==='all') { S.activePeriodId=null; }
+  else if (val==='custom') { S.activePeriodId='custom'; }
   else {
     const pid=parseInt(val); S.activePeriodId=pid;
     const p=(S.perioder||[]).find(p=>p.id===pid);
@@ -453,12 +481,25 @@ function onPeriodChange(val) {
   rc();
 }
 
+function activeCustomPeriod() {
+  if (S.activePeriodId!=='custom') return null;
+  const {start,slut}=S.customPeriod;
+  if (!start||!slut) return null;
+  return {start_datum:start, slut_datum:slut};
+}
+
 function filteredKurser() {
   const ks=S.kurser||[];
+  const cp=activeCustomPeriod();
+  if (cp) {
+    const overlap=new Set((S.perioder||[])
+      .filter(p=>p.start_datum<=cp.slut_datum && p.slut_datum>=cp.start_datum)
+      .map(p=>p.id));
+    return ks.filter(k=>overlap.has(k.period_id));
+  }
   if (!S.activePeriodId) return ks;
   const sel=(S.perioder||[]).find(p=>p.id===S.activePeriodId);
   if (!sel) return ks;
-  // Include courses from any period that overlaps with the selected period
   const overlap=new Set((S.perioder||[])
     .filter(p=>p.start_datum<=sel.slut_datum && p.slut_datum>=sel.start_datum)
     .map(p=>p.id));
@@ -472,7 +513,7 @@ const fd = s => s ? (s+'').substring(0,10) : '—';
 
 // Beräkna hur många av en beläggnings timmar som faller i vald period
 function periodTimmar(b) {
-  const per = (S.perioder||[]).find(p=>p.id===S.activePeriodId);
+  const per = activeCustomPeriod() || (S.perioder||[]).find(p=>p.id===S.activePeriodId);
   if (!per || !b.belaggning_start || !b.belaggning_slut) return null;
   const bS=new Date(b.belaggning_start).getTime(), bE=new Date(b.belaggning_slut).getTime();
   const pS=new Date(per.start_datum).getTime(), pE=new Date(per.slut_datum).getTime();
@@ -496,7 +537,7 @@ function getBelaggningDates(b) {
 }
 
 // Render Gantt-tidslinje för en persons belaggningar
-function renderTimeline(bels, activePeriodId) {
+function renderTimeline(bels, activePeriodId, franvaro=[]) {
   const datedBels = bels.map(b=>({b, d:getBelaggningDates(b)})).filter(x=>x.d);
   if (!datedBels.length) return '';
 
@@ -504,7 +545,8 @@ function renderTimeline(bels, activePeriodId) {
   const allEnds   = datedBels.map(x=>new Date(x.d.slut).getTime());
 
   let rangeStart, rangeEnd;
-  const selPer = (S.perioder||[]).find(p=>p.id===activePeriodId);
+  const cp = activeCustomPeriod();
+  const selPer = cp || (S.perioder||[]).find(p=>p.id===activePeriodId);
   if (selPer) {
     rangeStart = new Date(selPer.start_datum).getTime();
     rangeEnd   = new Date(selPer.slut_datum).getTime();
@@ -538,18 +580,18 @@ function renderTimeline(bels, activePeriodId) {
     const w = Math.max(0.5, right - left);
     const col = statusColor[b.status]||'var(--t4)';
     const isPending = b.status==='begard'||b.status==='utkast';
-    const opacity = d.exact ? (isPending?0.75:1) : 0.4;
-    const borderStyle = isPending ? `border:2px dashed ${col};box-sizing:border-box;` : '';
-    const bgStyle = isPending ? `background:transparent;${borderStyle}` : `background:${col};`;
+    const baseOpacity = d.exact ? 1 : 0.5;
+    const fillOpacity = isPending ? 0.35 : 1;
+    const borderStyle = isPending ? `outline:2px dashed ${col};outline-offset:-2px;` : '';
     const labelText = fh(b.timmar)+(d.exact?'':'*');
     const statusIcon = b.status==='begard'?'⏳':b.status==='utkast'?'✏':'';
     return `<div class="tl-row">
       <div class="tl-label" style="width:${colW}px" onclick="closePersonOverlayGoKurs(${b.kurs.id})" title="${b.kurs.namn}">${b.kurs.kod}</div>
       <div class="tl-track">
         ${todayVisible?`<div class="tl-today" style="left:${todayPct}%"></div>`:''}
-        <div class="tl-bar" style="left:${left}%;width:${w}%;${bgStyle}opacity:${opacity}"
+        <div class="tl-bar" style="left:${left}%;width:${w}%;background:${col};opacity:${(baseOpacity*fillOpacity).toFixed(2)};${borderStyle}"
              title="${statusIcon} ${b.kurs.namn} · ${fh(b.timmar)} · ${fd(d.start)}–${fd(d.slut)}${d.exact?'':' (perioden, exakt ej satt)'}">
-          ${w>6?`<span class="tl-bar-label" style="color:${isPending?col:'inherit'}">${statusIcon}${labelText}</span>`:''}
+          ${w>6?`<span class="tl-bar-label">${statusIcon}${labelText}</span>`:''}
         </div>
       </div>
     </div>`;
@@ -561,13 +603,33 @@ function renderTimeline(bels, activePeriodId) {
 
   const hasEstimates = datedBels.some(x=>!x.d.exact);
 
+  // Frånvarostaplar överst (en rad per frånvaro-post som faller inom intervallet)
+  const franvaroRows = (franvaro||[]).map(f=>{
+    const fS=new Date(f.start_datum).getTime(), fE=new Date(f.slut_datum).getTime();
+    if (fE<rangeStart||fS>rangeEnd) return '';
+    const left=pct(Math.max(fS,rangeStart)), right=pct(Math.min(fE,rangeEnd));
+    const w=Math.max(0.5,right-left);
+    const typLabel={sjukdom:'Sjukdom',foraldraledighet:'Föräldraled.',tjanstledighet:'Tjänstled.',vab:'VAB',konferens:'Konferens',ovrigt:'Övrigt'}[f.typ]||f.typ;
+    return `<div class="tl-row">
+      <div class="tl-label" style="width:${colW}px;color:var(--red);font-size:10px">${typLabel}</div>
+      <div class="tl-track">
+        <div class="tl-bar" style="left:${left}%;width:${w}%;background:var(--red);opacity:0.55"
+             title="${typLabel} · ${fh(f.timmar)} · ${fd(f.start_datum)}–${fd(f.slut_datum)}${f.notering?' · '+f.notering:''}">
+          ${w>8?`<span class="tl-bar-label">${fh(f.timmar)}</span>`:''}
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+
   return `<div class="tl-wrap">
     <div class="tl-months" style="margin-left:${colW}px">${monthLabels}</div>
+    ${franvaroRows}
     ${rows}
     <div class="tl-legend">
       <div class="tl-legend-item"><div style="width:10px;height:10px;border-radius:2px;background:var(--green)"></div>Godkänd</div>
       <div class="tl-legend-item"><div style="width:10px;height:10px;border-radius:2px;background:var(--amber)"></div>Begärd</div>
       <div class="tl-legend-item"><div style="width:10px;height:10px;border-radius:2px;background:var(--t4)"></div>Utkast</div>
+      ${franvaro&&franvaro.length?'<div class="tl-legend-item"><div style="width:10px;height:10px;border-radius:2px;background:var(--red);opacity:0.55"></div>Frånvaro</div>':''}
       ${todayVisible?'<div class="tl-legend-item"><div style="width:2px;height:10px;background:var(--red)"></div>Idag</div>':''}
       ${hasEstimates?'<div class="tl-legend-item" style="margin-left:auto;font-style:italic">* = exakta datum ej satta, visar period</div>':''}
     </div>
@@ -623,8 +685,8 @@ function renderLogin() {
     </button>
     <div class="demo-accounts">
       <p>Demokonton (lösenord: <code style="color:var(--t3)">demo1234</code>)</p>
-      ${[['Prefekt','prefekt@uup.local'],['AVDC Ped','avdc.ped@uup.local'],['AVDC Spe','avdc.spe@uup.local'],
-         ['STR Ped','str.ped@uup.local'],['STR Spe','str.spe@uup.local'],['Ekonom','ekonom@uup.local'],['Admin','admin@uup.local']]
+      ${[['Prefekt','prefekt@uup.se'],['AVDC Ped','avdc.ped@uup.se'],['AVDC Spe','avdc.spe@uup.se'],['AVDC Spr','avdc.spr@uup.se'],['AVDC Utb','avdc.utb@uup.se'],
+         ['STR Ped','str.ped@uup.se'],['STR Spe','str.spe@uup.se'],['Admin','admin@uup.se']]
         .map(([l,e])=>`<span class="demo-btn" onclick="fillDemo('${e}')">${l}</span>`).join('')}
     </div>
   </div></div>`;
@@ -652,10 +714,15 @@ function renderShell(content) {
       <div style="display:flex;align-items:center;gap:6px">
         <span style="font-size:10px;font-weight:700;color:var(--t4);text-transform:uppercase;letter-spacing:.06em">Period</span>
         <select class="period-select" onchange="onPeriodChange(this.value)">
-          <option value="all" ${!S.activePeriodId?'selected':''}>Alla perioder</option>
+          <option value="all" ${!S.activePeriodId&&S.activePeriodId!=='custom'?'selected':''}>Alla perioder</option>
           ${perioder}
+          <option value="custom" ${S.activePeriodId==='custom'?'selected':''}>Anpassad…</option>
         </select>
-        ${selPer?`<span style="font-size:11px;font-weight:700;color:var(--blue);background:#0f1e3a;border:1px solid #1e3a6e;border-radius:4px;padding:2px 7px">${perLabel}</span>`:''}
+        ${S.activePeriodId==='custom'?`
+          <input type="date" class="period-select" style="width:120px" value="${S.customPeriod.start}" onchange="S.customPeriod.start=this.value;rc()" title="Startdatum"/>
+          <span style="color:var(--t4);font-size:11px">–</span>
+          <input type="date" class="period-select" style="width:120px" value="${S.customPeriod.slut}" onchange="S.customPeriod.slut=this.value;rc()" title="Slutdatum"/>
+        `:selPer?`<span style="font-size:11px;font-weight:700;color:var(--blue);background:#0f1e3a;border:1px solid #1e3a6e;border-radius:4px;padding:2px 7px">${perLabel}</span>`:''}
       </div>
     </div>
     <div class="topbar-right">
@@ -793,7 +860,6 @@ function renderPersonOverlay() {
             <div class="tk-row"><span class="tk-label">− FOK (${konto.fok_pct}%)</span><span class="tk-val" style="color:var(--purple)">-${fh(konto.fok_timmar)}</span></div>
             <div class="tk-row"><span class="tk-label">− Kollegialt (${konto.kollegialt_pct}%)</span><span class="tk-val" style="color:var(--purple)">-${fh(konto.kollegialt_timmar)}</span></div>
             ${udRows}
-            ${canEdit?`<div style="margin:4px 0 4px 10px"><button class="btn-sm" style="font-size:11px;background:var(--bg3);color:var(--t1);border:1px dashed var(--bg3)" onclick="openBemanningDialog(${personId})">+ Lägg till bemanning</button></div>`:''}
             <div class="tk-row" style="background:var(--bg3);border-radius:5px;padding:7px;margin-top:4px">
               <span class="tk-label" style="color:var(--t1);font-weight:700">Tillgänglig undervisning</span>
               <span class="tk-val" style="color:var(--green)">${fh(avail)}</span>
@@ -813,10 +879,14 @@ function renderPersonOverlay() {
               <div class="kap-legend-item"><div class="kap-dot" style="background:var(--amber)"></div>Begärd</div>
             </div>
           </div>
+          ${canEdit?`<div style="display:flex;gap:8px;margin-top:14px">
+            <button class="btn-sm" style="flex:1;font-size:12px;padding:7px 10px;background:var(--blue);color:#fff;border:none" onclick="openBemanningDialog(${personId})">+ Bemanning</button>
+            <button class="btn-sm" style="flex:1;font-size:12px;padding:7px 10px;background:var(--bg3);color:var(--t1);border:1px solid var(--bg3)" onclick="openFranvaroDialog(${personId})">+ Frånvaro</button>
+          </div>`:''}
         </div>
         <div>
           ${bels.length?`<div class="section-title" style="margin-top:0">Tidslinje — kursbeläggning</div>
-          ${renderTimeline(bels, S.activePeriodId)}`:''}
+          ${renderTimeline(bels, S.activePeriodId, S.personFranvaro||[])}`:''}
           ${begarda.length?`
             <div class="section-title">⏳ Begärda — kräver beslut (${begarda.length})</div>
             ${begarda.map(b=>`<div class="pending-item">
@@ -833,6 +903,17 @@ function renderPersonOverlay() {
           ${utkast.length?`<div class="section-title">✏ Utkast (${utkast.length})</div>${utkast.map(belRow).join('')}`:''}
           ${nekade.length?`<div class="section-title">✗ Nekade (${nekade.length})</div>${nekade.map(belRow).join('')}`:''}
           ${!bels.length?`<div class="empty-state"><div class="empty-icon">📋</div><div>Inga kursbeläggningar för ${S.year}</div></div>`:''}
+          ${(S.personFranvaro||[]).length?`
+            <div class="section-title" style="margin-top:16px">Frånvaro</div>
+            ${(S.personFranvaro||[]).map(f=>`
+              <div style="display:flex;align-items:center;gap:8px;padding:7px 10px;background:var(--bg2);border:1px solid var(--bg3);border-radius:6px;margin-bottom:6px">
+                <div style="flex:1">
+                  <div style="font-size:12px;font-weight:600;color:var(--t1)">${{sjukdom:'Sjukdom',foraldraledighet:'Föräldraledighet',tjanstledighet:'Tjänstledighet',vab:'VAB',konferens:'Konferens',ovrigt:'Övrigt'}[f.typ]||f.typ}</div>
+                  <div style="font-size:11px;color:var(--t3)">${fd(f.start_datum)} – ${fd(f.slut_datum)}${f.timmar?` · ${fh(f.timmar)}`:''}${f.notering?' · '+f.notering:''}</div>
+                </div>
+                ${canEdit?`<button class="btn-sm del" style="padding:0 6px;font-size:11px;line-height:18px" onclick="deleteFranvaro(${personId},${f.id})">✕</button>`:''}
+              </div>`).join('')}
+          `:''}
         </div>
       </div>
     </div>
@@ -1099,16 +1180,49 @@ function renderDashGeneric() {
 // ── RENDER: BEMANNING ─────────────────────────────────────────────────────────
 function renderBemanning() {
   const ks=filteredKurser();
-  const cnt={all:ks.length,unstaffed:ks.filter(k=>kursStatus(k)==='unstaffed').length,
-    partial:ks.filter(k=>kursStatus(k)==='partial').length,begard:ks.filter(k=>kursStatus(k)==='begard').length};
-  let filt=S.bemanFilter==='all'?ks:ks.filter(k=>kursStatus(k)===S.bemanFilter);
+  // Ämnesområdes- och nivå-filter
+  if (!S.bemanAmne) S.bemanAmne=null;
+  if (!S.bemanNiva) S.bemanNiva=null;
+  let base=S.bemanAmne?ks.filter(k=>k.amnesomrade===S.bemanAmne):ks;
+  base=S.bemanNiva?base.filter(k=>k.niva===S.bemanNiva):base;
+  const cnt={all:base.length,unstaffed:base.filter(k=>kursStatus(k)==='unstaffed').length,
+    partial:base.filter(k=>kursStatus(k)==='partial').length,begard:base.filter(k=>kursStatus(k)==='begard').length};
+  let filt=S.bemanFilter==='all'?base:base.filter(k=>kursStatus(k)===S.bemanFilter);
   if (S.bemanSearch){const q=S.bemanSearch.toLowerCase();filt=filt.filter(k=>k.namn.toLowerCase().includes(q)||k.kod.toLowerCase().includes(q));}
+
+  // Sortering
+  if (!S.sortBem) S.sortBem={k:'namn',d:'asc'};
+  const sb=S.sortBem;
+  filt=[...filt].sort((a,b)=>{
+    let va,vb;
+    if (sb.k==='namn'){va=a.namn;vb=b.namn;}
+    else if (sb.k==='kod'){va=a.kod;vb=b.kod;}
+    else if (sb.k==='period'){va=periodName(a.period_id);vb=periodName(b.period_id);}
+    else if (sb.k==='status'){va=kursStatus(a);vb=kursStatus(b);}
+    else if (sb.k==='bemannat'){va=+(a.bemannat_godkand)||0;vb=+(b.bemannat_godkand)||0;}
+    else if (sb.k==='budget'){va=+(a.budget_timmar)||0;vb=+(b.budget_timmar)||0;}
+    else {va=a.namn;vb=b.namn;}
+    if (typeof va==='string') return sb.d==='asc'?va.localeCompare(vb,'sv'):vb.localeCompare(va,'sv');
+    return sb.d==='asc'?va-vb:vb-va;
+  });
+
+  function sortChip(label,key){
+    const active=sb.k===key;
+    const ic=active?(sb.d==='asc'?'↑':'↓'):'';
+    return `<span class="filter-chip ${active?'active':''}" style="font-size:10px" onclick="S.sortBem={k:'${key}',d:S.sortBem?.k==='${key}'&&S.sortBem?.d==='asc'?'desc':'asc'};rc()">${label}${ic}</span>`;
+  }
+
+  // Unika ämnesområden och nivåer i denna period
+  const amnen=[...new Set(ks.map(k=>k.amnesomrade).filter(Boolean))].sort();
+  const nivaer=[...new Set(ks.map(k=>k.niva).filter(Boolean))].sort();
+  const amneChips=amnen.map(a=>`<span class="filter-chip ${S.bemanAmne===a?'active':''}" onclick="S.bemanAmne=S.bemanAmne==='${a}'?null:'${a}';S.bemanFilter='all';rc()">${a}</span>`).join('');
+  const nivaChips=nivaer.length>1?nivaer.map(n=>`<span class="filter-chip ${S.bemanNiva===n?'active':''}" style="font-size:11px" onclick="S.bemanNiva=S.bemanNiva==='${n}'?null:'${n}';rc()">${n}</span>`).join(''):'';
 
   const list=filt.length?filt.map(k=>`
     <div class="course-row ${S.selectedKurs===k.id?'selected':''}" onclick="selectKurs(${k.id})">
       <div class="cr-body">
         <div class="cr-name">${k.namn}</div>
-        <div class="cr-meta">${k.kod} · ${periodName(k.period_id)} · ${k.hp}hp · ${fh(k.bemannat_godkand)}/${+(k.budget_timmar)?fh(k.budget_timmar):'?h'}</div>
+        <div class="cr-meta">${k.kod} · ${periodName(k.period_id)} · ${k.hp}hp${k.amnesomrade?' · '+k.amnesomrade:''} · ${fh(k.bemannat_godkand)}/${+(k.budget_timmar)?fh(k.budget_timmar):'?h'}</div>
       </div>
       <div class="cr-right">${statusBadge(kursStatus(k))}</div>
     </div>`).join('')
@@ -1120,16 +1234,25 @@ function renderBemanning() {
        <div style="font-size:12px">Klicka i listan för att se detaljer</div></div>`;
 
   return `<div class="page-title">Bemanning</div>
-    <div class="page-sub">Tilldela lärare · BEGÄRD → GODKÄND</div>
-    <div class="table-toolbar" style="margin-bottom:8px">
+    <div class="page-sub">Tilldela lärare · BEGÄRD → GODKÄND · ${cnt.all} kurser i perioden</div>
+    <div class="table-toolbar" style="margin-bottom:4px">
       <div class="search-wrap">
         <input class="toolbar-search" placeholder="Sök kurs, kod…" value="${S.bemanSearch}" oninput="S.bemanSearch=this.value;rc()"/>
       </div>
+      ${amneChips}
+      ${nivaChips}
+    </div>
+    <div class="table-toolbar" style="margin-bottom:4px;padding-top:0">
       ${[['all',`Alla (${cnt.all})`],['unstaffed',`Ej bemannade (${cnt.unstaffed})`],['partial',`Delvis (${cnt.partial})`],['begard',`Begärda (${cnt.begard})`]]
         .map(([v,l])=>`<span class="filter-chip ${S.bemanFilter===v?'active':''}" onclick="S.bemanFilter='${v}';rc()">${l}</span>`).join('')}
     </div>
+    <div class="table-toolbar" style="margin-bottom:8px;padding-top:0;gap:4px">
+      <span style="font-size:10px;color:var(--t4);margin-right:2px">Sortera:</span>
+      ${sortChip('Namn','namn')}${sortChip('Kod','kod')}${sortChip('Period','period')}${sortChip('Status','status')}${sortChip('Bemannat','bemannat')}${sortChip('Budget','budget')}
+    </div>
     <div class="bem-layout">
-      <div class="bem-list">${list}</div>
+      <div class="bem-list" style="width:${S.bemListWidth||380}px">${list}</div>
+      <div class="bem-resize-handle" onmousedown="startBemResize(event)" title="Dra för att ändra bredd"></div>
       <div class="bem-detail">${detail}</div>
     </div>`;
 }
@@ -1799,6 +1922,92 @@ async function openBemanningDialog(personId) {
 
 function closeBemanningDialog(){ document.querySelector('.modal-bg')?.remove(); S.bemanningDialog=null; }
 
+// ── FRÅNVARO DIALOG ─────────────────────────────────────────────────────────
+function openFranvaroDialog(personId) {
+  const today=new Date().toISOString().substring(0,10);
+  S.franvaroDialog={personId, typ:'sjukdom', start:today, slut:today, timmar:0, notering:'', saving:false, error:null};
+  document.getElementById('app').insertAdjacentHTML('beforeend', renderFranvaroDialog());
+}
+
+function closeFranvaroDialog(){ document.querySelector('.franvaro-modal')?.remove(); S.franvaroDialog=null; }
+
+function renderFranvaroDialog() {
+  const d=S.franvaroDialog; if(!d) return '';
+  const typer=[['sjukdom','Sjukdom'],['foraldraledighet','Föräldraledighet'],['tjanstledighet','Tjänstledighet'],['vab','VAB'],['konferens','Konferens'],['ovrigt','Övrigt']];
+  return `<div class="modal-bg franvaro-modal" onclick="if(event.target===this)closeFranvaroDialog()" style="z-index:150">
+    <div class="modal-card" style="max-width:420px">
+      <div class="modal-title">Lägg till frånvaro</div>
+      ${d.error?`<div style="background:#2d1515;border:1px solid #7f1d1d;border-radius:5px;padding:8px 10px;font-size:12px;color:#fca5a5;margin-bottom:10px">${d.error}</div>`:''}
+      <div class="form-group">
+        <label class="form-label">Typ</label>
+        <select class="sel" style="width:100%" onchange="S.franvaroDialog.typ=this.value">
+          ${typer.map(([v,l])=>`<option value="${v}" ${d.typ===v?'selected':''}>${l}</option>`).join('')}
+        </select>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <div class="form-group">
+          <label class="form-label">Startdatum</label>
+          <input type="date" class="form-input" value="${d.start}" onchange="S.franvaroDialog.start=this.value"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Slutdatum</label>
+          <input type="date" class="form-input" value="${d.slut}" onchange="S.franvaroDialog.slut=this.value"/>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Timmar (avdrag på tidskonto)</label>
+        <input type="number" class="form-input" min="0" step="1" placeholder="t.ex. 412 för halv termin" value="${d.timmar||''}" oninput="S.franvaroDialog.timmar=parseFloat(this.value)||0"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Notering (valfritt)</label>
+        <input type="text" class="form-input" placeholder="T.ex. halvtid, operation…" value="${d.notering}" oninput="S.franvaroDialog.notering=this.value"/>
+      </div>
+      <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px">
+        <button class="btn-cancel" onclick="closeFranvaroDialog()">Avbryt</button>
+        <button class="btn-save" onclick="saveFranvaro()" ${d.saving?'disabled':''}>
+          ${d.saving?'Sparar…':'Spara'}
+        </button>
+      </div>
+    </div>
+  </div>`;
+}
+
+function refreshFranvaroDialog() {
+  const e=document.querySelector('.franvaro-modal'); if(!e) return;
+  const t=document.createElement('div'); t.innerHTML=renderFranvaroDialog(); e.replaceWith(t.firstChild);
+}
+
+async function deleteFranvaro(personId, franvaroId) {
+  if (!confirm('Ta bort frånvaro?')) return;
+  await api('/personal/'+personId+'/franvaro/'+franvaroId, {method:'DELETE'});
+  S.kontoCache={};
+  const [detail]=await Promise.all([api('/personal/'+personId), loadKonto(personId)]);
+  S.personFranvaro=(detail?.franvaro||[]).filter(f=>f.start_datum&&f.slut_datum);
+  render();
+}
+
+async function saveFranvaro() {
+  const d=S.franvaroDialog; if(!d||d.saving) return;
+  if (!d.start||!d.slut) { d.error='Ange start- och slutdatum.'; refreshFranvaroDialog(); return; }
+  if (d.slut<d.start) { d.error='Slutdatum måste vara efter startdatum.'; refreshFranvaroDialog(); return; }
+  d.saving=true; d.error=null; refreshFranvaroDialog();
+  try {
+    const startY=parseInt(d.start.substring(0,4));
+    await api('/personal/'+d.personId+'/franvaro',{method:'POST',body:JSON.stringify({
+      typ:d.typ, start_datum:d.start, slut_datum:d.slut,
+      planeringsår:startY, timmar:d.timmar||0, notering:d.notering||null
+    })});
+    closeFranvaroDialog();
+    // Reload person data
+    S.kontoCache={};
+    const [detail]=await Promise.all([api('/personal/'+d.personId), loadKonto(d.personId)]);
+    S.personFranvaro=(detail?.franvaro||[]).filter(f=>f.start_datum&&f.slut_datum);
+    render();
+  } catch(e) {
+    d.saving=false; d.error=e.detail||'Kunde inte spara frånvaro.'; refreshFranvaroDialog();
+  }
+}
+
 function bemanningSetMode(m){
   const d=S.bemanningDialog; if(!d) return;
   d.mode=m; d.search=''; d.selKursId=null; d.selNamn=''; d.error=null;
@@ -1850,17 +2059,18 @@ async function deleteUppdrag(personId, uppdragId) {
 
 // ── PERSON OVERLAY ────────────────────────────────────────────────────────────
 async function openPersonOverlay(personId) {
-  S.personOverlay={personId,fromView:S.view}; S.personBelList=null; render();
-  const [,bels]=await Promise.all([loadKonto(personId),loadPersonBel(personId)]);
+  S.personOverlay={personId,fromView:S.view}; S.personBelList=null; S.personFranvaro=null; render();
+  const [,bels,detail]=await Promise.all([loadKonto(personId),loadPersonBel(personId),api('/personal/'+personId)]);
   S.personBelList=bels;
+  S.personFranvaro=(detail?.franvaro||[]).filter(f=>f.start_datum&&f.slut_datum);
   if (!S.kapacitet) await ensureKap();
   render();
 }
 
-function closePersonOverlay(){ S.personOverlay=null; S.personBelList=null; S.personEditMode=false; S.personEditData=null; render(); }
+function closePersonOverlay(){ S.personOverlay=null; S.personBelList=null; S.personFranvaro=null; S.personEditMode=false; S.personEditData=null; render(); }
 
 function closePersonOverlayGoKurs(kursId){
-  S.personOverlay=null; S.personBelList=null; S.view='bemanning'; render();
+  S.personOverlay=null; S.personBelList=null; S.personFranvaro=null; S.view='bemanning'; render();
   setTimeout(()=>selectKurs(kursId),80);
 }
 
@@ -2153,7 +2363,15 @@ async function deleteAsg(id){
   rc();
 }
 
-function rc(){ const el=document.getElementById('content'); if(el) el.innerHTML=currentView(); }
+function rc(){
+  const el=document.getElementById('content');
+  if(!el) return;
+  const act=document.activeElement;
+  let ph=null,sel=0;
+  if(act&&act.tagName==='INPUT'&&el.contains(act)){ph=act.placeholder;sel=act.selectionStart||0;}
+  el.innerHTML=currentView();
+  if(ph){const n=el.querySelector(`input[placeholder="${ph}"]`);if(n){n.focus();try{n.setSelectionRange(sel,sel);}catch(e){}}}
+}
 
 function currentView(){
   switch(S.view){

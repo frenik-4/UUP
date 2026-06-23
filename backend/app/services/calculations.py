@@ -16,6 +16,7 @@ Beräkningskedja:
   tillganglig_undervisning = netto_bemanningsbar - fok - kollegialt - uppdrag
 """
 
+from datetime import date
 from decimal import Decimal
 from dataclasses import dataclass, field
 from sqlalchemy.orm import Session
@@ -126,7 +127,6 @@ def berakna_tidskonto(
     konto.kollegialt_timmar = (konto.netto_bemanningsbar * konto.kollegialt_pct / 100).quantize(Decimal("0.01"))
 
     # Uppdrag — beräkna för alla, men dra bara av godkända från tillgänglig tid
-    from datetime import date as _date
     alle_uppdrag = [u for u in person.uppdrag if u.planeringsår == planeringsår]
     totalt_uppdrag = Decimal("0")
     for u in alle_uppdrag:
@@ -138,8 +138,8 @@ def berakna_tidskonto(
         else:  # fasta_timmar
             timmar = v
         if u.start_datum and u.slut_datum and u.typ != UppdragTyp.fasta_timmar:
-            year_start = _date(planeringsår, 1, 1)
-            year_end = _date(planeringsår, 12, 31)
+            year_start = date(planeringsår, 1, 1)
+            year_end = date(planeringsår, 12, 31)
             eff_start = max(u.start_datum, year_start)
             eff_end = min(u.slut_datum, year_end)
             if eff_end >= eff_start:
@@ -161,9 +161,11 @@ def berakna_tidskonto(
         konto.netto_bemanningsbar - konto.fok_timmar - konto.kollegialt_timmar - konto.uppdrag_timmar_totalt
     )
 
-    # Kursbeläggningar
+    # Kursbeläggningar — räkna perioder som STARTAR under planeringsåret (HT + VT)
     for kb in person.kursbelaggningar:
-        # Filtrera på år via kursens period (approximation)
+        per = kb.kurs.period if kb.kurs else None
+        if per and per.start_datum.year != planeringsår:
+            continue
         t = Decimal(str(kb.timmar))
         if kb.status == AssignmentStatus.godkand:
             konto.undervisning_godkand += t
@@ -232,6 +234,3 @@ def _gallande_anstallning(person: Person, ar: int) -> Anstallning | None:
         if a.giltig_fran <= target and (a.giltig_till is None or a.giltig_till >= target)
     ]
     return giltiga[0] if giltiga else (person.anstallningar[0] if person.anstallningar else None)
-
-
-from datetime import date

@@ -4,10 +4,11 @@ from sqlalchemy import extract
 from sqlalchemy.orm import Session, selectinload
 
 from app.database import get_db
-from app.models.core import Person, PersonKategori, PersonKategoriTyp, Kursbelaggning, Kurs, Planeringsperiod, Anstallning, Uppdrag
+from app.models.core import Person, PersonKategori, PersonKategoriTyp, Kursbelaggning, Kurs, Planeringsperiod, Anstallning, Uppdrag, Franvaro
 from app.schemas.core import (PersonListOut, PersonDetailOut, TidskontoDel, ValideringsResultat,
                                KapacitetOut, PersonBelaggningOut, PersonUpdate, AnstallningOut,
-                               AnstallningUpdate, AnstallningCreate, UppdragOut, UppdragCreate)
+                               AnstallningUpdate, AnstallningCreate, UppdragOut, UppdragCreate,
+                               FranvaroOut, FranvaroCreate)
 from app.services.calculations import berakna_tidskonto, validera_belaggning
 
 router = APIRouter(prefix="/personal", tags=["personal"])
@@ -20,7 +21,9 @@ def _full_load(db: Session):
                 selectinload(Person.anstallningar),
                 selectinload(Person.franvaro),
                 selectinload(Person.uppdrag),
-                selectinload(Person.kursbelaggningar),
+                selectinload(Person.kursbelaggningar)
+                    .selectinload(Kursbelaggning.kurs)
+                    .selectinload(Kurs.period),
             ))
 
 
@@ -158,9 +161,13 @@ def person_belaggningar(person_id: int, ar: int | None = None, db: Session = Dep
          .options(selectinload(Kursbelaggning.kurs))
          .filter(Kursbelaggning.person_id == person_id))
     if ar:
+        from datetime import date as _d
         q = q.join(Kurs, Kursbelaggning.kurs_id == Kurs.id)\
              .join(Planeringsperiod, Kurs.period_id == Planeringsperiod.id)\
-             .filter(extract('year', Planeringsperiod.start_datum) == ar)
+             .filter(
+                 Planeringsperiod.start_datum <= _d(ar, 12, 31),
+                 Planeringsperiod.slut_datum >= _d(ar, 1, 1),
+             )
     return q.order_by(Kursbelaggning.status).all()
 
 
@@ -191,6 +198,25 @@ def ta_bort_uppdrag(person_id: int, uppdrag_id: int, db: Session = Depends(get_d
     if not u:
         raise HTTPException(404, "Uppdrag finns inte")
     db.delete(u)
+    db.commit()
+
+
+@router.post("/{person_id}/franvaro", response_model=FranvaroOut, status_code=201)
+def skapa_franvaro(person_id: int, body: FranvaroCreate, db: Session = Depends(get_db)):
+    _load_person(db, person_id)
+    f = Franvaro(person_id=person_id, **body.model_dump())
+    db.add(f)
+    db.commit()
+    db.refresh(f)
+    return FranvaroOut.model_validate(f)
+
+
+@router.delete("/{person_id}/franvaro/{franvaro_id}", status_code=204)
+def ta_bort_franvaro(person_id: int, franvaro_id: int, db: Session = Depends(get_db)):
+    f = db.query(Franvaro).filter(Franvaro.id == franvaro_id, Franvaro.person_id == person_id).first()
+    if not f:
+        raise HTTPException(404, "Frånvaro finns inte")
+    db.delete(f)
     db.commit()
 
 

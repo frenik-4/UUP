@@ -63,7 +63,17 @@ class FranvaroOut(BaseModel):
     start_datum: date
     slut_datum: date
     planeringsår: int
+    notering: str | None = None
     model_config = {"from_attributes": True}
+
+
+class FranvaroCreate(BaseModel):
+    typ: FranvaroTyp
+    timmar: Decimal
+    start_datum: date
+    slut_datum: date
+    planeringsår: int
+    notering: str | None = None
 
 
 class TidskontoDel(BaseModel):
