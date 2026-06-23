@@ -488,6 +488,7 @@ function miniBar(god, beg, avail) {
 
 // Period change
 function onPeriodChange(val) {
+  let yearChanged = false;
   if (val==='all') { S.activePeriodId=null; }
   else if (val==='custom') { S.activePeriodId='custom'; }
   else {
@@ -495,10 +496,16 @@ function onPeriodChange(val) {
     const p=(S.perioder||[]).find(p=>p.id===pid);
     if (p) {
       const yr=parseInt(p.start_datum.substring(0,4));
-      if (yr!==S.year){S.year=yr;S.kapacitet=null;S.kontoCache={};S.belaggningsCache={};}
+      if (yr!==S.year){S.year=yr;S.kapacitet=null;S.kontoCache={};S.belaggningsCache={};yearChanged=true;}
     }
   }
-  rc();
+  if (S.personOverlay && yearChanged) {
+    S.personBelList=null; render();
+    const id=S.personOverlay.personId;
+    Promise.all([loadKonto(id), loadPersonBel(id)]).then(([,bels])=>{S.personBelList=bels;render();});
+  } else {
+    rc();
+  }
 }
 
 function activeCustomPeriod() {
